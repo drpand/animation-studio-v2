@@ -197,6 +197,24 @@
       "action": "pattern_removed",
       "details": "Удалён cliffhanger_boost у writer",
       "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T02:17:04.872770",
+      "action": "pattern_applied",
+      "details": "Применён youtube_format к writer",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T02:17:29.806533",
+      "action": "pattern_applied",
+      "details": "Применён cliffhanger_boost к writer",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T02:17:34.702935",
+      "action": "pattern_removed",
+      "details": "Удалён cliffhanger_boost у writer",
+      "agent_id": "writer"
     }
   ]
 }

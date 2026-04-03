@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkServer();
     loadAgents();
     bindEvents();
+    loadAvailablePatterns();
     setInterval(loadAgents, 5000);
 });
 
@@ -129,6 +130,9 @@ async function openAgentPanel(agentId) {
 
         panel.classList.add('open');
         overlay.classList.add('active');
+
+        // Загружаем правила
+        loadAgentRules(agentId);
     } catch (e) {
         console.error('Ошибка загрузки агента:', e);
     }
@@ -638,6 +642,103 @@ function closeDiscussionPanel() {
 }
 
 // ============================================
+// Rule Builder
+// ============================================
+
+let availablePatterns = [];
+
+async function loadAgentRules(agentId) {
+    try {
+        const res = await fetch(`${API_BASE}/api/med-otdel/${agentId}/rules`);
+        const data = await res.json();
+        renderRules(data.rules || []);
+    } catch (e) {
+        console.error('Ошибка загрузки правил:', e);
+    }
+}
+
+async function loadAvailablePatterns() {
+    try {
+        const res = await fetch(`${API_BASE}/api/med-otdel/patterns`);
+        const data = await res.json();
+        availablePatterns = data.patterns || [];
+        renderPatternsSelect();
+    } catch (e) {
+        console.error('Ошибка загрузки паттернов:', e);
+    }
+}
+
+function renderRules(rules) {
+    const container = document.getElementById('rulesList');
+    if (!rules.length) {
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет применённых правил</div>';
+        return;
+    }
+    container.innerHTML = rules.map(rule => `
+        <div class="rule-item">
+            <div>
+                <div class="rule-name">${escapeHtml(rule.name || rule.key)}</div>
+                <div class="rule-desc">${escapeHtml(rule.description || '')}</div>
+            </div>
+            <button class="rule-remove" onclick="removeRule('${rule.key}')" title="Удалить правило">✕</button>
+        </div>
+    `).join('');
+}
+
+function renderPatternsSelect() {
+    const select = document.getElementById('rulesSelect');
+    select.innerHTML = '<option value="">Выберите правило...</option>';
+    availablePatterns.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.key;
+        opt.textContent = p.name || p.key;
+        select.appendChild(opt);
+    });
+}
+
+async function addRule() {
+    const select = document.getElementById('rulesSelect');
+    const patternKey = select.value;
+    if (!patternKey || !currentAgentId) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/med-otdel/apply-pattern`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ agent_id: currentAgentId, pattern_key: patternKey })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            loadAgentRules(currentAgentId);
+            select.value = '';
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    } catch (e) {
+        alert('Ошибка добавления правила: ' + e.message);
+    }
+}
+
+async function removeRule(patternKey) {
+    if (!currentAgentId) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/med-otdel/remove-pattern`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ agent_id: currentAgentId, pattern_key: patternKey })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            loadAgentRules(currentAgentId);
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    } catch (e) {
+        alert('Ошибка удаления правила: ' + e.message);
+    }
+}
+
+// ============================================
 // Bind Events
 // ============================================
 
@@ -655,6 +756,7 @@ function bindEvents() {
     document.getElementById('btnEvaluate').addEventListener('click', evaluateResult);
     document.getElementById('btnEvolve').addEventListener('click', evolveAgent);
     document.getElementById('btnHrCreate').addEventListener('click', createHrAgent);
+    document.getElementById('btnAddRule').addEventListener('click', addRule);
 
     getOverlay().addEventListener('click', () => { closeAgentPanel(); closeTasksPanel(); closeDiscussionPanel(); });
 

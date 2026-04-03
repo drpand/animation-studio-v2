@@ -413,6 +413,28 @@ body {
 .btn-evolve:hover { opacity: 0.9; transform: translateY(-1px); }
 .btn-evolve:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+/* Rules */
+.rules-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.rule-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: var(--bg-card); border-radius: var(--radius);
+    font-size: 12px; border-left: 3px solid var(--accent);
+}
+.rule-item .rule-name { font-weight: 600; margin-bottom: 2px; }
+.rule-item .rule-desc { color: var(--text-secondary); font-size: 11px; }
+.rule-item .rule-remove {
+    background: none; border: none; color: var(--red); cursor: pointer;
+    font-size: 16px; padding: 0 4px;
+}
+.rule-item .rule-remove:hover { color: var(--text-primary); }
+.rules-add { display: flex; gap: 8px; align-items: center; }
+.rules-add select {
+    flex: 1; padding: 8px 12px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text-primary); font-size: 13px; cursor: pointer;
+}
+.rules-add select:focus { outline: none; border-color: var(--accent); }
+
 /* Tools */
 .tool-section textarea {
     width: 100%; padding: 8px 12px; background: var(--bg-card);

@@ -336,6 +336,13 @@ class BaseAgent:
             with open(STATE_FILE, "r", encoding="utf-8") as f:
                 state = json.load(f)
 
+            # Защита роли: если роль уже существует в state, не позволяем её менять
+            if self.agent_id in state and state[self.agent_id].get("role"):
+                # Роль readonly — сохраняем оригинальную
+                original_role = state[self.agent_id].get("role")
+                if original_role != self.role:
+                    self.role = original_role
+
             state[self.agent_id] = {
                 "name": self.name,
                 "role": self.role,
@@ -344,7 +351,8 @@ class BaseAgent:
                 "instructions": self.instructions,
                 "attachments": self.attachments,
                 "attachment_objects": self.attachment_objects,
-                "chat_history": self.chat_history[-50:]  # Храним последние 50 сообщений
+                "chat_history": self.chat_history[-50:],  # Храним последние 50 сообщений
+                "applied_rules": state.get(self.agent_id, {}).get("applied_rules", [])  # Сохраняем правила
             }
 
             # Атомарная запись через временный файл
