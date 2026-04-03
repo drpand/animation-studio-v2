@@ -183,28 +183,54 @@ class AgentMemory:
         """Получить текущий промпт"""
         return self.data.get("current_prompt")
 
-    def add_lesson(self, lesson: str):
-        """Добавить извлечённый урок. При >5 — суммаризация."""
+    async def add_lesson(self, lesson: str):
+        """Добавить извлечённый урок. При >5 — суммаризация через LLM."""
         self.data["lessons"].append({
             "timestamp": datetime.now().isoformat(),
             "lesson": lesson
         })
-        self._summarize_lessons_if_needed()
+        await self._summarize_lessons_if_needed()
         self.save()
 
-    def _summarize_lessons_if_needed(self):
-        """Если уроков > 5 — суммаризировать в один."""
+    async def _summarize_lessons_if_needed(self):
+        """Если уроков > 5 — суммаризировать через LLM в один."""
         lessons = self.data.get("lessons", [])
         if len(lessons) <= 5:
             return
-        # Берём тексты всех уроков
-        lesson_texts = [l.get("lesson", "") for l in lessons]
-        summary = " | ".join(lesson_texts[-5:])  # Простая суммаризация: объединяем последние 5
-        # Оставляем только один суммаризированный урок
+
+        # Берём последние 5 уроков
+        recent_lessons = lessons[-5:]
+        lesson_texts = "\n".join(f"- {l.get('lesson', '')}" for l in recent_lessons)
+
+        system = "Ты эксперт по суммаризации. Сократи список уроков до одного короткого предложения."
+        user = f"""Суммаризируй эти уроки в ОДНО короткое предложение (макс 200 символов):
+
+{lesson_texts}
+
+Верни только суммаризированный урок, ничего лишнего."""
+
+        try:
+            summary, _ = await call_llm(system_prompt=system, user_prompt=user)
+            summary = summary.strip()[:200]
+            if summary:
+                self.data["lessons"] = [{
+                    "timestamp": datetime.now().isoformat(),
+                    "lesson": summary,
+                    "summarized": True,
+                    "original_count": len(recent_lessons)
+                }]
+                return
+        except Exception:
+            pass
+
+        # Fallback: простая суммаризация
+        lesson_texts_list = [l.get("lesson", "") for l in recent_lessons]
+        summary = " | ".join(lesson_texts_list)
         self.data["lessons"] = [{
             "timestamp": datetime.now().isoformat(),
             "lesson": f"[Суммаризация] {summary}",
-            "summarized": True
+            "summarized": True,
+            "original_count": len(recent_lessons)
         }]
 
     def should_learn(self, error_type: str, threshold: int = 2) -> bool:
