@@ -23,6 +23,74 @@ MAX_RULES_PER_AGENT = 20
 MAX_INSTRUCTION_LENGTH = 50000
 
 
+def _post_discussion_rule_applied(agent_id: str, pattern_key: str, rule_name: str):
+    """Записать применение правила в Discussion канал."""
+    discussion_file = os.path.join(PROJECT_ROOT, "memory", "discussion_log.json")
+    entry = {
+        "agent_id": "med_otdel",
+        "content": f"[RULE_APPLIED] Применено правило '{rule_name}' ({pattern_key}) агенту {agent_id}",
+        "msg_type": "med_otdel",
+        "timestamp": datetime.now().isoformat(),
+    }
+    try:
+        with _rule_lock:
+            if os.path.exists(discussion_file):
+                with open(discussion_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            else:
+                data = {"messages": []}
+            data["messages"].append(entry)
+            if len(data["messages"]) > 100:
+                data["messages"] = data["messages"][-100:]
+            dir_name = os.path.dirname(discussion_file)
+            fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                os.replace(tmp_path, discussion_file)
+            except Exception:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+    except Exception:
+        pass
+
+
+def _post_discussion_rule_removed(agent_id: str, pattern_key: str, rule_name: str):
+    """Записать удаление правила в Discussion канал."""
+    discussion_file = os.path.join(PROJECT_ROOT, "memory", "discussion_log.json")
+    entry = {
+        "agent_id": "med_otdel",
+        "content": f"[RULE_REMOVED] Удалено правило '{rule_name}' ({pattern_key}) у агента {agent_id}",
+        "msg_type": "med_otdel",
+        "timestamp": datetime.now().isoformat(),
+    }
+    try:
+        with _rule_lock:
+            if os.path.exists(discussion_file):
+                with open(discussion_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            else:
+                data = {"messages": []}
+            data["messages"].append(entry)
+            if len(data["messages"]) > 100:
+                data["messages"] = data["messages"][-100:]
+            dir_name = os.path.dirname(discussion_file)
+            fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                os.replace(tmp_path, discussion_file)
+            except Exception:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+    except Exception:
+        pass
+
+# Лимиты
+MAX_RULES_PER_AGENT = 20
+MAX_INSTRUCTION_LENGTH = 50000
+
+
 def _load_state() -> dict:
     if not os.path.exists(STATE_FILE):
         return {}
@@ -115,6 +183,9 @@ def apply_pattern(agent_id: str, pattern_key: str) -> dict:
 
         _save_state(state)
 
+    # Запись в Discussion канал
+    _post_discussion_rule_applied(agent_id, pattern_key, pattern.get("name", pattern_key))
+
     return {
         "ok": True,
         "agent_id": agent_id,
@@ -160,6 +231,9 @@ def remove_pattern(agent_id: str, pattern_key: str) -> dict:
             agent["applied_rules"].remove(pattern_key)
 
         _save_state(state)
+
+    # Запись в Discussion канал
+    _post_discussion_rule_removed(agent_id, pattern_key, pattern.get("name", pattern_key))
 
     return {
         "ok": True,

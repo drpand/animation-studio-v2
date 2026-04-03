@@ -108,6 +108,55 @@ def log_med_action(action: str, details: str, agent_id: str = ""):
             log["entries"] = log["entries"][-100:]
         _atomic_write_json(MED_LOG_FILE, log)
 
+    # Автозапись в Discussion канал
+    _post_discussion(action, details, agent_id)
+
+
+def _post_discussion(action: str, details: str, agent_id: str = ""):
+    """Записать действие в Discussion канал студии."""
+    discussion_file = os.path.join(PROJECT_ROOT, "memory", "discussion_log.json")
+
+    # Определяем тип сообщения
+    msg_type = "system"
+    if "critic" in action.lower() or "evaluation" in action.lower():
+        msg_type = "critic"
+    elif "med" in action.lower() or "heal" in action.lower() or "evolv" in action.lower():
+        msg_type = "med_otdel"
+    elif agent_id and agent_id != "system":
+        msg_type = "agent"
+
+    # Формируем текст сообщения
+    sender = agent_id or "МЕД-ОТДЕЛ"
+    content = f"[{action}] {details[:500]}"
+
+    entry = {
+        "agent_id": sender,
+        "content": content,
+        "msg_type": msg_type,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+    with _log_lock:
+        if os.path.exists(discussion_file):
+            with open(discussion_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        else:
+            data = {"messages": []}
+
+        data["messages"].append(entry)
+        if len(data["messages"]) > 100:
+            data["messages"] = data["messages"][-100:]
+
+        dir_name = os.path.dirname(discussion_file)
+        fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_path, discussion_file)
+        except Exception:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
 
 async def run_evaluation(task_result: str, agent_id: str, task_description: str = "") -> dict:
     """

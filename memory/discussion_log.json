@@ -23,6 +23,18 @@
       "content": "Применён youtube_format к Writer",
       "msg_type": "med_otdel",
       "timestamp": "2026-04-04T01:05:36.275667"
+    },
+    {
+      "agent_id": "med_otdel",
+      "content": "[RULE_REMOVED] Удалено правило 'YouTube-формат' (youtube_format) у агента writer",
+      "msg_type": "med_otdel",
+      "timestamp": "2026-04-04T02:28:52.689990"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[pattern_removed] Удалён youtube_format у writer",
+      "msg_type": "agent",
+      "timestamp": "2026-04-04T02:28:52.694986"
     }
   ]
 }

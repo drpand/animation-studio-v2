@@ -51,12 +51,26 @@ body {
 .tasks-open-btn {
     background: none; border: none; color: var(--text-secondary);
     font-size: 20px; cursor: pointer; padding: 4px 12px;
-    border-radius: 4px; margin-right: 4px;
+    border-radius: 4px; margin-right: 4px; position: relative;
 }
 .discussion-open-btn {
     background: none; border: none; color: var(--text-secondary);
     font-size: 20px; cursor: pointer; padding: 4px 12px;
-    border-radius: 4px; margin-right: 4px;
+    border-radius: 4px; margin-right: 4px; position: relative;
+}
+.discussion-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--red);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 999px;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1.2;
 }
 .tasks-open-btn:hover { background: var(--bg-card); color: var(--text-primary); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray); }

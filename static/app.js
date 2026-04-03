@@ -7,6 +7,8 @@ const API_BASE = '';
 let agents = [];
 let currentAgentId = null;
 let currentAttachmentObjects = [];
+let discussionUnreadCount = 0;
+let lastDiscussionTimestamp = 0;
 
 // Иконки для агентов
 const AGENT_ICONS = {
@@ -37,6 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
     loadAvailablePatterns();
     setInterval(loadAgents, 5000);
+    // Polling Discussion канала каждые 10 сек
+    setInterval(loadDiscussion, 10000);
 });
 
 // --- Проверка сервера ---
@@ -573,10 +577,42 @@ async function loadDiscussion() {
     try {
         const res = await fetch(`${API_BASE}/api/discussion/`);
         const data = await res.json();
-        renderDiscussionMessages(data.messages || []);
+        const messages = data.messages || [];
+
+        // Обновляем счётчик непрочитанных
+        if (messages.length > 0) {
+            const latestTimestamp = messages[messages.length - 1].timestamp || '';
+            if (latestTimestamp > lastDiscussionTimestamp) {
+                const newMessages = messages.filter(m => m.timestamp > lastDiscussionTimestamp);
+                if (newMessages.length > 0 && !document.getElementById('discussionPanel').classList.contains('open')) {
+                    discussionUnreadCount += newMessages.length;
+                    updateDiscussionBadge();
+                }
+                lastDiscussionTimestamp = latestTimestamp;
+            }
+        }
+
+        renderDiscussionMessages(messages);
     } catch (e) {
         console.error('Ошибка загрузки обсуждения:', e);
     }
+}
+
+function updateDiscussionBadge() {
+    const badge = document.getElementById('discussionBadge');
+    if (badge) {
+        if (discussionUnreadCount > 0) {
+            badge.textContent = discussionUnreadCount > 99 ? '99+' : discussionUnreadCount;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+function resetDiscussionBadge() {
+    discussionUnreadCount = 0;
+    updateDiscussionBadge();
 }
 
 function renderDiscussionMessages(messages) {
@@ -632,6 +668,7 @@ function toggleDiscussionPanel() {
     if (panel.classList.contains('open')) {
         getOverlay().classList.add('active');
         loadDiscussion();
+        resetDiscussionBadge();
     } else {
         getOverlay().classList.remove('active');
     }

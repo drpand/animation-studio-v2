@@ -215,6 +215,12 @@
       "action": "pattern_removed",
       "details": "Удалён cliffhanger_boost у writer",
       "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T02:28:52.692506",
+      "action": "pattern_removed",
+      "details": "Удалён youtube_format у writer",
+      "agent_id": "writer"
     }
   ]
 }
