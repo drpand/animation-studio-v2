@@ -1,0 +1,57 @@
+{
+  "role": "director",
+  "current_version": "v1",
+  "current_prompt": null,
+  "history": {},
+  "failures": [
+    {
+      "timestamp": "2026-04-03T02:54:58.337362",
+      "type": "evaluation_fail",
+      "text": "",
+      "context": {
+        "task_id": "task_fc29b73f",
+        "score": 4
+      }
+    },
+    {
+      "timestamp": "2026-04-03T02:54:58.761047",
+      "type": "evaluation_fail",
+      "text": "",
+      "context": {
+        "task_id": "task_32b99c32",
+        "score": 4
+      }
+    },
+    {
+      "timestamp": "2026-04-03T02:57:32.246778",
+      "type": "evaluation_fail",
+      "text": "",
+      "context": {
+        "task_id": "task_6f6eb349",
+        "score": 3
+      }
+    },
+    {
+      "timestamp": "2026-04-03T03:00:37.100554",
+      "type": "evaluation_fail",
+      "text": "",
+      "context": {
+        "task_id": "task_6b5d2368",
+        "score": 4
+      }
+    },
+    {
+      "timestamp": "2026-04-03T03:00:39.207996",
+      "type": "evaluation_fail",
+      "text": "",
+      "context": {
+        "task_id": "task_ae03b9ef",
+        "score": 4
+      }
+    }
+  ],
+  "lessons": [],
+  "total_failures": 0,
+  "created_at": "2026-04-03T02:54:58.337348",
+  "updated_at": "2026-04-03T03:00:39.209503"
+}

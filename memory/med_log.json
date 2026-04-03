@@ -1,0 +1,154 @@
+{
+  "entries": [
+    {
+      "timestamp": "2026-04-03T02:53:24.004875",
+      "action": "evaluation_fail",
+      "details": "Агент director провалил оценку: ",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T02:54:58.338377",
+      "action": "evaluation_fail",
+      "details": "Агент director провалил оценку: ",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T02:54:58.352505",
+      "action": "chain_heal_triggered",
+      "details": "Цепочка director→critic: 2 провалов",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-03T02:54:58.369650",
+      "action": "chain_healed",
+      "details": "Цепочка director→critic исправлена: обновлён промпт critic",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-03T02:54:58.761879",
+      "action": "evaluation_fail",
+      "details": "Агент director провалил оценку: ",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T02:54:58.776535",
+      "action": "agent_heal_triggered",
+      "details": "Агент director: 2 провалов подряд → эволюция",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T02:54:58.785140",
+      "action": "evolution_error",
+      "details": "Ошибка эволюции director: 'NoneType' object is not subscriptable",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T02:54:58.802668",
+      "action": "chain_heal_triggered",
+      "details": "Цепочка director→critic: 3 провалов",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-03T02:54:58.825214",
+      "action": "chain_healed",
+      "details": "Цепочка director→critic исправлена: обновлён промпт critic",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-03T02:57:32.248862",
+      "action": "evaluation_fail",
+      "details": "Агент director провалил оценку: ",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T02:57:32.257394",
+      "action": "agent_heal_triggered",
+      "details": "Агент director: 3 провалов подряд → эволюция",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T02:57:32.265444",
+      "action": "evolution_error",
+      "details": "Ошибка эволюции director: 'NoneType' object is not subscriptable",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T02:57:32.279109",
+      "action": "chain_heal_triggered",
+      "details": "Цепочка director→critic: 4 провалов",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-03T02:57:32.301950",
+      "action": "chain_healed",
+      "details": "Цепочка director→critic исправлена: обновлён промпт critic",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-03T03:00:37.102873",
+      "action": "evaluation_fail",
+      "details": "Агент director провалил оценку: ",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T03:00:37.112028",
+      "action": "agent_heal_triggered",
+      "details": "Агент director: 4 провалов подряд → эволюция",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T03:00:37.119778",
+      "action": "evolution_error",
+      "details": "Ошибка эволюции director: 'NoneType' object is not subscriptable",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T03:00:37.134069",
+      "action": "chain_heal_triggered",
+      "details": "Цепочка director→critic: 5 провалов",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-03T03:00:37.162723",
+      "action": "chain_healed",
+      "details": "Цепочка director→critic исправлена: обновлён промпт critic",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-03T03:00:39.210096",
+      "action": "evaluation_fail",
+      "details": "Агент director провалил оценку: ",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T03:00:39.227319",
+      "action": "agent_heal_triggered",
+      "details": "Агент director: 5 провалов подряд → эволюция",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T03:00:39.235502",
+      "action": "evolution_error",
+      "details": "Ошибка эволюции director: 'NoneType' object is not subscriptable",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-03T03:00:39.250141",
+      "action": "chain_heal_triggered",
+      "details": "Цепочка director→critic: 6 провалов",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-03T03:00:39.273276",
+      "action": "chain_healed",
+      "details": "Цепочка director→critic исправлена: обновлён промпт critic",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-03T10:39:58.969157",
+      "action": "manual_evolve",
+      "details": "Агент sunset_colorist_goa_f04c эволюционировал: v1→v2",
+      "agent_id": "sunset_colorist_goa_f04c"
+    }
+  ]
+}

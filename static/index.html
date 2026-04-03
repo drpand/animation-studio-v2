@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation Studio v2 — РОДИНА</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Шапка -->
+        <header class="header">
+            <div class="header-left">
+                <h1>ANIMATION STUDIO v2</h1>
+                <span class="project-badge">РОДИНА</span>
+            </div>
+            <div class="header-right">
+                <button class="tasks-open-btn" id="tasksOpenBtn" title="Задачи">☰</button>
+                <div class="server-status" id="serverStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Подключение...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Офис — вид сверху -->
+        <main class="office" id="office">
+            <div class="office-loading">Загрузка офиса...</div>
+        </main>
+
+        <!-- Боковая панель агента -->
+        <aside class="agent-panel" id="agentPanel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="panel-icon" id="panelIcon"></span>
+                    <h2 id="panelName"></h2>
+                    <span class="panel-status" id="panelStatus"></span>
+                </div>
+                <button class="panel-close" id="panelClose">&times;</button>
+            </div>
+
+            <div class="panel-body">
+                <!-- Выбор модели -->
+                <div class="panel-section">
+                    <label>Модель</label>
+                    <div class="model-selector">
+                        <select id="panelModel">
+                            <option value="qwen/qwen3.5-9b">Qwen 3.5 9B</option>
+                            <option value="google/gemini-3-flash-preview">Gemini 3 Flash</option>
+                            <option value="anthropic/claude-sonnet-4-5">Claude Sonnet 4.5</option>
+                            <option value="anthropic/claude-opus-4-5">Claude Opus 4.5</option>
+                            <option value="openai/gpt-4o">GPT-4o</option>
+                            <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
+                            <option value="mistralai/mistral-large-2">Mistral Large 2</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Инструкции -->
+                <div class="panel-section">
+                    <label>Инструкции</label>
+                    <textarea id="panelInstructions" rows="4" placeholder="Системный промпт агента..."></textarea>
+                    <button class="btn-save" id="btnSaveInstructions">Сохранить</button>
+                </div>
+
+                <!-- Прикреплённые файлы -->
+                <div class="panel-section">
+                    <label>Файлы</label>
+                    <div class="file-upload">
+                        <input type="file" id="fileInput" accept=".pdf,.txt,.md,.jpg,.jpeg,.png,.json">
+                        <button class="btn-upload" id="btnUpload">Прикрепить</button>
+                    </div>
+                    <div class="file-list" id="fileList"></div>
+                </div>
+
+                <!-- Чат -->
+                <div class="panel-section chat-section">
+                    <label>Чат</label>
+                    <div class="chat-history" id="chatHistory"></div>
+                    <div class="chat-input">
+                        <textarea id="chatInput" placeholder="Сообщение агенту..." rows="2"></textarea>
+                        <button class="btn-send" id="btnSend">&#9654;</button>
+                    </div>
+                </div>
+
+                <!-- Кнопка Оценить -->
+                <div class="panel-section">
+                    <button class="btn-evaluate" id="btnEvaluate">🔍 Оценить результат</button>
+                </div>
+
+                <!-- Память агента -->
+                <div class="panel-section memory-section">
+                    <label>Память агента</label>
+                    <div class="memory-info">
+                        <div class="memory-row">
+                            <span>Версия промпта:</span>
+                            <span id="memoryVersion" class="memory-badge">v1</span>
+                        </div>
+                        <div class="memory-row">
+                            <span>Провалов подряд:</span>
+                            <span id="memoryFailures" class="memory-badge danger">0</span>
+                        </div>
+                        <div class="memory-row">
+                            <span>Статус лечения:</span>
+                            <span id="memoryHealing" class="memory-badge ok">Нет</span>
+                        </div>
+                    </div>
+                    <div class="memory-lessons" id="memoryLessons"></div>
+                    <button class="btn-evolve" id="btnEvolve">🧬 Эволюционировать</button>
+                </div>
+
+                <!-- Инструмент: Kie.ai (Art Director) -->
+                <div class="panel-section tool-section" id="toolComfyui" style="display:none">
+                    <label>🎨 Kie.ai — Генерация изображения</label>
+                    <textarea id="comfyui-prompt" rows="3" maxlength="5000" placeholder="Опишите изображение..."></textarea>
+                    <div class="char-count"><span id="comfyui-char-count">0</span>/5000</div>
+                    <textarea id="comfyui-negative" rows="2" placeholder="Негативный промпт (необязательно)..."></textarea>
+                    <button class="btn-tool" id="btnComfyui" onclick="generateImage()">🎨 Сгенерировать</button>
+                    <div id="comfyui-spinner" class="spinner hidden">
+                        <div class="spinner-circle"></div>
+                        <span>Генерация...</span>
+                    </div>
+                    <div id="comfyui-progress" class="progress-bar hidden">
+                        <div class="progress-fill" style="width: 0%"></div>
+                        <span class="progress-text">Обработка...</span>
+                    </div>
+                    <div id="comfyui-error" class="error-banner hidden">
+                        <span class="error-text"></span>
+                        <button class="btn-retry" onclick="generateImage()">Повторить</button>
+                    </div>
+                    <div id="comfyui-result" class="result hidden">
+                        <img id="comfyui-image" src="" alt="Сгенерированное изображение">
+                    </div>
+                </div>
+
+                <!-- Инструмент: ElevenLabs (Sound Director) -->
+                <div class="panel-section tool-section" id="toolElevenlabs" style="display:none">
+                    <label>🎵 ElevenLabs — Генерация голоса</label>
+                    <select id="elevenlabs-voice" class="voice-select">
+                        <option value="">Загрузка голосов...</option>
+                    </select>
+                    <textarea id="elevenlabs-text" rows="3" maxlength="5000" placeholder="Текст для озвучки..."></textarea>
+                    <div class="char-count"><span id="elevenlabs-char-count">0</span>/5000</div>
+                    <button class="btn-tool" id="btnElevenlabs" onclick="generateVoice()">🎵 Сгенерировать голос</button>
+                    <div id="elevenlabs-spinner" class="spinner hidden">
+                        <div class="spinner-circle"></div>
+                        <span>Генерация голоса...</span>
+                    </div>
+                    <div id="elevenlabs-error" class="error-banner hidden">
+                        <span class="error-text"></span>
+                        <button class="btn-retry" onclick="generateVoice()">Повторить</button>
+                    </div>
+                    <div id="elevenlabs-result" class="result hidden">
+                        <audio id="elevenlabs-audio" controls></audio>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Боковая панель задач -->
+        <aside class="tasks-panel" id="tasksPanel">
+            <div class="tasks-header">
+                <div class="tasks-header-left">
+                    <h3>Задачи</h3>
+                </div>
+                <button class="tasks-close" id="tasksClose">&times;</button>
+            </div>
+            <div class="tasks-body" id="tasksBody">
+                <div class="tasks-section">
+                    <h4>Активные</h4>
+                    <div id="activeTasks" class="task-list"></div>
+                </div>
+                <div class="tasks-section">
+                    <h4>МЕД-ОТДЕЛ</h4>
+                    <div id="medStudioHealth" class="studio-health"></div>
+                    <div id="medAgentStatus" class="med-agent-list"></div>
+                    <div id="medLog" class="med-log"></div>
+                </div>
+                <div class="tasks-section">
+                    <h4>HR — Создать агента</h4>
+                    <div class="hr-section">
+                        <textarea id="hrTaskInput" rows="3" placeholder="Опишите задачу, для которой нужен новый агент..."></textarea>
+                        <button class="btn-hr-create" id="btnHrCreate">👤 Создать агента</button>
+                    </div>
+                    <div id="hrTempAgents" class="temp-agent-list"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Overlay для закрытия панелей -->
+        <div class="overlay" id="overlay"></div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
