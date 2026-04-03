@@ -184,12 +184,28 @@ class AgentMemory:
         return self.data.get("current_prompt")
 
     def add_lesson(self, lesson: str):
-        """Добавить извлечённый урок"""
+        """Добавить извлечённый урок. При >5 — суммаризация."""
         self.data["lessons"].append({
             "timestamp": datetime.now().isoformat(),
             "lesson": lesson
         })
+        self._summarize_lessons_if_needed()
         self.save()
+
+    def _summarize_lessons_if_needed(self):
+        """Если уроков > 5 — суммаризировать в один."""
+        lessons = self.data.get("lessons", [])
+        if len(lessons) <= 5:
+            return
+        # Берём тексты всех уроков
+        lesson_texts = [l.get("lesson", "") for l in lessons]
+        summary = " | ".join(lesson_texts[-5:])  # Простая суммаризация: объединяем последние 5
+        # Оставляем только один суммаризированный урок
+        self.data["lessons"] = [{
+            "timestamp": datetime.now().isoformat(),
+            "lesson": f"[Суммаризация] {summary}",
+            "summarized": True
+        }]
 
     def should_learn(self, error_type: str, threshold: int = 2) -> bool:
         """Проверить стоит ли запускать обучение (2+ однотипные ошибки)"""
