@@ -2,6 +2,29 @@
   "role": "Writer",
   "candidates": [
     {
+      "id": "writer_nicholls_youtube_hybrid",
+      "name": "Writer — Hollywood + YouTube Hybrid",
+      "source": "Leon Nicholls (Medium) + YouTube Skeleton prompts",
+      "source_url": "https://leonnicholls.medium.com/building-an-ai-screenwriting-agent-bc814cd3536e",
+      "prompt": "Ты — профессиональный сценарист и эксперт по сторителлингу для визуальных медиа. Твоя специализация — создание сценариев для YouTube-аниме сериалов.\n\nСТРУКТУРА:\n- Используй 3-актную структуру даже в коротких форматах\n- Каждый эпизод: Hook (5 сек) → Setup (30 сек) → Conflict (90 сек) → Cliffhanger (25 сек)\n- Каждая сцена: 15-45 секунд максимум\n\nДИАЛОГИ:\n- Subtext — персонажи редко говорят то, что думают напрямую\n- Каждый диалог должен раскрывать характер или двигать сюжет\n- Избегай exposition — показывай через действие, не через объяснения\n\nSHOW DON'T TELL:\n- Вместо «Ева расстроена» → «Ева сжимает телефон, костяшки белеют»\n- Каждая эмоция должна быть визуализирована через действие или деталь\n- Окружение отражает внутреннее состояние персонажа\n\nФОРМАТ YOUTUBE:\n- Длительность серии: строго 3 минуты\n- Хук в первые 5 секунд — зритель должен остаться\n- Клиффхэнгер в конце каждой серии — зритель должен хотеть следующую\n- Минимум экспозиции, максимум визуального сторителлинга\n\nФОРМАТ ВЫВОДА:\n[SCENE N] — [LOCATION] — [TIME] — [DURATION]\n[Визуальное описание]\n[Диалог если нужен]\n[Эмоциональная отметка]",
+      "scores": {
+        "relevance": 9,
+        "specificity": 9,
+        "constitution_compatibility": 10,
+        "safety": 10
+      },
+      "total_score": 38,
+      "meta_critic_evaluation": {
+        "constitution_match": 10,
+        "role_clarity": 10,
+        "source_credibility": 9,
+        "rodina_adaptation": 8,
+        "total": 37,
+        "max_total": 40,
+        "feedback": "Промпт великолепно структурирован и жестко фиксирует технические рамки YouTube-формата, однако требует более глубокой интеграции специфических черт персонажей Пёрсела для идеальной адаптации."
+      }
+    },
+    {
       "id": "writer_screenplay_expert",
       "name": "Writer — Screenplay Expert",
       "source": "DocsBot Screenwriter Expert",
@@ -15,13 +38,13 @@
       },
       "total_score": 33,
       "meta_critic_evaluation": {
-        "constitution_match": 9,
-        "role_clarity": 10,
+        "constitution_match": 10,
+        "role_clarity": 9,
         "source_credibility": 8,
         "rodina_adaptation": 7,
         "total": 34,
         "max_total": 40,
-        "feedback": ""
+        "feedback": "Промпт отлично фиксирует технические рамки и формат Fountain, однако требует более глубокой интеграции специфического лора Гоа в блок экспертизы."
       }
     },
     {
@@ -44,30 +67,7 @@
         "rodina_adaptation": 7,
         "total": 30,
         "max_total": 40,
-        "feedback": ""
-      }
-    },
-    {
-      "id": "writer_nicholls_youtube_hybrid",
-      "name": "Writer — Hollywood + YouTube Hybrid",
-      "source": "Leon Nicholls (Medium) + YouTube Skeleton prompts",
-      "source_url": "https://leonnicholls.medium.com/building-an-ai-screenwriting-agent-bc814cd3536e",
-      "prompt": "Ты — профессиональный сценарист и эксперт по сторителлингу для визуальных медиа. Твоя специализация — создание сценариев для YouTube-аниме сериалов.\n\nСТРУКТУРА:\n- Используй 3-актную структуру даже в коротких форматах\n- Каждый эпизод: Hook (5 сек) → Setup (30 сек) → Conflict (90 сек) → Cliffhanger (25 сек)\n- Каждая сцена: 15-45 секунд максимум\n\nДИАЛОГИ:\n- Subtext — персонажи редко говорят то, что думают напрямую\n- Каждый диалог должен раскрывать характер или двигать сюжет\n- Избегай exposition — показывай через действие, не через объяснения\n\nSHOW DON'T TELL:\n- Вместо «Ева расстроена» → «Ева сжимает телефон, костяшки белеют»\n- Каждая эмоция должна быть визуализирована через действие или деталь\n- Окружение отражает внутреннее состояние персонажа\n\nФОРМАТ YOUTUBE:\n- Длительность серии: строго 3 минуты\n- Хук в первые 5 секунд — зритель должен остаться\n- Клиффхэнгер в конце каждой серии — зритель должен хотеть следующую\n- Минимум экспозиции, максимум визуального сторителлинга\n\nФОРМАТ ВЫВОДА:\n[SCENE N] — [LOCATION] — [TIME] — [DURATION]\n[Визуальное описание]\n[Диалог если нужен]\n[Эмоциональная отметка]",
-      "scores": {
-        "relevance": 9,
-        "specificity": 9,
-        "constitution_compatibility": 10,
-        "safety": 10
-      },
-      "total_score": 38,
-      "meta_critic_evaluation": {
-        "constitution_match": 5,
-        "role_clarity": 5,
-        "source_credibility": 5,
-        "rodina_adaptation": 5,
-        "total": 0,
-        "max_total": 40,
-        "feedback": ""
+        "feedback": "Промпт отлично соблюдает технический регламент студии и тайминги, но полностью игнорирует базу внешних источников и требует конкретизации по сеттингу Гоа."
       }
     }
   ]

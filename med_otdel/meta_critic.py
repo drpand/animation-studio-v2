@@ -106,55 +106,64 @@ async def evaluate_prompt(role: str, prompt_text: str, constitution: str = "") -
 КОНСТИТУЦИЯ СТУДИИ:
 {constitution[:2000]}
 
-Оцени по 4 критериям:
+Оцени по 4 критериям (0-10 каждый):
 {criteria_desc}
 
-Формат ответа:
-CONSTITUTION_MATCH: <число>
-ROLE_CLARITY: <число>
-SOURCE_CREDIBILITY: <число>
-RODINA_ADAPTATION: <число>
-FEEDBACK: <краткий комментарий на русском>"""
+ОТВЕЧАЙ ТОЛЬКО В JSON ФОРМАТЕ БЕЗ MARKDOWN И ПОЯСНЕНИЙ:
+{{"constitution_match": <число>, "role_clarity": <число>, "source_credibility": <число>, "rodina_adaptation": <число>, "comment": "<одно предложение на русском>"}}"""
 
     response, _ = await call_llm(system_prompt=system, user_prompt=user)
 
     scores = {}
     feedback = ""
 
-    # Ищем числа после ключевых слов
-    for line in response.split("\n"):
-        s = line.strip().upper()
-        # Constitution Match
-        if any(s.startswith(k) for k in ["CONSTITUTION_MATCH:", "CONSTITUTION:", "СООТВЕТСТВИЕ:", "CONSTITUTION MATCH"]):
-            nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
-            if nums:
-                scores["constitution_match"] = min(nums[0], 10)
-        # Role Clarity
-        elif any(s.startswith(k) for k in ["ROLE_CLARITY:", "ROLE CLARITY:", "ЧЁТКОСТЬ:", "ROLE:", "ЯСНОСТЬ:"]):
-            nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
-            if nums:
-                scores["role_clarity"] = min(nums[0], 10)
-        # Source Credibility
-        elif any(s.startswith(k) for k in ["SOURCE_CREDIBILITY:", "SOURCE CREDIBILITY:", "ИСТОЧНИК:", "SOURCE:", "ПРОВЕРЕННОСТЬ:"]):
-            nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
-            if nums:
-                scores["source_credibility"] = min(nums[0], 10)
-        # Rodina Adaptation
-        elif any(s.startswith(k) for k in ["RODINA_ADAPTATION:", "RODINA ADAPTATION:", "АДАПТАЦИЯ:", "RODINA:", "РОДИНА:"]):
-            nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
-            if nums:
-                scores["rodina_adaptation"] = min(nums[0], 10)
-        # Feedback — ищем после любого из ключей
-        elif any(s.startswith(k) for k in ["FEEDBACK:", "ОБРАТНАЯ СВЯЗЬ:", "КОММЕНТАРИЙ:", "ЗАМЕЧАНИЯ:", "FEEDBACK "]):
-            colon_idx = line.find(":")
-            if colon_idx >= 0:
-                feedback = line[colon_idx + 1:].strip()
+    # Попытка 1: парсим JSON из ответа
+    try:
+        # Убираем markdown code blocks если есть
+        cleaned = response.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[-1]
+            if cleaned.endswith("```"):
+                cleaned = cleaned.rsplit("\n", 1)[0]
+        cleaned = cleaned.strip()
+        data = json.loads(cleaned)
+        scores["constitution_match"] = min(int(data.get("constitution_match", 0)), 10)
+        scores["role_clarity"] = min(int(data.get("role_clarity", 0)), 10)
+        scores["source_credibility"] = min(int(data.get("source_credibility", 0)), 10)
+        scores["rodina_adaptation"] = min(int(data.get("rodina_adaptation", 0)), 10)
+        feedback = data.get("comment", "")
+    except (json.JSONDecodeError, ValueError, KeyError):
+        pass
 
-    # Fallback: если scores пустой, ищем все числа в ответе
+    # Попытка 2: ищем числа после ключевых слов
+    if not scores:
+        for line in response.split("\n"):
+            s = line.strip().upper()
+            if any(s.startswith(k) for k in ["CONSTITUTION_MATCH:", "CONSTITUTION:", "СООТВЕТСТВИЕ:"]):
+                nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
+                if nums:
+                    scores["constitution_match"] = min(nums[0], 10)
+            elif any(s.startswith(k) for k in ["ROLE_CLARITY:", "ROLE CLARITY:", "ЧЁТКОСТЬ:", "ЯСНОСТЬ:"]):
+                nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
+                if nums:
+                    scores["role_clarity"] = min(nums[0], 10)
+            elif any(s.startswith(k) for k in ["SOURCE_CREDIBILITY:", "SOURCE CREDIBILITY:", "ИСТОЧНИК:", "ПРОВЕРЕННОСТЬ:"]):
+                nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
+                if nums:
+                    scores["source_credibility"] = min(nums[0], 10)
+            elif any(s.startswith(k) for k in ["RODINA_ADAPTATION:", "RODINA ADAPTATION:", "АДАПТАЦИЯ:", "РОДИНА:"]):
+                nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
+                if nums:
+                    scores["rodina_adaptation"] = min(nums[0], 10)
+            elif any(s.startswith(k) for k in ["FEEDBACK:", "ОБРАТНАЯ СВЯЗЬ:", "КОММЕНТАРИЙ:", "COMMENT:"]):
+                colon_idx = line.find(":")
+                if colon_idx >= 0:
+                    feedback = line[colon_idx + 1:].strip()
+
+    # Попытка 3: fallback — ищем 4 числа 0-10 подряд
     if not scores:
         nums = []
         for line in response.split("\n"):
-            # Ищем строки типа "Критерий: 8" или "8/10"
             parts = line.replace(":", " ").split()
             for p in parts:
                 try:
@@ -168,10 +177,8 @@ FEEDBACK: <краткий комментарий на русском>"""
             scores["role_clarity"] = nums[1]
             scores["source_credibility"] = nums[2]
             scores["rodina_adaptation"] = nums[3]
-            # Feedback — всё что после 4 чисел
-            feedback = response.split("\n")[-1].strip()[:300]
+            feedback = response.strip()[:300]
 
-    # Если всё ещё пусто — берём весь ответ как feedback
     if not scores:
         feedback = response.strip()[:500]
 
