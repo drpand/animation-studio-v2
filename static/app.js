@@ -562,6 +562,82 @@ function closeTasksPanel() { document.getElementById('tasksPanel').classList.rem
 function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 
 // ============================================
+// Discussion Panel
+// ============================================
+
+async function loadDiscussion() {
+    try {
+        const res = await fetch(`${API_BASE}/api/discussion/`);
+        const data = await res.json();
+        renderDiscussionMessages(data.messages || []);
+    } catch (e) {
+        console.error('Ошибка загрузки обсуждения:', e);
+    }
+}
+
+function renderDiscussionMessages(messages) {
+    const container = document.getElementById('discussionMessages');
+    if (!messages.length) {
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">Нет сообщений</div>';
+        return;
+    }
+    const typeLabels = {
+        user: 'Вы',
+        agent: 'Агент',
+        critic: 'Критик',
+        med_otdel: 'МЕД-ОТДЕЛ',
+        system: 'Система'
+    };
+    container.innerHTML = messages.map(msg => {
+        const type = msg.msg_type || 'system';
+        const sender = msg.agent_id || 'system';
+        const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '';
+        return `
+            <div class="discussion-msg type-${type}">
+                <div class="msg-header">
+                    <span class="msg-sender">${typeLabels[type] || sender}</span>
+                    <span class="msg-time">${time}</span>
+                </div>
+                <div class="msg-content">${escapeHtml(msg.content)}</div>
+            </div>
+        `;
+    }).join('');
+    container.scrollTop = container.scrollHeight;
+}
+
+async function sendDiscussionMessage() {
+    const input = document.getElementById('discussionInput');
+    const content = input.value.trim();
+    if (!content) return;
+    input.value = '';
+    try {
+        await fetch(`${API_BASE}/api/discussion/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ agent_id: 'user', content, msg_type: 'user' })
+        });
+        loadDiscussion();
+    } catch (e) {
+        alert('Ошибка отправки: ' + e.message);
+    }
+}
+
+function toggleDiscussionPanel() {
+    const panel = document.getElementById('discussionPanel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) {
+        getOverlay().classList.add('active');
+        loadDiscussion();
+    } else {
+        getOverlay().classList.remove('active');
+    }
+}
+
+function closeDiscussionPanel() {
+    document.getElementById('discussionPanel').classList.remove('open');
+}
+
+// ============================================
 // Bind Events
 // ============================================
 
@@ -573,14 +649,20 @@ function bindEvents() {
     document.getElementById('fileInput').addEventListener('change', uploadFile);
     document.getElementById('tasksOpenBtn').addEventListener('click', toggleTasksPanel);
     document.getElementById('tasksClose').addEventListener('click', closeTasksPanel);
+    document.getElementById('discussionOpenBtn').addEventListener('click', toggleDiscussionPanel);
+    document.getElementById('discussionClose').addEventListener('click', closeDiscussionPanel);
+    document.getElementById('discussionSend').addEventListener('click', sendDiscussionMessage);
     document.getElementById('btnEvaluate').addEventListener('click', evaluateResult);
     document.getElementById('btnEvolve').addEventListener('click', evolveAgent);
     document.getElementById('btnHrCreate').addEventListener('click', createHrAgent);
 
-    getOverlay().addEventListener('click', () => { closeAgentPanel(); closeTasksPanel(); });
+    getOverlay().addEventListener('click', () => { closeAgentPanel(); closeTasksPanel(); closeDiscussionPanel(); });
 
     document.getElementById('chatInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+    document.getElementById('discussionInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDiscussionMessage(); }
     });
 
     const comfyuiPrompt = document.getElementById('comfyui-prompt');

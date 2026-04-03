@@ -21,6 +21,7 @@ from med_otdel.med_core import (
 from med_otdel.agent_memory import AgentMemory
 from med_otdel.chain_analyzer import analyze_chains
 from med_otdel.studio_monitor import check_studio_health, reset_agent_error
+from med_otdel.rule_builder import get_available_patterns, apply_pattern, remove_pattern, get_agent_rules
 
 router = APIRouter()
 
@@ -37,6 +38,11 @@ class FixRequest(BaseModel):
     agent_id: str
     original_result: str
     critic_feedback: str
+
+
+class PatternRequest(BaseModel):
+    agent_id: str
+    pattern_key: str
 
 
 @router.post("/evaluate")
@@ -150,3 +156,33 @@ async def reset_error(agent_id: str):
     """Сбросить статус error агента."""
     reset_agent_error(agent_id)
     return {"ok": True, "agent_id": agent_id}
+
+
+@router.get("/patterns")
+async def list_patterns():
+    """Список доступных паттернов правил."""
+    return {"patterns": get_available_patterns()}
+
+
+@router.post("/apply-pattern")
+async def apply_pattern_endpoint(req: PatternRequest):
+    """Применить паттерн к агенту."""
+    result = apply_pattern(req.agent_id, req.pattern_key)
+    if result.get("ok"):
+        log_med_action("pattern_applied", f"Применён {req.pattern_key} к {req.agent_id}", req.agent_id)
+    return result
+
+
+@router.post("/remove-pattern")
+async def remove_pattern_endpoint(req: PatternRequest):
+    """Удалить паттерн у агента."""
+    result = remove_pattern(req.agent_id, req.pattern_key)
+    if result.get("ok"):
+        log_med_action("pattern_removed", f"Удалён {req.pattern_key} у {req.agent_id}", req.agent_id)
+    return result
+
+
+@router.get("/{agent_id}/rules")
+async def get_agent_rules_endpoint(agent_id: str):
+    """Получить список применённых правил агента."""
+    return {"agent_id": agent_id, "rules": get_agent_rules(agent_id)}

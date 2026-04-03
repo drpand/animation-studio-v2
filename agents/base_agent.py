@@ -17,6 +17,21 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MEMORY_PATH = os.path.join(PROJECT_ROOT, "memory")
 STATE_FILE = os.path.join(MEMORY_PATH, "agents_state.json")
 ATTACHMENTS_DIR = os.path.join(MEMORY_PATH, "attachments")
+CONSTITUTION_FILE = os.path.join(PROJECT_ROOT, "constitution.md")
+
+# Глобальный кэш Конституции
+_constitution_cache = None
+
+def _load_constitution() -> str:
+    """Загружает constitution.md один раз и кэширует."""
+    global _constitution_cache
+    if _constitution_cache is None:
+        if os.path.exists(CONSTITUTION_FILE):
+            with open(CONSTITUTION_FILE, "r", encoding="utf-8") as f:
+                _constitution_cache = f.read().strip()
+        else:
+            _constitution_cache = ""
+    return _constitution_cache
 
 TEXT_READABLE_EXTENSIONS = {".txt", ".md", ".json"}
 ATTACHMENT_CONTEXT_LIMIT = 3
@@ -77,7 +92,7 @@ class BaseAgent:
                     json={
                         "model": self.model,
                         "messages": [
-                            {"role": "system", "content": self.instructions},
+                            {"role": "system", "content": self._build_full_system_prompt()},
                             *self._build_attachment_messages(),
                             *context
                         ]
@@ -110,6 +125,21 @@ class BaseAgent:
         self.status = "idle"
         self._save_state()
         return reply
+
+    def _build_full_system_prompt(self):
+        """Собирает полный системный промпт: Конституция + Роль + Инструкции."""
+        constitution = _load_constitution()
+        parts = []
+        if constitution:
+            parts.append("[КОНСТИТУЦИЯ СТУДИИ — НЕИЗМЕНЯЕМАЯ ЧАСТЬ]")
+            parts.append(constitution)
+            parts.append("")
+        parts.append("[ТВОЯ РОЛЬ]")
+        parts.append(self.role)
+        parts.append("")
+        parts.append("[ТВОИ ИНСТРУКЦИИ]")
+        parts.append(self.instructions)
+        return "\n".join(parts)
 
     def _build_context(self):
         """Построить контекст из истории чата. Без дублирования."""

@@ -1,0 +1,28 @@
+{
+  "messages": [
+    {
+      "agent_id": "system",
+      "content": "Тестовое сообщение",
+      "msg_type": "system",
+      "timestamp": "2026-04-04T01:04:17.605558"
+    },
+    {
+      "agent_id": "writer",
+      "content": "Закончил сцену 3",
+      "msg_type": "agent",
+      "timestamp": "2026-04-04T01:05:31.370082"
+    },
+    {
+      "agent_id": "critic",
+      "content": "Слишком длинно",
+      "msg_type": "critic",
+      "timestamp": "2026-04-04T01:05:33.810386"
+    },
+    {
+      "agent_id": "med_otdel",
+      "content": "Применён youtube_format к Writer",
+      "msg_type": "med_otdel",
+      "timestamp": "2026-04-04T01:05:36.275667"
+    }
+  ]
+}

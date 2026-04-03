@@ -179,6 +179,12 @@
       "action": "evaluation_pass",
       "details": "Агент writer прошёл оценку (score: 5)",
       "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T01:05:23.802134",
+      "action": "pattern_applied",
+      "details": "Применён youtube_format к writer",
+      "agent_id": "writer"
     }
   ]
 }

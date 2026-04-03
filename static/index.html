@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animation Studio v2 — РОДИНА</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/static/style.css?v=20260403-layout">
+    <link rel="stylesheet" href="/static/style.css?v=20260403-v3">
 </head>
 <body>
     <div id="app">
@@ -16,6 +16,7 @@
                 <span class="project-badge">РОДИНА</span>
             </div>
             <div class="header-right">
+                <button class="discussion-open-btn" id="discussionOpenBtn" title="Обсуждение">💬</button>
                 <button class="tasks-open-btn" id="tasksOpenBtn" title="Задачи">☰</button>
                 <div class="server-status" id="serverStatus">
                     <span class="status-dot"></span>
@@ -41,7 +42,7 @@
             </div>
 
             <div class="panel-body">
-                <!-- Чат (Основная зона — всегда наверху) -->
+                <!-- Чат (Основная зона) -->
                 <div class="chat-section">
                     <div class="chat-history" id="chatHistory"></div>
                     <div class="attachment-chips" id="attachmentChips"></div>
@@ -54,10 +55,9 @@
                     <button class="btn-evaluate" id="btnEvaluate">🔍 Оценить результат</button>
                 </div>
 
-                <!-- Сворачиваемые секции (Настройки, Память, Инструменты) -->
+                <!-- Сворачиваемые секции -->
                 <div class="panel-sections">
-                    
-                    <!-- Настройки (Модель, Инструкции) -->
+                    <!-- Настройки -->
                     <details class="collapsible-section" open>
                         <summary>⚙️ Настройки</summary>
                         <div class="collapsible-content">
@@ -151,7 +151,24 @@
                             </div>
                         </div>
                     </details>
+                </div>
+            </div>
+        </aside>
 
+        <!-- Панель обсуждения (общий канал студии) -->
+        <aside class="discussion-panel" id="discussionPanel">
+            <div class="discussion-header">
+                <div class="discussion-header-left">
+                    <h3>💬 Обсуждение</h3>
+                    <span class="discussion-subtitle">Общий канал студии</span>
+                </div>
+                <button class="discussion-close" id="discussionClose">&times;</button>
+            </div>
+            <div class="discussion-body">
+                <div class="discussion-messages" id="discussionMessages"></div>
+                <div class="discussion-input-row">
+                    <textarea id="discussionInput" placeholder="Сообщение в канал..." rows="1"></textarea>
+                    <button class="btn-send" id="discussionSend">&#9654;</button>
                 </div>
             </div>
         </aside>
@@ -190,6 +207,6 @@
         <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="/static/app.js?v=20260403-layout"></script>
+    <script src="/static/app.js?v=20260403-v3"></script>
 </body>
 </html>
