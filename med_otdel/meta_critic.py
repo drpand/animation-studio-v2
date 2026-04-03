@@ -120,39 +120,69 @@ FEEDBACK: <краткий комментарий на русском>"""
 
     scores = {}
     feedback = ""
+
+    # Ищем числа после ключевых слов
     for line in response.split("\n"):
         s = line.strip().upper()
-        if s.startswith("CONSTITUTION_MATCH:"):
-            try:
-                scores["constitution_match"] = int("".join(c for c in s.replace("CONSTITUTION_MATCH:", "").strip() if c.isdigit()))
-            except ValueError:
-                scores["constitution_match"] = 5
-        elif s.startswith("ROLE_CLARITY:"):
-            try:
-                scores["role_clarity"] = int("".join(c for c in s.replace("ROLE_CLARITY:", "").strip() if c.isdigit()))
-            except ValueError:
-                scores["role_clarity"] = 5
-        elif s.startswith("SOURCE_CREDIBILITY:"):
-            try:
-                scores["source_credibility"] = int("".join(c for c in s.replace("SOURCE_CREDIBILITY:", "").strip() if c.isdigit()))
-            except ValueError:
-                scores["source_credibility"] = 5
-        elif s.startswith("RODINA_ADAPTATION:"):
-            try:
-                scores["rodina_adaptation"] = int("".join(c for c in s.replace("RODINA_ADAPTATION:", "").strip() if c.isdigit()))
-            except ValueError:
-                scores["rodina_adaptation"] = 5
-        elif s.startswith("FEEDBACK:"):
-            feedback = line.strip()[len("FEEDBACK:"):].strip()
+        # Constitution Match
+        if any(s.startswith(k) for k in ["CONSTITUTION_MATCH:", "CONSTITUTION:", "СООТВЕТСТВИЕ:", "CONSTITUTION MATCH"]):
+            nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
+            if nums:
+                scores["constitution_match"] = min(nums[0], 10)
+        # Role Clarity
+        elif any(s.startswith(k) for k in ["ROLE_CLARITY:", "ROLE CLARITY:", "ЧЁТКОСТЬ:", "ROLE:", "ЯСНОСТЬ:"]):
+            nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
+            if nums:
+                scores["role_clarity"] = min(nums[0], 10)
+        # Source Credibility
+        elif any(s.startswith(k) for k in ["SOURCE_CREDIBILITY:", "SOURCE CREDIBILITY:", "ИСТОЧНИК:", "SOURCE:", "ПРОВЕРЕННОСТЬ:"]):
+            nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
+            if nums:
+                scores["source_credibility"] = min(nums[0], 10)
+        # Rodina Adaptation
+        elif any(s.startswith(k) for k in ["RODINA_ADAPTATION:", "RODINA ADAPTATION:", "АДАПТАЦИЯ:", "RODINA:", "РОДИНА:"]):
+            nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
+            if nums:
+                scores["rodina_adaptation"] = min(nums[0], 10)
+        # Feedback — ищем после любого из ключей
+        elif any(s.startswith(k) for k in ["FEEDBACK:", "ОБРАТНАЯ СВЯЗЬ:", "КОММЕНТАРИЙ:", "ЗАМЕЧАНИЯ:", "FEEDBACK "]):
+            colon_idx = line.find(":")
+            if colon_idx >= 0:
+                feedback = line[colon_idx + 1:].strip()
 
-    total = sum(scores.values())
+    # Fallback: если scores пустой, ищем все числа в ответе
+    if not scores:
+        nums = []
+        for line in response.split("\n"):
+            # Ищем строки типа "Критерий: 8" или "8/10"
+            parts = line.replace(":", " ").split()
+            for p in parts:
+                try:
+                    n = int(p)
+                    if 0 <= n <= 10:
+                        nums.append(n)
+                except ValueError:
+                    pass
+        if len(nums) >= 4:
+            scores["constitution_match"] = nums[0]
+            scores["role_clarity"] = nums[1]
+            scores["source_credibility"] = nums[2]
+            scores["rodina_adaptation"] = nums[3]
+            # Feedback — всё что после 4 чисел
+            feedback = response.split("\n")[-1].strip()[:300]
+
+    # Если всё ещё пусто — берём весь ответ как feedback
+    if not scores:
+        feedback = response.strip()[:500]
+
+    total = sum(scores.values()) if scores else 0
     max_total = sum(c["max_score"] for c in EVALUATION_CRITERIA.values())
 
     return {
-        "constitution_match": scores.get("constitution_match", 5),
-        "role_clarity": scores.get("role_clarity", 5),
-        "source_credibility": scores.get("source_credibility", 5),
-        "rodina_adaptation": scores.get("rodina_adaptation", 5),
+        "constitution_match": scores.get("constitution_match", 0),
+        "role_clarity": scores.get("role_clarity", 0),
+        "source_credibility": scores.get("source_credibility", 0),
+        "rodina_adaptation": scores.get("rodina_adaptation", 0),
         "total": total,
         "max_total": max_total,
         "feedback": feedback,

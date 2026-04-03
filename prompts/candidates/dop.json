@@ -15,11 +15,11 @@
       },
       "total_score": 36,
       "meta_critic_evaluation": {
-        "constitution_match": 9,
-        "role_clarity": 10,
-        "source_credibility": 7,
-        "rodina_adaptation": 8,
-        "total": 34,
+        "constitution_match": 5,
+        "role_clarity": 5,
+        "source_credibility": 5,
+        "rodina_adaptation": 5,
+        "total": 0,
         "max_total": 40,
         "feedback": ""
       }
