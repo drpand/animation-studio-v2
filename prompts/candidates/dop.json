@@ -13,7 +13,16 @@
         "constitution_compatibility": 10,
         "safety": 10
       },
-      "total_score": 38
+      "total_score": 38,
+      "meta_critic_evaluation": {
+        "constitution_match": 5,
+        "role_clarity": 5,
+        "source_credibility": 5,
+        "rodina_adaptation": 5,
+        "total": 0,
+        "max_total": 40,
+        "feedback": ""
+      }
     },
     {
       "id": "dop_ltx_studio",
@@ -27,7 +36,16 @@
         "constitution_compatibility": 9,
         "safety": 10
       },
-      "total_score": 36
+      "total_score": 36,
+      "meta_critic_evaluation": {
+        "constitution_match": 5,
+        "role_clarity": 5,
+        "source_credibility": 5,
+        "rodina_adaptation": 5,
+        "total": 0,
+        "max_total": 40,
+        "feedback": ""
+      }
     }
   ]
 }

@@ -22,6 +22,7 @@ from api.med_otdel_api import router as med_otdel_router
 from api.hr_api import router as hr_router
 from api.tools_api import router as tools_router
 from api.discussion_api import router as discussion_router
+from api.hr_init_api import router as hr_init_router
 
 # Абсолютные пути
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -59,6 +60,7 @@ app.include_router(med_otdel_router, prefix="/api/med-otdel", tags=["med-otdel"]
 app.include_router(hr_router, prefix="/api/hr", tags=["hr"])
 app.include_router(tools_router, prefix="/api/tools", tags=["tools"])
 app.include_router(discussion_router, prefix="/api/discussion", tags=["discussion"])
+app.include_router(hr_init_router, prefix="/api/hr/init", tags=["hr-init"])
 
 # Статика
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -86,6 +88,15 @@ async def index():
 async def health():
     """Проверка здоровья сервера."""
     return {"status": "ok", "project": PROJECT_NAME}
+
+
+@app.get("/init")
+async def init_page():
+    """Страница инициализации проекта."""
+    path = os.path.join(STATIC_DIR, "init.html")
+    if not os.path.exists(path):
+        return HTMLResponse("<h1>init.html не найден</h1>", status_code=500)
+    return FileResponse(path)
 
 
 if __name__ == "__main__":

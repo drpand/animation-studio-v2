@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инициализация — Animation Studio v2 РОДИНА</title>
+    <link rel="stylesheet" href="/static/style.css?v=20260403-v3">
+    <style>
+        .init-container { max-width: 900px; margin: 40px auto; padding: 20px; }
+        .init-header { text-align: center; margin-bottom: 40px; }
+        .init-header h1 { font-size: 24px; margin-bottom: 8px; }
+        .init-header p { color: var(--text-secondary); }
+        .step { display: none; }
+        .step.active { display: block; }
+        .step-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--accent); }
+        .step-desc { color: var(--text-secondary); margin-bottom: 20px; font-size: 14px; }
+        textarea.init-desc {
+            width: 100%; min-height: 120px; padding: 12px; background: var(--bg-card);
+            border: 1px solid var(--border); border-radius: var(--radius);
+            color: var(--text-primary); font-size: 14px; font-family: inherit; resize: vertical;
+        }
+        textarea.init-desc:focus { outline: none; border-color: var(--accent); }
+        .btn-primary {
+            padding: 12px 32px; background: var(--accent); color: #000; border: none;
+            border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-success {
+            padding: 12px 32px; background: var(--green); color: #000; border: none;
+            border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .btn-success:hover { opacity: 0.9; }
+        .btn-success:disabled { opacity: 0.5; cursor: not-allowed; }
+        .role-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .role-table th {
+            text-align: left; padding: 8px 12px; background: var(--bg-card);
+            border-bottom: 2px solid var(--border); font-size: 12px;
+            color: var(--text-secondary); text-transform: uppercase;
+        }
+        .role-table td {
+            padding: 10px 12px; border-bottom: 1px solid var(--border);
+            font-size: 13px; vertical-align: middle;
+        }
+        .role-table tr:hover { background: var(--bg-card-hover); }
+        .role-table .role-name { font-weight: 600; color: var(--accent); }
+        .role-table .candidate-name { font-weight: 600; }
+        .role-table .candidate-source { font-size: 11px; color: var(--text-muted); }
+        .role-table .score { font-weight: 600; font-family: monospace; }
+        .role-table .score.high { color: var(--green); }
+        .role-table .score.mid { color: var(--yellow); }
+        .role-table .score.low { color: var(--red); }
+        .role-table input[type="radio"] { cursor: pointer; }
+        .role-table .feedback { font-size: 11px; color: var(--text-secondary); max-width: 250px; }
+        .spinner-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7); z-index: 1000;
+            justify-content: center; align-items: center; flex-direction: column;
+        }
+        .spinner-overlay.active { display: flex; }
+        .spinner-overlay .spinner-circle {
+            width: 40px; height: 40px; border: 4px solid var(--border);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin-bottom: 16px;
+        }
+        .spinner-overlay .spinner-text { color: var(--text-primary); font-size: 14px; }
+        .nav-link {
+            position: fixed; top: 16px; right: 24px; color: var(--text-secondary);
+            text-decoration: none; font-size: 13px;
+        }
+        .nav-link:hover { color: var(--text-primary); }
+        .constitution-preview {
+            margin-bottom: 20px; padding: 12px; background: var(--bg-card);
+            border: 1px solid var(--border); border-radius: var(--radius);
+            font-size: 12px; color: var(--text-secondary); max-height: 200px;
+            overflow-y: auto; white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="nav-link">← Назад в офис</a>
+
+    <div class="init-container">
+        <div class="init-header">
+            <h1>🎬 Инициализация проекта РОДИНА</h1>
+            <p>HR + Meta-Critic подберут лучшие промпты для каждого агента</p>
+        </div>
+
+        <!-- Шаг 1: Описание проекта -->
+        <div class="step active" id="step1">
+            <div class="step-title">Шаг 1: Опиши проект</div>
+            <div class="step-desc">Расскажи, что за проект. HR использует это для подбора промптов.</div>
+            <textarea class="init-desc" id="projectDesc" placeholder="Например: Аниме-сериал РОДИНА для YouTube, 15 серий по 3 минуты. История Евы и её отца Гарри. Действие в Гоа. Стиль 2.5D, Сатоси Кон. Музыка — Генри Пёрсел."></textarea>
+            <div style="margin-top: 16px;">
+                <button class="btn-primary" id="btnEvaluate" onclick="evaluateCandidates()">Оценить кандидатов</button>
+            </div>
+        </div>
+
+        <!-- Шаг 2: Выбор промптов -->
+        <div class="step" id="step2">
+            <div class="step-title">Шаг 2: Выбери промпты</div>
+            <div class="step-desc">Meta-Critic оценил каждого кандидата. Выбери лучшего или оставь авто-выбор.</div>
+            <div id="candidatesTable"></div>
+            <div style="margin-top: 16px; display: flex; gap: 12px;">
+                <button class="btn-primary" onclick="goToStep(1)">← Назад</button>
+                <button class="btn-success" id="btnApprove" onclick="approveCandidates()">Утвердить и начать работу</button>
+            </div>
+        </div>
+
+        <!-- Шаг 3: Готово -->
+        <div class="step" id="step3">
+            <div class="step-title">✅ Проект инициализирован!</div>
+            <div class="step-desc">Все агенты получили промпты и паспорта.</div>
+            <div id="initSummary"></div>
+            <div style="margin-top: 24px;">
+                <a href="/" class="btn-primary" style="display:inline-block;text-decoration:none;text-align:center;">Перейти в офис →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Спиннер загрузки -->
+    <div class="spinner-overlay" id="spinner">
+        <div class="spinner-circle"></div>
+        <div class="spinner-text" id="spinnerText">Meta-Critic оценивает кандидатов...</div>
+    </div>
+
+    <script>
+        let evaluationsData = {};
+        let projectDescription = '';
+
+        function showSpinner(text) {
+            document.getElementById('spinnerText').textContent = text || 'Загрузка...';
+            document.getElementById('spinner').classList.add('active');
+        }
+        function hideSpinner() {
+            document.getElementById('spinner').classList.remove('active');
+        }
+
+        function goToStep(n) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step' + n).classList.add('active');
+        }
+
+        async function evaluateCandidates() {
+            projectDescription = document.getElementById('projectDesc').value.trim();
+            if (!projectDescription) {
+                alert('Опиши проект');
+                return;
+            }
+
+            showSpinner('HR загружает кандидатов из открытых источников...');
+
+            try {
+                // Запускаем оценку
+                const res = await fetch('/api/hr/init/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project_description: projectDescription })
+                });
+                const data = await res.json();
+
+                if (data.status !== 'ready') {
+                    alert('Ошибка: ' + JSON.stringify(data.errors));
+                    hideSpinner();
+                    return;
+                }
+
+                evaluationsData = data.evaluations;
+                showSpinner('Meta-Critic завершил оценку...');
+                renderCandidatesTable();
+                hideSpinner();
+                goToStep(2);
+            } catch (e) {
+                hideSpinner();
+                alert('Ошибка: ' + e.message);
+            }
+        }
+
+        function renderCandidatesTable() {
+            const container = document.getElementById('candidatesTable');
+            let html = '<table class="role-table"><thead><tr>';
+            html += '<th>Роль</th><th>Кандидат</th><th>Источник</th><th>Оценка</th><th>Meta-Critic</th><th>Выбрать</th>';
+            html += '</tr></thead><tbody>';
+
+            const roleNames = {
+                writer: '✍️ Writer',
+                director: '🎬 Director',
+                dop: '📷 DOP',
+                critic: '🔍 Critic',
+                sound_director: '🎵 Sound Director'
+            };
+
+            for (const [role, data] of Object.entries(evaluationsData)) {
+                const candidates = data.all_evaluations || [];
+                const bestId = candidates[0]?.id;
+
+                candidates.forEach((c, idx) => {
+                    const scoreClass = c.score >= 32 ? 'high' : c.score >= 24 ? 'mid' : 'low';
+                    const checked = idx === 0 ? 'checked' : '';
+                    html += `<tr>
+                        <td class="role-name">${idx === 0 ? (roleNames[role] || role) : ''}</td>
+                        <td><span class="candidate-name">${c.name}</span></td>
+                        <td><span class="candidate-source">${c.source || '—'}</span></td>
+                        <td><span class="score ${scoreClass}">${c.score}/${c.max_score || 40}</span></td>
+                        <td class="feedback">${c.feedback || '—'}</td>
+                        <td><input type="radio" name="${role}" value="${c.id}" ${checked} onchange="updateSelection('${role}', '${c.id}')"></td>
+                    </tr>`;
+                });
+            }
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function updateSelection(role, candidateId) {
+            // Просто обновляем — данные берутся из radio при утверждении
+        }
+
+        async function approveCandidates() {
+            const approvals = {};
+            for (const role of Object.keys(evaluationsData)) {
+                const selected = document.querySelector(`input[name="${role}"]:checked`);
+                if (selected) {
+                    approvals[role] = selected.value;
+                }
+            }
+
+            if (Object.keys(approvals).length === 0) {
+                alert('Выбери хотя бы одного кандидата');
+                return;
+            }
+
+            showSpinner('HR применяет промпты и создаёт паспорта...');
+
+            try {
+                const res = await fetch('/api/hr/init/approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ approvals, project_description: projectDescription })
+                });
+                const data = await res.json();
+
+                if (data.status !== 'completed') {
+                    alert('Ошибка: ' + JSON.stringify(data.errors));
+                    hideSpinner();
+                    return;
+                }
+
+                // Показываем результат
+                const summary = document.getElementById('initSummary');
+                summary.innerHTML = data.applied.map(a => `
+                    <div style="padding:8px 12px;background:var(--bg-card);border-radius:var(--radius);margin-bottom:8px;font-size:13px;">
+                        ✅ <strong>${a.role}</strong> — Score: ${a.score}/40
+                    </div>
+                `).join('');
+
+                if (data.errors && data.errors.length) {
+                    summary.innerHTML += data.errors.map(e => `
+                        <div style="padding:8px 12px;background:rgba(248,81,73,0.1);border-radius:var(--radius);margin-bottom:8px;font-size:13px;color:var(--red);">
+                            ❌ <strong>${e.role}</strong>: ${e.error}
+                        </div>
+                    `).join('');
+                }
+
+                hideSpinner();
+                goToStep(3);
+            } catch (e) {
+                hideSpinner();
+                alert('Ошибка: ' + e.message);
+            }
+        }
+
+        // Проверяем статус при загрузке
+        (async () => {
+            try {
+                const res = await fetch('/api/hr/init/status');
+                const data = await res.json();
+                if (data.status === 'completed') {
+                    document.getElementById('projectDesc').value = data.project_description || '';
+                }
+            } catch (e) {}
+        })();
+    </script>
+</body>
+</html>
