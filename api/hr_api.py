@@ -44,7 +44,7 @@ AGENT_ICONS = {
 
 DEFAULT_MODELS = [
     "google/gemini-3-flash-preview",
-    "anthropic/claude-sonnet-4-5",
+    "anthropic/claude-sonnet-4.5",
     "qwen/qwen3.5-9b",
     "openai/gpt-4o",
 ]
@@ -108,7 +108,7 @@ async def create_agent(req: CreateAgentRequest):
 1. Имя агента (краткое, на английском, например: Colorist, VFX Artist, Voice Director)
 2. Роль агента (одно предложение на русском)
 3. Системный промпт (детальные инструкции для агента, 200-500 символов)
-4. Рекомендуемую модель из: google/gemini-3-flash-preview, anthropic/claude-sonnet-4-5, qwen/qwen3.5-9b, openai/gpt-4o
+4. Рекомендуемую модель из: google/gemini-3-flash-preview, anthropic/claude-sonnet-4.5, qwen/qwen3.5-9b, openai/gpt-4o
 
 Формат ответа (строго):
 NAME: <имя>
@@ -137,6 +137,7 @@ MODEL: <модель>"""
             "model": model,
             "status": "idle",
             "instructions": prompt,
+            "attachment_objects": [],
             "attachments": [],
             "chat_history": [],
             "temp": True,

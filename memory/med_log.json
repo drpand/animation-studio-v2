@@ -149,6 +149,36 @@
       "action": "manual_evolve",
       "details": "Агент sunset_colorist_goa_f04c эволюционировал: v1→v2",
       "agent_id": "sunset_colorist_goa_f04c"
+    },
+    {
+      "timestamp": "2026-04-04T00:22:14.719790",
+      "action": "evaluation_fail",
+      "details": "Агент writer провалил оценку: ",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T00:22:14.738481",
+      "action": "chain_heal_triggered",
+      "details": "Цепочка director→critic: 6 провалов",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-04T00:22:14.758151",
+      "action": "chain_healed",
+      "details": "Цепочка director→critic исправлена: обновлён промпт critic",
+      "agent_id": "director,critic"
+    },
+    {
+      "timestamp": "2026-04-04T00:23:22.192407",
+      "action": "manual_evolve",
+      "details": "Агент writer эволюционировал: v1→v2",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T00:25:55.376255",
+      "action": "evaluation_pass",
+      "details": "Агент writer прошёл оценку (score: 5)",
+      "agent_id": "writer"
     }
   ]
 }

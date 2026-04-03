@@ -34,6 +34,7 @@ def _create_agent_from_state(agent_id: str) -> BaseAgent:
         model=data.get("model", ""),
         instructions=data.get("instructions", ""),
         status=data.get("status", "idle"),
+        attachment_objects=data.get("attachment_objects", []),
         attachments=data.get("attachments", []),
         chat_history=data.get("chat_history", []),
     )

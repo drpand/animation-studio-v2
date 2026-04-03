@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animation Studio v2 — РОДИНА</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=20260403-layout">
 </head>
 <body>
     <div id="app">
@@ -41,119 +41,117 @@
             </div>
 
             <div class="panel-body">
-                <!-- Выбор модели -->
-                <div class="panel-section">
-                    <label>Модель</label>
-                    <div class="model-selector">
-                        <select id="panelModel">
-                            <option value="qwen/qwen3.5-9b">Qwen 3.5 9B</option>
-                            <option value="google/gemini-3-flash-preview">Gemini 3 Flash</option>
-                            <option value="anthropic/claude-sonnet-4-5">Claude Sonnet 4.5</option>
-                            <option value="anthropic/claude-opus-4-5">Claude Opus 4.5</option>
-                            <option value="openai/gpt-4o">GPT-4o</option>
-                            <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
-                            <option value="mistralai/mistral-large-2">Mistral Large 2</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Инструкции -->
-                <div class="panel-section">
-                    <label>Инструкции</label>
-                    <textarea id="panelInstructions" rows="4" placeholder="Системный промпт агента..."></textarea>
-                    <button class="btn-save" id="btnSaveInstructions">Сохранить</button>
-                </div>
-
-                <!-- Прикреплённые файлы -->
-                <div class="panel-section">
-                    <label>Файлы</label>
-                    <div class="file-upload">
-                        <input type="file" id="fileInput" accept=".pdf,.txt,.md,.jpg,.jpeg,.png,.json">
-                        <button class="btn-upload" id="btnUpload">Прикрепить</button>
-                    </div>
-                    <div class="file-list" id="fileList"></div>
-                </div>
-
-                <!-- Чат -->
-                <div class="panel-section chat-section">
-                    <label>Чат</label>
+                <!-- Чат (Основная зона — всегда наверху) -->
+                <div class="chat-section">
                     <div class="chat-history" id="chatHistory"></div>
-                    <div class="chat-input">
-                        <textarea id="chatInput" placeholder="Сообщение агенту..." rows="2"></textarea>
+                    <div class="attachment-chips" id="attachmentChips"></div>
+                    <div class="chat-input-row">
+                        <input type="file" id="fileInput" class="hidden-file-input" accept=".pdf,.txt,.md,.jpg,.jpeg,.png,.json">
+                        <button class="btn-attach" id="btnAttach" title="Прикрепить файл">📎</button>
+                        <textarea id="chatInput" placeholder="Сообщение агенту..." rows="1"></textarea>
                         <button class="btn-send" id="btnSend">&#9654;</button>
                     </div>
-                </div>
-
-                <!-- Кнопка Оценить -->
-                <div class="panel-section">
                     <button class="btn-evaluate" id="btnEvaluate">🔍 Оценить результат</button>
                 </div>
 
-                <!-- Память агента -->
-                <div class="panel-section memory-section">
-                    <label>Память агента</label>
-                    <div class="memory-info">
-                        <div class="memory-row">
-                            <span>Версия промпта:</span>
-                            <span id="memoryVersion" class="memory-badge">v1</span>
+                <!-- Сворачиваемые секции (Настройки, Память, Инструменты) -->
+                <div class="panel-sections">
+                    
+                    <!-- Настройки (Модель, Инструкции) -->
+                    <details class="collapsible-section" open>
+                        <summary>⚙️ Настройки</summary>
+                        <div class="collapsible-content">
+                            <div class="setting-row">
+                                <label>Модель</label>
+                                <div class="model-selector">
+                                    <select id="panelModel">
+                                        <option value="qwen/qwen3.5-9b">Qwen 3.5 9B</option>
+                                        <option value="google/gemini-3-flash-preview">Gemini 3 Flash</option>
+                                        <option value="anthropic/claude-sonnet-4.5">Claude Sonnet 4.5</option>
+                                        <option value="anthropic/claude-opus-4.5">Claude Opus 4.5</option>
+                                        <option value="openai/gpt-4o">GPT-4o</option>
+                                        <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
+                                        <option value="mistralai/mistral-large-2411">Mistral Large 2411</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <label>Инструкции</label>
+                                <textarea id="panelInstructions" rows="3" placeholder="Системный промпт агента..."></textarea>
+                            </div>
+                            <button class="btn-save" id="btnSaveInstructions">Сохранить</button>
                         </div>
-                        <div class="memory-row">
-                            <span>Провалов подряд:</span>
-                            <span id="memoryFailures" class="memory-badge danger">0</span>
-                        </div>
-                        <div class="memory-row">
-                            <span>Статус лечения:</span>
-                            <span id="memoryHealing" class="memory-badge ok">Нет</span>
-                        </div>
-                    </div>
-                    <div class="memory-lessons" id="memoryLessons"></div>
-                    <button class="btn-evolve" id="btnEvolve">🧬 Эволюционировать</button>
-                </div>
+                    </details>
 
-                <!-- Инструмент: Kie.ai (Art Director) -->
-                <div class="panel-section tool-section" id="toolComfyui" style="display:none">
-                    <label>🎨 Kie.ai — Генерация изображения</label>
-                    <textarea id="comfyui-prompt" rows="3" maxlength="5000" placeholder="Опишите изображение..."></textarea>
-                    <div class="char-count"><span id="comfyui-char-count">0</span>/5000</div>
-                    <textarea id="comfyui-negative" rows="2" placeholder="Негативный промпт (необязательно)..."></textarea>
-                    <button class="btn-tool" id="btnComfyui" onclick="generateImage()">🎨 Сгенерировать</button>
-                    <div id="comfyui-spinner" class="spinner hidden">
-                        <div class="spinner-circle"></div>
-                        <span>Генерация...</span>
-                    </div>
-                    <div id="comfyui-progress" class="progress-bar hidden">
-                        <div class="progress-fill" style="width: 0%"></div>
-                        <span class="progress-text">Обработка...</span>
-                    </div>
-                    <div id="comfyui-error" class="error-banner hidden">
-                        <span class="error-text"></span>
-                        <button class="btn-retry" onclick="generateImage()">Повторить</button>
-                    </div>
-                    <div id="comfyui-result" class="result hidden">
-                        <img id="comfyui-image" src="" alt="Сгенерированное изображение">
-                    </div>
-                </div>
+                    <!-- Память агента -->
+                    <details class="collapsible-section">
+                        <summary>🧠 Память агента</summary>
+                        <div class="collapsible-content">
+                            <div class="memory-info">
+                                <div class="memory-row">
+                                    <span>Версия промпта:</span>
+                                    <span id="memoryVersion" class="memory-badge">v1</span>
+                                </div>
+                                <div class="memory-row">
+                                    <span>Провалов подряд:</span>
+                                    <span id="memoryFailures" class="memory-badge danger">0</span>
+                                </div>
+                                <div class="memory-row">
+                                    <span>Статус лечения:</span>
+                                    <span id="memoryHealing" class="memory-badge ok">Нет</span>
+                                </div>
+                            </div>
+                            <div class="memory-lessons" id="memoryLessons"></div>
+                            <button class="btn-evolve" id="btnEvolve">🧬 Эволюционировать</button>
+                        </div>
+                    </details>
 
-                <!-- Инструмент: ElevenLabs (Sound Director) -->
-                <div class="panel-section tool-section" id="toolElevenlabs" style="display:none">
-                    <label>🎵 ElevenLabs — Генерация голоса</label>
-                    <select id="elevenlabs-voice" class="voice-select">
-                        <option value="">Загрузка голосов...</option>
-                    </select>
-                    <textarea id="elevenlabs-text" rows="3" maxlength="5000" placeholder="Текст для озвучки..."></textarea>
-                    <div class="char-count"><span id="elevenlabs-char-count">0</span>/5000</div>
-                    <button class="btn-tool" id="btnElevenlabs" onclick="generateVoice()">🎵 Сгенерировать голос</button>
-                    <div id="elevenlabs-spinner" class="spinner hidden">
-                        <div class="spinner-circle"></div>
-                        <span>Генерация голоса...</span>
-                    </div>
-                    <div id="elevenlabs-error" class="error-banner hidden">
-                        <span class="error-text"></span>
-                        <button class="btn-retry" onclick="generateVoice()">Повторить</button>
-                    </div>
-                    <div id="elevenlabs-result" class="result hidden">
-                        <audio id="elevenlabs-audio" controls></audio>
-                    </div>
+                    <!-- Инструмент: Kie.ai (Art Director) -->
+                    <details class="collapsible-section" id="toolComfyuiSection">
+                        <summary>🎨 Kie.ai — Генерация</summary>
+                        <div class="collapsible-content">
+                            <textarea id="comfyui-prompt" rows="2" maxlength="5000" placeholder="Опишите изображение..."></textarea>
+                            <div class="char-count"><span id="comfyui-char-count">0</span>/5000</div>
+                            <textarea id="comfyui-negative" rows="1" placeholder="Негативный промпт..."></textarea>
+                            <button class="btn-tool" id="btnComfyui" onclick="generateImage()">🎨 Сгенерировать</button>
+                            <div id="comfyui-spinner" class="spinner hidden">
+                                <div class="spinner-circle"></div>
+                                <span>Генерация...</span>
+                            </div>
+                            <div id="comfyui-error" class="error-banner hidden">
+                                <span class="error-text"></span>
+                                <button class="btn-retry" onclick="generateImage()">Повторить</button>
+                            </div>
+                            <div id="comfyui-result" class="result hidden">
+                                <img id="comfyui-image" src="" alt="Сгенерированное изображение">
+                            </div>
+                        </div>
+                    </details>
+
+                    <!-- Инструмент: ElevenLabs (Sound Director) -->
+                    <details class="collapsible-section" id="toolElevenlabsSection">
+                        <summary>🎵 ElevenLabs — Голос</summary>
+                        <div class="collapsible-content">
+                            <select id="elevenlabs-voice" class="voice-select">
+                                <option value="">Загрузка голосов...</option>
+                            </select>
+                            <textarea id="elevenlabs-text" rows="2" maxlength="5000" placeholder="Текст для озвучки..."></textarea>
+                            <div class="char-count"><span id="elevenlabs-char-count">0</span>/5000</div>
+                            <button class="btn-tool" id="btnElevenlabs" onclick="generateVoice()">🎵 Сгенерировать голос</button>
+                            <div id="elevenlabs-spinner" class="spinner hidden">
+                                <div class="spinner-circle"></div>
+                                <span>Генерация голоса...</span>
+                            </div>
+                            <div id="elevenlabs-error" class="error-banner hidden">
+                                <span class="error-text"></span>
+                                <button class="btn-retry" onclick="generateVoice()">Повторить</button>
+                            </div>
+                            <div id="elevenlabs-result" class="result hidden">
+                                <audio id="elevenlabs-audio" controls></audio>
+                            </div>
+                        </div>
+                    </details>
+
                 </div>
             </div>
         </aside>
@@ -192,6 +190,6 @@
         <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=20260403-layout"></script>
 </body>
 </html>
