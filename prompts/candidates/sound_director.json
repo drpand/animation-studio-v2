@@ -16,9 +16,9 @@
       "meta_critic_evaluation": {
         "constitution_match": 9,
         "role_clarity": 10,
-        "source_credibility": 8,
+        "source_credibility": 7,
         "rodina_adaptation": 10,
-        "total": 37,
+        "total": 36,
         "max_total": 40,
         "feedback": "Промпт отлично интегрирует специфические референсы Гоа и Пёрселла, но требует жесткого контроля за соблюдением трехминутного лимита в структуре аудио-кью."
       }

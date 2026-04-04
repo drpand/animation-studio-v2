@@ -20,14 +20,14 @@
     {
       "role": "critic",
       "candidate_id": "critic_qualitative_analysis",
-      "score": 31
+      "score": 36
     },
     {
       "role": "sound_director",
       "candidate_id": "sound_custom_anime",
-      "score": 37
+      "score": 36
     }
   ],
   "errors": [],
-  "initialized_at": "2026-04-04T12:55:00.122116"
+  "initialized_at": "2026-04-04T17:14:20.350968"
 }

@@ -16,12 +16,12 @@
       "total_score": 35,
       "meta_critic_evaluation": {
         "constitution_match": 10,
-        "role_clarity": 9,
-        "source_credibility": 4,
-        "rodina_adaptation": 8,
-        "total": 31,
+        "role_clarity": 10,
+        "source_credibility": 7,
+        "rodina_adaptation": 9,
+        "total": 36,
         "max_total": 40,
-        "feedback": "Промпт четко интегрирует Конституцию и требует жесткой конкретики, но полностью игнорирует использование внешних данных и технических баз для проверки пайплайна."
+        "feedback": "Промпт демонстрирует высокий уровень дисциплины и четко интегрирует технические ограничения хронометража в методологию критики."
       }
     },
     {
@@ -38,13 +38,13 @@
       },
       "total_score": 39,
       "meta_critic_evaluation": {
-        "constitution_match": 8,
+        "constitution_match": 10,
         "role_clarity": 10,
-        "source_credibility": 4,
-        "rodina_adaptation": 6,
-        "total": 28,
+        "source_credibility": 3,
+        "rodina_adaptation": 9,
+        "total": 32,
         "max_total": 40,
-        "feedback": "Промпт задает отличную ролевую модель и структуру оценки, но слабо интегрирует специфику сеттинга Гоа и не содержит ссылок на внешнюю техническую экспертизу."
+        "feedback": "Промпт отлично интегрирован в структуру студии, но полностью игнорирует использование внешних баз данных и технических инструментов анализа для обоснования критики."
       }
     }
   ]
