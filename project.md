@@ -555,12 +555,29 @@ Meta-Critic — отдельный модуль в `med_otdel/meta_critic.py`.
 **Sound Director (A — Custom):**
 - Leitmotif design, soundscape, voice direction, Henry Purcell, атмосфера Гоа
 
-### Orchestrator — Фаза 7
+### Фаза 7 — Orchestrator ✅ ЗАВЕРШЕНА
 
-Реализуется ПОСЛЕ того как все агенты созданы и проверены.
-- Авто-роутинг задач между агентами
-- Workflow-машина
-- Контроль качества через Critic
+Автораспределение задач между агентами. Пользователь пишет одну команду — Orchestrator сам решает кому отдать, в каком порядке, и передаёт результат по цепочке.
+
+**Реализованные компоненты:**
+- `orchestrator/agent_registry.json` — реестр 8 агентов с capabilities, моделями, таймаутами
+- `orchestrator/task_chain.py` — модели TaskChain, AgentStep
+- `orchestrator/executor.py` — ядро выполнения: agent → summarize → critic → fixer цикл
+- `orchestrator/progress_tracker.py` — хранение задач, thread-safe, восстановление при рестарте
+- `api/orchestrator_api.py` — 5 endpoints: submit, status, intervene, history, registry
+- `agents/orchestrator.py` — анализ задачи через LLM, построение цепочки
+- UI — вкладка Orchestrator в панели задач, прогресс-бары, кнопка отмены
+
+**Фичи:**
+- Автоматический анализ задачи через LLM → выбор агентов по capabilities
+- Суммаризация результатов между шагами (LLM извлекает нужное для следующего агента)
+- Critic после каждого шага, Fixer цикл (макс 3 попытки)
+- Degraded fallback: если Fixer не справился → оригинальный результат
+- Отмена задачи в любой момент (asyncio.Event)
+- Прогресс в реальном времени (polling 2 сек)
+- Все действия пишутся в Discussion канал
+
+**Тест:** задача "Адаптируй сцену 3 эпизода 1" → 6 шагов (Writer→Director→Storyboarder→Art Director→DOP→Sound Director) → все PASS → completed.
 
 ---
 
