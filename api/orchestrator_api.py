@@ -260,6 +260,27 @@ async def scene_pipeline(req: ScenePipelineRequest, db: AsyncSession = Depends(g
     return {"ok": True, "task_id": task_id, "message": "Конвейер сцены запущен"}
 
 
+@router.get("/scene-result/{season}/{episode}/{scene}")
+async def get_scene_result(season: int, episode: int, scene: int, db: AsyncSession = Depends(get_session)):
+    """Получить результат конвейера сцены."""
+    frames = await crud.get_scene_frames(db, season, episode, scene)
+    if frames:
+        frame = frames[0]
+        return {
+            "status": frame.status,
+            "final_prompt": frame.final_prompt or "",
+            "image_url": frame.image_url or "",
+            "writer_text": frame.writer_text or "",
+            "director_notes": frame.director_notes or "",
+            "characters_json": frame.characters_json or "",
+            "dop_prompt": frame.dop_prompt or "",
+            "art_prompt": frame.art_prompt or "",
+            "sound_prompt": frame.sound_prompt or "",
+            "critic_feedback": frame.critic_feedback or "",
+        }
+    return {"status": "not_found"}
+
+
 async def _is_cancelled(db, task_id):
     task = await crud.get_orchestrator_task(db, task_id)
     return task and (task.cancelled or task.status == "cancelled")

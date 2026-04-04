@@ -476,21 +476,23 @@ function setStage(stage, status, text) {
 
 async function loadPipelineResult(season, episode, scene) {
     try {
-        // Get from DB via a simple check
-        const res = await fetch(`${API_BASE}/api/discussion/`);
+        const res = await fetch(`${API_BASE}/api/orchestrator/scene-result/${season}/${episode}/${scene}`);
         const data = await res.json();
-        const msgs = data.messages || [];
-
-        // Show final prompt and image from discussion
-        for (const m of msgs.slice().reverse()) {
-            if (m.content && (m.content.includes('tools_cache') || m.content.includes('/kie_'))) {
-                const urlMatch = m.content.match(/(\/tools_cache\/[^\s]+)/);
-                if (urlMatch) {
-                    document.getElementById('resultImage').innerHTML = `<img src="${urlMatch[1]}" alt="Generated">`;
-                }
+        
+        if (data.status && data.status !== 'not_found') {
+            // Show final prompt
+            const promptEl = document.getElementById('resultPrompt');
+            if (promptEl && data.final_prompt) {
+                promptEl.textContent = data.final_prompt;
+            }
+            
+            // Show image
+            const imgEl = document.getElementById('resultImage');
+            if (imgEl && data.image_url) {
+                imgEl.innerHTML = `<img src="${data.image_url}" alt="Generated image">`;
             }
         }
-    } catch (e) {}
+    } catch (e) { console.error('Failed to load pipeline result:', e); }
 
     document.getElementById('btnStartPipeline').disabled = false;
     document.getElementById('btnStartPipeline').textContent = '🚀 Запустить конвейер';
@@ -536,28 +538,28 @@ function escapeHtml(text) {
 
 // --- Bind Events ---
 function bindEvents() {
-    document.getElementById('panelClose').addEventListener('click', closeAgentPanel);
-    document.getElementById('btnSend').addEventListener('click', sendMessage);
-    document.getElementById('btnSaveInstructions').addEventListener('click', saveInstructions);
-    document.getElementById('btnAttach').addEventListener('click', () => document.getElementById('fileInput').click());
-    document.getElementById('fileInput').addEventListener('change', uploadFile);
-    document.getElementById('btnEvaluate').addEventListener('click', evaluateResult);
-    document.getElementById('btnAddRule').addEventListener('click', addRule);
+    const el = (id) => document.getElementById(id);
+    const on = (id, event, fn) => { const e = el(id); if (e) e.addEventListener(event, fn); };
 
-    document.getElementById('pipelineOpenBtn').addEventListener('click', togglePipelinePanel);
-    document.getElementById('pipelineClose').addEventListener('click', closePipelinePanel);
-    document.getElementById('btnStartPipeline').addEventListener('click', startPipeline);
+    on('panelClose', 'click', closeAgentPanel);
+    on('btnSend', 'click', sendMessage);
+    on('btnSaveInstructions', 'click', saveInstructions);
+    on('btnAttach', 'click', () => { const f = el('fileInput'); if (f) f.click(); });
+    on('fileInput', 'change', uploadFile);
+    on('btnEvaluate', 'click', evaluateResult);
+    on('btnAddRule', 'click', addRule);
 
-    document.getElementById('discussionOpenBtn').addEventListener('click', toggleDiscussionPanel);
-    document.getElementById('discussionClose').addEventListener('click', closeDiscussionPanel);
-    document.getElementById('discussionSend').addEventListener('click', sendDiscussionMessage);
+    on('pipelineOpenBtn', 'click', togglePipelinePanel);
+    on('pipelineClose', 'click', closePipelinePanel);
+    on('btnStartPipeline', 'click', startPipeline);
 
-    getOverlay().addEventListener('click', () => { closeAgentPanel(); closePipelinePanel(); closeDiscussionPanel(); });
+    on('discussionOpenBtn', 'click', toggleDiscussionPanel);
+    on('discussionClose', 'click', closeDiscussionPanel);
+    on('discussionSend', 'click', sendDiscussionMessage);
 
-    document.getElementById('chatInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-    });
-    document.getElementById('discussionInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDiscussionMessage(); }
-    });
+    const overlay = getOverlay();
+    if (overlay) overlay.addEventListener('click', () => { closeAgentPanel(); closePipelinePanel(); closeDiscussionPanel(); });
+
+    on('chatInput', 'keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+    on('discussionInput', 'keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDiscussionMessage(); } });
 }

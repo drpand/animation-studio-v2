@@ -123,7 +123,7 @@ body {
 .agent-panel {
     position: fixed; top: 0; right: -550px; width: 550px; height: 100vh;
     background: var(--bg-panel); border-left: 1px solid var(--border);
-    z-index: 200; transition: right 0.3s ease; display: flex;
+    z-index: 220; transition: right 0.3s ease; display: flex;
     flex-direction: column; box-shadow: -4px 0 20px rgba(0,0,0,0.5);
 }
 .agent-panel.open { right: 0; }
@@ -297,7 +297,7 @@ body {
 .pipeline-panel {
     position: fixed; top: 0; right: -500px; width: 500px; height: 100vh;
     background: var(--bg-panel); border-left: 1px solid var(--border);
-    z-index: 200; transition: right 0.3s ease; display: flex;
+    z-index: 220; transition: right 0.3s ease; display: flex;
     flex-direction: column; box-shadow: -4px 0 20px rgba(0,0,0,0.5);
 }
 .pipeline-panel.open { right: 0; }
@@ -366,7 +366,7 @@ body {
 .discussion-panel {
     position: fixed; top: 0; left: -400px; width: 400px; height: 100vh;
     background: var(--bg-panel); border-right: 1px solid var(--border);
-    z-index: 200; transition: left 0.3s ease; display: flex;
+    z-index: 220; transition: left 0.3s ease; display: flex;
     flex-direction: column; box-shadow: 4px 0 20px rgba(0,0,0,0.5);
 }
 .discussion-panel.open { left: 0; }
