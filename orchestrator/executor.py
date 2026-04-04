@@ -456,12 +456,15 @@ async def run_step_with_critic(agent_id: str, task: str, context: dict, task_id:
     return {"status": "approved", "result": result, "rounds": 3}
 
 
-async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_context: str, db=None) -> dict:
+async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_context: str, db=None):
     """
     Полный конвейер одной сцены:
     1. Writer → 2. Director → 3. HR Casting → 4. DOP+Art+Sound (параллельно)
     → 5. Storyboarder → 6. Art Director → Kie.ai → 7. Storyboarder финал
     """
+    import crud
+    from database import async_session
+
     task_id = f"scene_{season}_{episode}_{scene_num}"
     pipeline_result = {
         "task_id": task_id,
@@ -501,7 +504,7 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     pipeline_result["steps"]["hr_casting"] = hr_result
 
     # Авто-паттерн character_consistency
-    if hr_result["status"] == "approved" and db:
+    if hr_result["status"] == "approved":
         await _create_character_pattern(hr_result.get("result", ""), db)
 
     # Шаг 4: Параллельно DOP + Art Director + Sound Director (JSON output)
@@ -558,6 +561,41 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     pipeline_result["steps"]["final_assembly"] = final_result
 
     pipeline_result["status"] = "completed"
+
+    # === СОХРАНЕНИЕ В БД ===
+    try:
+        async with async_session() as session:
+            # Находим или создаём frame
+            frames = await crud.get_scene_frames(session, season, episode, scene_num)
+            if frames:
+                frame = frames[0]
+                frame_id = frame.id
+            else:
+                new_frame = await crud.create_scene_frame(session, {
+                    "season_num": season, "episode_num": episode, "scene_num": scene_num,
+                    "frame_num": 1, "status": "draft",
+                    "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat(),
+                })
+                frame_id = new_frame.id
+
+            # Обновляем данные
+            await crud.update_scene_frame(session, frame_id, {
+                "writer_text": writer_result.get("result", "")[:4000],
+                "director_notes": director_result.get("result", "")[:4000],
+                "characters_json": json.dumps(hr_result.get("result", ""), ensure_ascii=False)[:4000],
+                "dop_prompt": json.dumps(dop_json, ensure_ascii=False)[:4000],
+                "art_prompt": json.dumps(art_json, ensure_ascii=False)[:4000],
+                "sound_prompt": json.dumps(sound_json, ensure_ascii=False)[:4000],
+                "final_prompt": final_prompt[:8000],
+                "image_url": image_result.get("image_url", "")[:500],
+                "critic_feedback": image_result.get("critic_feedback", "")[:2000],
+                "status": "approved" if image_result.get("status") == "approved" else "in_review",
+                "updated_at": datetime.now().isoformat(),
+            })
+            await _post_discussion(f"[CONVEYOR] Результаты сцены {season}x{episode}:{scene_num} сохранены в БД", "system", "orchestrator")
+    except Exception as e:
+        await _post_discussion(f"[CONVEYOR] Ошибка сохранения в БД: {str(e)}", "system", "orchestrator")
+
     await _post_discussion(f"[CONVEYOR] Сцена {season}x{episode}:{scene_num} завершена!", "system", "orchestrator")
 
     return pipeline_result
