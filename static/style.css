@@ -546,6 +546,51 @@ body {
 }
 .btn-hr-create:hover { opacity: 0.9; transform: translateY(-1px); }
 .btn-hr-create:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* --- Orchestrator Section --- */
+.orchestrator-section { margin-bottom: 12px; }
+.orchestrator-section textarea {
+    width: 100%; padding: 8px 12px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text-primary); font-size: 13px; font-family: inherit;
+    resize: vertical; margin-bottom: 8px;
+}
+.orchestrator-section textarea:focus { outline: none; border-color: var(--accent); }
+.btn-orch-submit {
+    width: 100%; padding: 10px 16px; background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border: none; border-radius: var(--radius); font-size: 14px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-orch-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-orch-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.orch-task-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.orch-task-item {
+    padding: 8px 12px; background: var(--bg-card); border-radius: var(--radius);
+    font-size: 12px; border-left: 3px solid #06b6d4;
+}
+.orch-task-item .orch-task-desc { font-weight: 600; margin-bottom: 4px; }
+.orch-task-item .orch-task-progress { color: var(--text-secondary); font-size: 11px; }
+.orch-task-item .orch-task-bar {
+    height: 4px; background: var(--bg-dark); border-radius: 2px;
+    margin-top: 4px; overflow: hidden;
+}
+.orch-task-item .orch-task-fill {
+    height: 100%; background: var(--accent); border-radius: 2px;
+    transition: width 0.5s ease;
+}
+.orch-task-item .orch-task-status {
+    font-size: 10px; margin-top: 4px;
+}
+.orch-task-item .orch-task-status.running { color: var(--green); }
+.orch-task-item .orch-task-status.completed { color: var(--accent); }
+.orch-task-item .orch-task-status.failed { color: var(--red); }
+.orch-task-item .orch-task-status.cancelled { color: var(--gray); }
+.btn-orch-cancel {
+    background: none; border: 1px solid var(--red); color: var(--red);
+    padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer;
+    margin-top: 4px;
+}
+.btn-orch-cancel:hover { background: var(--red); color: #fff; }
 .temp-agent-list { display: flex; flex-direction: column; gap: 4px; }
 .temp-agent-item {
     display: flex; justify-content: space-between; align-items: center;

@@ -776,6 +776,86 @@ async function removeRule(patternKey) {
 }
 
 // ============================================
+// Orchestrator
+// ============================================
+
+async function submitOrchTask() {
+    const input = document.getElementById('orchTaskInput');
+    const btn = document.getElementById('btnOrchSubmit');
+    const desc = input.value.trim();
+    if (!desc) { alert('Опишите задачу'); return; }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Анализ...';
+
+    try {
+        const res = await fetch(`${API_BASE}/api/orchestrator/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: desc })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            input.value = '';
+            loadOrchTasks();
+        } else {
+            alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка'));
+        }
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🚀 Запустить';
+}
+
+async function loadOrchTasks() {
+    try {
+        const res = await fetch(`${API_BASE}/api/orchestrator/active`);
+        const data = await res.json();
+        renderOrchTasks(data.tasks || []);
+    } catch (e) {
+        console.error('Ошибка загрузки задач Orchestrator:', e);
+    }
+}
+
+function renderOrchTasks(tasks) {
+    const container = document.getElementById('orchActiveTasks');
+    if (!tasks.length) {
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет активных задач</div>';
+        return;
+    }
+    container.innerHTML = tasks.map(t => {
+        const progress = Math.round(t.progress || 0);
+        const statusClass = t.status || 'pending';
+        const stepsInfo = t.steps ? `Шаг ${t.current_step + 1}/${t.steps.length}` : '';
+        const cancelBtn = t.status === 'running' ? `<button class="btn-orch-cancel" onclick="cancelOrchTask('${t.task_id}')">✕ Отмена</button>` : '';
+        return `
+            <div class="orch-task-item">
+                <div class="orch-task-desc">${escapeHtml(t.description)}</div>
+                <div class="orch-task-progress">${stepsInfo} — ${progress}%</div>
+                <div class="orch-task-bar"><div class="orch-task-fill" style="width: ${progress}%"></div></div>
+                <div class="orch-task-status ${statusClass}">${statusClass}</div>
+                ${cancelBtn}
+            </div>
+        `;
+    }).join('');
+}
+
+async function cancelOrchTask(taskId) {
+    try {
+        await fetch(`${API_BASE}/api/orchestrator/intervene/${taskId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'cancel' })
+        });
+        loadOrchTasks();
+    } catch (e) {
+        alert('Ошибка отмены: ' + e.message);
+    }
+}
+
+// ============================================
 // Bind Events
 // ============================================
 
@@ -794,6 +874,10 @@ function bindEvents() {
     document.getElementById('btnEvolve').addEventListener('click', evolveAgent);
     document.getElementById('btnHrCreate').addEventListener('click', createHrAgent);
     document.getElementById('btnAddRule').addEventListener('click', addRule);
+    document.getElementById('btnOrchSubmit').addEventListener('click', submitOrchTask);
+
+    // Загрузка задач Orchestrator каждые 2 сек
+    setInterval(loadOrchTasks, 2000);
 
     getOverlay().addEventListener('click', () => { closeAgentPanel(); closeTasksPanel(); closeDiscussionPanel(); });
 

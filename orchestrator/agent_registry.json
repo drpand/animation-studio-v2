@@ -1,0 +1,74 @@
+[
+  {
+    "id": "writer",
+    "name": "Writer",
+    "capabilities": ["сценарий", "текст", "диалоги", "адаптация", "разбивка на серии", "сюжет"],
+    "input_type": "text",
+    "output_type": "text",
+    "model": "google/gemini-3-flash-preview",
+    "timeout": 90
+  },
+  {
+    "id": "director",
+    "name": "Director",
+    "capabilities": ["режиссура", "визуальный стиль", "раскадровка", "эмоции", "сцены"],
+    "input_type": "text",
+    "output_type": "text",
+    "model": "google/gemini-3-flash-preview",
+    "timeout": 90
+  },
+  {
+    "id": "storyboarder",
+    "name": "Storyboarder",
+    "capabilities": ["кадры", "тайминг", "ракурсы", "список сцен", "визуализация"],
+    "input_type": "text",
+    "output_type": "text",
+    "model": "google/gemini-3-flash-preview",
+    "timeout": 90
+  },
+  {
+    "id": "dop",
+    "name": "DOP",
+    "capabilities": ["свет", "камера", "атмосфера", "цветокоррекция", "визуал"],
+    "input_type": "text",
+    "output_type": "text",
+    "model": "google/gemini-3-flash-preview",
+    "timeout": 90
+  },
+  {
+    "id": "art_director",
+    "name": "Art Director",
+    "capabilities": ["дизайн", "цвет", "промпты для изображений", "стиль", "арт"],
+    "input_type": "text",
+    "output_type": "text",
+    "model": "google/gemini-3-flash-preview",
+    "timeout": 90
+  },
+  {
+    "id": "sound_director",
+    "name": "Sound Director",
+    "capabilities": ["музыка", "звук", "озвучка", "лейтмотивы", "аудио"],
+    "input_type": "text",
+    "output_type": "text",
+    "model": "google/gemini-3-flash-preview",
+    "timeout": 90
+  },
+  {
+    "id": "critic",
+    "name": "Critic",
+    "capabilities": ["оценка", "критика", "проверка качества"],
+    "input_type": "text",
+    "output_type": "evaluation",
+    "model": "google/gemini-3-flash-preview",
+    "timeout": 60
+  },
+  {
+    "id": "fixer",
+    "name": "Fixer",
+    "capabilities": ["исправление", "доработка"],
+    "input_type": "text",
+    "output_type": "text",
+    "model": "google/gemini-3-flash-preview",
+    "timeout": 90
+  }
+]
