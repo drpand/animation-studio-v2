@@ -1,6 +1,6 @@
 /* ============================================
    Animation Studio v2 — РОДИНА
-   Логика интерфейса
+   Логика интерфейса v4
    ============================================ */
 
 const API_BASE = '';
@@ -10,50 +10,35 @@ let currentAttachmentObjects = [];
 let discussionUnreadCount = 0;
 let lastDiscussionTimestamp = 0;
 
-// Иконки для агентов
 const AGENT_ICONS = {
-    orchestrator: '🎛️',
-    director: '🎬',
-    writer: '✍️',
-    critic: '🔍',
-    fixer: '🔧',
-    storyboarder: '📋',
-    dop: '📷',
-    art_director: '🎨',
-    sound_director: '🎵',
-    hr_agent: '👤'
+    orchestrator: '🎛️', director: '🎬', writer: '✍️', critic: '🔍',
+    fixer: '🔧', storyboarder: '📋', dop: '📷', art_director: '🎨',
+    sound_director: '🎵', hr_agent: '👤'
 };
 
-// Маппинг статусов
 const STATUS_MAP = {
-    idle: { label: 'Простаивает', class: 'idle' },
+    idle: { label: 'Свободен', class: 'idle' },
     working: { label: 'Работает', class: 'working' },
-    waiting: { label: 'Ждёт', class: 'waiting' },
     error: { label: 'Ошибка', class: 'error' }
 };
 
-// --- Инициализация ---
+// --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
     checkServer();
     loadAgents();
     bindEvents();
     loadAvailablePatterns();
     setInterval(loadAgents, 5000);
-    // Polling Discussion канала каждые 10 сек
     setInterval(loadDiscussion, 10000);
-    // Polling v4 данных каждые 15 сек
-    setInterval(loadProductionData, 15000);
-    loadProductionData();
-    // Onboarding
     try {
         if (localStorage.getItem('onboarding_dismissed') === '1') {
-            const banner = document.getElementById('onboardingBanner');
-            if (banner) banner.classList.add('hidden');
+            const b = document.getElementById('onboardingBanner');
+            if (b) b.classList.add('hidden');
         }
     } catch(e) {}
 });
 
-// --- Проверка сервера ---
+// --- Server check ---
 async function checkServer() {
     try {
         const res = await fetch(`${API_BASE}/health`);
@@ -64,24 +49,21 @@ async function checkServer() {
         }
     } catch {
         document.getElementById('serverStatus').classList.add('offline');
-        document.getElementById('serverStatus').classList.remove('online');
         document.querySelector('.status-text').textContent = 'Оффлайн';
     }
 }
 
-// --- Загрузка агентов ---
+// --- Load agents ---
 async function loadAgents() {
     try {
         const res = await fetch(`${API_BASE}/api/agents/`);
         const data = await res.json();
         agents = data.agents || [];
         renderOffice();
-    } catch (e) {
-        console.error('Ошибка загрузки агентов:', e);
-    }
+    } catch (e) { console.error(e); }
 }
 
-// --- Рендер офиса ---
+// --- Render office ---
 function renderOffice() {
     const grid = document.getElementById('officeGrid');
     if (!grid) return;
@@ -94,50 +76,33 @@ function renderOffice() {
         const icon = agent.icon || AGENT_ICONS[agent.agent_id] || '🤖';
         const status = STATUS_MAP[agent.status] || STATUS_MAP.idle;
         const modelShort = agent.model.split('/').pop() || agent.model;
-        const tempBadge = agent.temp ? '<span style="font-size:10px;color:#a855f7">[temp]</span>' : '';
         html += `
-            <div class="agent-desk status-${agent.status}" data-agent-id="${agent.agent_id}" onclick="openAgentPanel('${agent.agent_id}')">
+            <div class="agent-desk status-${agent.status}" onclick="openAgentPanel('${agent.agent_id}')">
                 <span class="desk-icon">${icon}</span>
-                <div class="desk-name">${agent.name} ${tempBadge}</div>
+                <div class="desk-name">${agent.name}</div>
                 <div class="desk-role">${agent.role}</div>
                 <div class="desk-footer">
                     <div class="desk-status ${status.class}">
-                        <span class="dot"></span>
-                        ${status.label}
+                        <span class="dot"></span>${status.label}
                     </div>
                     <span class="desk-model">${modelShort}</span>
                 </div>
                 <span class="desk-open-btn">Открыть →</span>
-            </div>
-        `;
+            </div>`;
     }
     grid.innerHTML = html;
 }
 
-// --- Onboarding ---
-function dismissOnboarding() {
-    const banner = document.getElementById('onboardingBanner');
-    if (banner) banner.classList.add('hidden');
-    try { localStorage.setItem('onboarding_dismissed', '1'); } catch(e) {}
-}
-
-// --- Открыть панель агента ---
+// --- Open agent panel ---
 async function openAgentPanel(agentId) {
     currentAgentId = agentId;
     const panel = document.getElementById('agentPanel');
-    const overlay = getOverlay();
     try {
         const res = await fetch(`${API_BASE}/api/agents/${agentId}`);
         const agent = await res.json();
         const icon = agent.icon || AGENT_ICONS[agentId] || '🤖';
         document.getElementById('panelIcon').textContent = icon;
         document.getElementById('panelName').textContent = agent.name;
-
-        // Chat agent header
-        const chatIcon = document.getElementById('chatAgentIcon');
-        const chatName = document.getElementById('chatAgentName');
-        if (chatIcon) chatIcon.textContent = icon;
-        if (chatName) chatName.textContent = agent.name;
         const status = STATUS_MAP[agent.status] || STATUS_MAP.idle;
         document.getElementById('panelStatus').textContent = status.label;
         document.getElementById('panelModel').value = agent.model;
@@ -145,27 +110,17 @@ async function openAgentPanel(agentId) {
         currentAttachmentObjects = agent.attachment_objects || [];
         renderAttachmentChips(currentAttachmentObjects, agent.attachments || []);
         renderChatHistory(agent.chat_history || []);
-        await loadAgentMemory(agentId);
 
-        // Collapsible tool sections
-        const toolComfyuiSection = document.getElementById('toolComfyuiSection');
-        const toolElevenlabsSection = document.getElementById('toolElevenlabsSection');
-        if (toolComfyuiSection) toolComfyuiSection.style.display = (agentId === 'art_director') ? 'block' : 'none';
-        if (toolElevenlabsSection) toolElevenlabsSection.style.display = (agentId === 'sound_director') ? 'block' : 'none';
-
-        if (agentId === 'sound_director') loadVoices();
+        // Show Kie.ai tool for Art Director
+        const kieaiSection = document.getElementById('toolKieaiSection');
+        if (kieaiSection) kieaiSection.style.display = (agentId === 'art_director') ? 'block' : 'none';
 
         panel.classList.add('open');
-        overlay.classList.add('active');
-
-        // Загружаем правила
+        getOverlay().classList.add('active');
         loadAgentRules(agentId);
-    } catch (e) {
-        console.error('Ошибка загрузки агента:', e);
-    }
+    } catch (e) { console.error(e); }
 }
 
-// --- Закрыть панель ---
 function closeAgentPanel() {
     document.getElementById('agentPanel').classList.remove('open');
     getOverlay().classList.remove('active');
@@ -173,42 +128,11 @@ function closeAgentPanel() {
     currentAttachmentObjects = [];
 }
 
-// --- Рендер активных вложений ---
-function renderAttachmentChips(objects, legacyNames = []) {
-    const container = document.getElementById('attachmentChips');
-    const normalized = (objects && objects.length)
-        ? objects
-        : (legacyNames || []).map((name) => ({
-            filename: name,
-            original_name: name,
-            is_text_readable: false,
-            uploaded_at: '',
-        }));
-    if (!normalized.length) {
-        container.innerHTML = '';
-        return;
-    }
-    container.innerHTML = normalized.map((file) => {
-        const savedName = file.filename || file.saved_name || '';
-        const originalName = file.original_name || savedName || 'file';
-        const badgeClass = file.is_text_readable ? '' : ' unreadable';
-        const badgeText = file.is_text_readable ? 'читается' : (file.unreadable_reason || 'не читается моделью');
-        const removeBtn = savedName ? `<button class="attachment-remove" onclick="deleteAttachment('${encodeURIComponent(savedName)}')" title="Удалить">✕</button>` : '';
-        return `
-            <div class="attachment-chip" title="${escapeHtml(originalName)}${file.unreadable_reason ? ' — ' + escapeHtml(file.unreadable_reason) : ''}">
-                <span class="attachment-name">📎 ${escapeHtml(originalName)}</span>
-                <span class="attachment-badge${badgeClass}">${badgeText}</span>
-                ${removeBtn}
-            </div>
-        `;
-    }).join('');
-}
-
-// --- Рендер истории чата ---
+// --- Chat ---
 function renderChatHistory(history) {
     const container = document.getElementById('chatHistory');
     if (history.length === 0) {
-        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">💬 Напишите задачу, например:<br><em>"Адаптируй сцену 3 эпизода 1"</em></div>';
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">💬 Напишите задачу агенту</div>';
         return;
     }
     container.innerHTML = history.map(msg => {
@@ -219,7 +143,6 @@ function renderChatHistory(history) {
     container.scrollTop = container.scrollHeight;
 }
 
-// --- Отправить сообщение ---
 async function sendMessage() {
     const input = document.getElementById('chatInput');
     const btn = document.getElementById('btnSend');
@@ -227,9 +150,11 @@ async function sendMessage() {
     if (!message || !currentAgentId) return;
     btn.disabled = true;
     input.value = '';
+
     const container = document.getElementById('chatHistory');
     container.innerHTML += `<div class="chat-msg user">${escapeHtml(message)}<div class="msg-time">${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}</div></div>`;
     container.scrollTop = container.scrollHeight;
+
     try {
         const res = await fetch(`${API_BASE}/api/chat/${currentAgentId}`, {
             method: 'POST',
@@ -247,22 +172,19 @@ async function sendMessage() {
     loadAgents();
 }
 
-// --- Сохранить инструкции ---
-async function saveInstructions() {
-    if (!currentAgentId) return;
-    try {
-        await fetch(`${API_BASE}/api/agents/${currentAgentId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ instructions: document.getElementById('panelInstructions').value, model: document.getElementById('panelModel').value })
-        });
-        alert('Сохранено!');
-    } catch (e) {
-        alert('Ошибка сохранения: ' + e.message);
-    }
+// --- Attachments ---
+function renderAttachmentChips(objects, legacyNames) {
+    const container = document.getElementById('attachmentChips');
+    const normalized = (objects && objects.length) ? objects : (legacyNames || []).map(n => ({ filename: n, original_name: n, is_text_readable: false }));
+    if (!normalized.length) { container.innerHTML = ''; return; }
+    container.innerHTML = normalized.map(f => {
+        const name = f.original_name || f.filename || 'file';
+        const badge = f.is_text_readable ? '<span class="attachment-badge">читается</span>' : '<span class="attachment-badge unreadable">не читается</span>';
+        const removeBtn = f.filename ? `<button class="attachment-remove" onclick="deleteAttachment('${encodeURIComponent(f.filename)}')">✕</button>` : '';
+        return `<div class="attachment-chip"><span>📎 ${escapeHtml(name)}</span>${badge}${removeBtn}</div>`;
+    }).join('');
 }
 
-// --- Загрузить файл ---
 async function uploadFile() {
     if (!currentAgentId) return;
     const input = document.getElementById('fileInput');
@@ -279,12 +201,8 @@ async function uploadFile() {
             currentAttachmentObjects = agent.attachment_objects || [];
             renderAttachmentChips(currentAttachmentObjects, agent.attachments || []);
             input.value = '';
-        } else {
-            alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка'));
-        }
-    } catch (e) {
-        alert('Ошибка загрузки: ' + e.message);
-    }
+        } else { alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка')); }
+    } catch (e) { alert('Ошибка загрузки: ' + e.message); }
 }
 
 async function deleteAttachment(encodedFilename) {
@@ -293,43 +211,16 @@ async function deleteAttachment(encodedFilename) {
     try {
         const res = await fetch(`${API_BASE}/api/agents/${currentAgentId}/attachments/${encodeURIComponent(filename)}`, { method: 'DELETE' });
         const data = await res.json();
-        if (!res.ok || !data.ok) { alert('Ошибка удаления: ' + (data.detail || 'Неизвестная ошибка')); return; }
-        const agentRes = await fetch(`${API_BASE}/api/agents/${currentAgentId}`);
-        const agent = await agentRes.json();
-        currentAttachmentObjects = agent.attachment_objects || [];
-        renderAttachmentChips(currentAttachmentObjects, agent.attachments || []);
-    } catch (e) {
-        alert('Ошибка удаления: ' + e.message);
-    }
-}
-
-// ============================================
-// МЕД-ОТДЕЛ
-// ============================================
-
-async function loadAgentMemory(agentId) {
-    try {
-        const res = await fetch(`${API_BASE}/api/med-otdel/${agentId}/memory`);
-        const data = await res.json();
-        document.getElementById('memoryVersion').textContent = data.current_version || 'v1';
-        const fails = data.consecutive_failures || 0;
-        const failsEl = document.getElementById('memoryFailures');
-        failsEl.textContent = fails;
-        failsEl.className = 'memory-badge ' + (fails >= 2 ? 'danger' : fails >= 1 ? 'warning' : 'ok');
-        const healingEl = document.getElementById('memoryHealing');
-        if (fails >= 2) { healingEl.textContent = 'Лечение...'; healingEl.className = 'memory-badge danger'; }
-        else { healingEl.textContent = 'Нет'; healingEl.className = 'memory-badge ok'; }
-        const lessonsContainer = document.getElementById('memoryLessons');
-        if (data.lessons && data.lessons.length > 0) {
-            lessonsContainer.innerHTML = data.lessons.map(l => `<div class="lesson-item">📝 ${escapeHtml(l.lesson)}</div>`).join('');
-        } else {
-            lessonsContainer.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Уроки появятся после оценки Critic\'ом</div>';
+        if (data.ok) {
+            const agentRes = await fetch(`${API_BASE}/api/agents/${currentAgentId}`);
+            const agent = await agentRes.json();
+            currentAttachmentObjects = agent.attachment_objects || [];
+            renderAttachmentChips(currentAttachmentObjects, agent.attachments || []);
         }
-    } catch (e) {
-        console.error('Ошибка загрузки памяти:', e);
-    }
+    } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
+// --- Evaluate ---
 async function evaluateResult() {
     if (!currentAgentId) return;
     const btn = document.getElementById('btnEvaluate');
@@ -339,331 +230,138 @@ async function evaluateResult() {
         const res = await fetch(`${API_BASE}/api/med-otdel/evaluate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ agent_id: currentAgentId, task_description: '' })
+            body: JSON.stringify({ agent_id: currentAgentId })
         });
         const data = await res.json();
         const container = document.getElementById('chatHistory');
         const cls = data.passed ? 'assistant' : 'error';
         const icon = data.passed ? '✅' : '❌';
-        container.innerHTML += `<div class="chat-msg ${cls}">${icon} Оценка: ${data.passed ? 'PASS' : 'FAIL'} (Score: ${data.score}/10)${data.feedback ? '\n' + escapeHtml(data.feedback) : ''}<div class="msg-time">${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}</div></div>`;
+        container.innerHTML += `<div class="chat-msg ${cls}">${icon} Оценка: ${data.passed ? 'PASS' : 'FAIL'} (Score: ${data.score}/10)\n${data.feedback || ''}<div class="msg-time">${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}</div></div>`;
         container.scrollTop = container.scrollHeight;
-        await loadAgentMemory(currentAgentId);
-        loadAgents();
-    } catch (e) {
-        alert('Ошибка оценки: ' + e.message);
-    }
+    } catch (e) { alert('Ошибка: ' + e.message); }
     btn.disabled = false;
-    btn.textContent = '🔍 Оценить результат';
+    btn.textContent = '🔍 Оценить';
 }
 
-async function evolveAgent() {
+// --- Save instructions ---
+async function saveInstructions() {
     if (!currentAgentId) return;
-    if (!confirm(`Эволюционировать агента ${currentAgentId}?`)) return;
-    const btn = document.getElementById('btnEvolve');
-    btn.disabled = true;
-    btn.textContent = '⏳ Эволюция...';
     try {
-        const res = await fetch(`${API_BASE}/api/med-otdel/${currentAgentId}/evolve`, { method: 'POST' });
-        const data = await res.json();
-        alert(`Эволюция завершена: ${data.old_version} → ${data.new_version}`);
-        document.getElementById('panelInstructions').value = data.new_prompt || '';
-        await loadAgentMemory(currentAgentId);
-        loadAgents();
-    } catch (e) {
-        alert('Ошибка эволюции: ' + e.message);
-    }
-    btn.disabled = false;
-    btn.textContent = '🧬 Эволюционировать';
+        await fetch(`${API_BASE}/api/agents/${currentAgentId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instructions: document.getElementById('panelInstructions').value, model: document.getElementById('panelModel').value })
+        });
+        alert('Сохранено!');
+    } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
-// ============================================
-// Задачи и МЕД-ОТДЕЛ
-// ============================================
-
-async function loadTasks() {
+// --- Rules ---
+async function loadAgentRules(agentId) {
     try {
-        const res = await fetch(`${API_BASE}/api/tasks/`);
+        const res = await fetch(`${API_BASE}/api/med-otdel/${agentId}/rules`);
         const data = await res.json();
-        const activeContainer = document.getElementById('activeTasks');
-        if (data.active && data.active.length > 0) {
-            activeContainer.innerHTML = data.active.map(t => `<div class="task-item"><div class="task-title">${escapeHtml(t.title)}</div><div class="task-agent">${t.agent_id}</div></div>`).join('');
-        } else {
-            activeContainer.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет активных задач — используйте Orchestrator для запуска</div>';
+        const container = document.getElementById('rulesList');
+        if (!container) return;
+        if (!data.rules || !data.rules.length) {
+            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет применённых правил</div>';
+            return;
         }
-        try {
-            const logRes = await fetch(`${API_BASE}/api/med-otdel/log`);
-            const logData = await logRes.json();
-            const medContainer = document.getElementById('medLog');
-            if (logData.entries && logData.entries.length > 0) {
-                medContainer.innerHTML = logData.entries.slice(-10).reverse().map(entry => `<div class="log-entry"><div style="font-weight:600">${escapeHtml(entry.action)}</div><div>${escapeHtml(entry.details)}</div>${entry.agent_id ? `<div style="color:var(--text-muted);font-size:11px">${entry.agent_id}</div>` : ''}</div>`).join('');
-            } else {
-                medContainer.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Записи появятся после оценки Critic\'ом</div>';
-            }
-        } catch (e) { console.error('Ошибка загрузки лога МЕД-ОТДЕЛА:', e); }
-    } catch (e) { console.error('Ошибка загрузки задач:', e); }
-    await loadStudioHealth();
-    await loadTempAgents();
+        container.innerHTML = data.rules.map(r => `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">📜 ${escapeHtml(r)}</div>`).join('');
+    } catch (e) {}
 }
 
-async function loadStudioHealth() {
+async function loadAvailablePatterns() {
     try {
-        const res = await fetch(`${API_BASE}/api/med-otdel/studio-health`);
+        const res = await fetch(`${API_BASE}/api/med-otdel/patterns`);
         const data = await res.json();
-        const healthContainer = document.getElementById('medStudioHealth');
-        const pct = data.error_percentage || 0;
-        const statusClass = data.status || 'ok';
-        healthContainer.innerHTML = `<div class="studio-health-bar"><div class="studio-health-fill ${statusClass}" style="width: ${100 - pct}%"></div></div><div class="studio-health-text ${statusClass}">${data.alert_message || `Здорово: ${data.total_agents - data.error_agents}/${data.total_agents} агентов OK`}</div>`;
-        const agentList = document.getElementById('medAgentStatus');
-        if (data.agents_health) {
-            agentList.innerHTML = Object.entries(data.agents_health).map(([id, info]) => {
-                const statusDot = info.status === 'error' ? 'error' : info.status === 'working' ? 'working' : 'idle';
-                return `<div class="med-agent-item"><span class="agent-name">${info.name || id}</span><div class="agent-meta"><span class="agent-version">${info.version || 'v1'}</span>${info.consecutive_fails > 0 ? `<span class="agent-fails">⚠ ${info.consecutive_fails}</span>` : ''}<span class="agent-status-dot ${statusDot}"></span></div></div>`;
-            }).join('');
-        }
-    } catch (e) { console.error('Ошибка загрузки здоровья студии:', e); }
+        const select = document.getElementById('rulesSelect');
+        if (!select) return;
+        select.innerHTML = '<option value="">Выберите правило...</option>';
+        (data.patterns || []).forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.key;
+            opt.textContent = p.name || p.key;
+            select.appendChild(opt);
+        });
+    } catch (e) {}
 }
 
-// ============================================
-// HR
-// ============================================
-
-async function createHrAgent() {
-    const input = document.getElementById('hrTaskInput');
-    const btn = document.getElementById('btnHrCreate');
-    const taskDescription = input.value.trim();
-    if (!taskDescription) { alert('Опишите задачу для создания агента'); return; }
-    btn.disabled = true;
-    btn.textContent = '⏳ HR анализирует...';
+async function addRule() {
+    if (!currentAgentId) return;
+    const select = document.getElementById('rulesSelect');
+    const key = select.value;
+    if (!key) return;
     try {
-        const res = await fetch(`${API_BASE}/api/hr/create-agent`, {
+        const res = await fetch(`${API_BASE}/api/med-otdel/apply-pattern`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ task_description: taskDescription })
+            body: JSON.stringify({ agent_id: currentAgentId, pattern_key: key })
         });
         const data = await res.json();
-        if (data.ok) { alert(`Агент создан: ${data.name} (${data.role})`); input.value = ''; loadAgents(); loadTempAgents(); }
-        else { alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка')); }
-    } catch (e) { alert('Ошибка создания агента: ' + e.message); }
-    btn.disabled = false;
-    btn.textContent = '👤 Создать агента';
+        if (data.ok) { loadAgentRules(currentAgentId); select.value = ''; }
+        else { alert('Ошибка: ' + (data.error || 'Неизвестная ошибка')); }
+    } catch (e) { alert('Ошибка: ' + e.message); }
 }
 
-async function loadTempAgents() {
-    try {
-        const res = await fetch(`${API_BASE}/api/hr/temp-agents`);
-        const data = await res.json();
-        const container = document.getElementById('hrTempAgents');
-        if (data.agents && data.agents.length > 0) {
-            container.innerHTML = data.agents.map(a => `<div class="temp-agent-item"><div class="temp-agent-info"><span class="temp-agent-icon">${a.icon || '🤖'}</span><div><div class="temp-agent-name">${a.name}</div><div class="temp-agent-role">${a.role}</div></div></div><button class="btn-remove-agent" onclick="removeTempAgent('${a.agent_id}')">✕</button></div>`).join('');
-        } else {
-            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Временные агенты создаются HR по запросу</div>';
-        }
-    } catch (e) { console.error('Ошибка загрузки временных агентов:', e); }
-}
-
-async function removeTempAgent(agentId) {
-    if (!confirm('Удалить временного агента?')) return;
-    try {
-        const res = await fetch(`${API_BASE}/api/hr/${agentId}/remove`, { method: 'POST' });
-        const data = await res.json();
-        if (data.ok) { loadAgents(); loadTempAgents(); }
-        else { alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка')); }
-    } catch (e) { alert('Ошибка удаления: ' + e.message); }
-}
-
-// ============================================
-// Tools — Kie.ai & ElevenLabs
-// ============================================
-
+// --- Kie.ai Image Generation ---
 async function generateImage() {
-    const prompt = document.getElementById('comfyui-prompt').value.trim();
-    const negative = document.getElementById('comfyui-negative').value.trim();
-    if (!prompt) { showError('comfyui', 'Введите описание изображения'); return; }
-    setToolLoading('comfyui', true);
+    const prompt = document.getElementById('kieai-prompt').value.trim();
+    if (!prompt || !currentAgentId) return;
+    const btn = document.getElementById('btnKieai');
+    const spinner = document.getElementById('kieai-spinner');
+    const errorDiv = document.getElementById('kieai-error');
+    const resultDiv = document.getElementById('kieai-result');
+
+    btn.disabled = true;
+    spinner.classList.remove('hidden');
+    errorDiv.classList.add('hidden');
+    resultDiv.classList.add('hidden');
+
     try {
         const res = await fetch(`${API_BASE}/api/tools/generate-image`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, negative_prompt: negative })
+            body: JSON.stringify({ prompt })
         });
         const data = await res.json();
-        if (data.status === 'rate_limited') { showRateLimited('comfyui', data.retry_after || 30); return; }
-        if (data.status === 'error' || data.status === 'timeout') { showError('comfyui', data.error || 'Ошибка генерации'); return; }
-        if (data.status === 'success') { showImageResult(data.result_url); }
-    } catch (e) { showError('comfyui', e.message); }
-    setToolLoading('comfyui', false);
-}
-
-async function generateVoice() {
-    const text = document.getElementById('elevenlabs-text').value.trim();
-    const voiceId = document.getElementById('elevenlabs-voice').value;
-    if (!text) { showError('elevenlabs', 'Введите текст для озвучки'); return; }
-    if (!voiceId) { showError('elevenlabs', 'Выберите голос'); return; }
-    setToolLoading('elevenlabs', true);
-    try {
-        const res = await fetch(`${API_BASE}/api/tools/generate-audio`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, voice_id: voiceId })
-        });
-        const data = await res.json();
-        if (data.status === 'rate_limited') { showRateLimited('elevenlabs', data.retry_after || 30); return; }
-        if (data.status === 'error') { showError('elevenlabs', data.error || 'Ошибка генерации'); return; }
-        if (data.status === 'success') { showAudioResult(data.result_url); }
-    } catch (e) { showError('elevenlabs', e.message); }
-    setToolLoading('elevenlabs', false);
-}
-
-async function loadVoices() {
-    try {
-        const res = await fetch(`${API_BASE}/api/tools/voices`);
-        const data = await res.json();
-        const select = document.getElementById('elevenlabs-voice');
-        if (data.voices && data.voices.length > 0) {
-            select.innerHTML = data.voices.map(v => `<option value="${v.voice_id}">${v.name} (${v.category})</option>`).join('');
+        if (data.status === 'success') {
+            document.getElementById('kieai-image').src = data.result_url;
+            resultDiv.classList.remove('hidden');
         } else {
-            select.innerHTML = '<option value="">Нет доступных голосов (проверьте API ключ)</option>';
+            errorDiv.querySelector('.error-text').textContent = data.error || 'Ошибка генерации';
+            errorDiv.classList.remove('hidden');
         }
     } catch (e) {
-        document.getElementById('elevenlabs-voice').innerHTML = '<option value="">Ошибка загрузки</option>';
+        errorDiv.querySelector('.error-text').textContent = e.message;
+        errorDiv.classList.remove('hidden');
     }
+    btn.disabled = false;
+    spinner.classList.add('hidden');
 }
 
-function setToolLoading(tool, loading) {
-    const btn = document.getElementById(tool === 'comfyui' ? 'btnComfyui' : 'btnElevenlabs');
-    const spinner = document.getElementById(tool + '-spinner');
-    btn.disabled = loading;
-    spinner.classList.toggle('hidden', !loading);
-    hideToolError(tool);
-}
-
-function showError(tool, message) {
-    const el = document.getElementById(tool + '-error');
-    el.querySelector('.error-text').textContent = message;
-    el.classList.remove('hidden');
-}
-
-function hideToolError(tool) {
-    document.getElementById(tool + '-error').classList.add('hidden');
-}
-
-function showImageResult(url) {
-    document.getElementById('comfyui-image').src = url;
-    document.getElementById('comfyui-result').classList.remove('hidden');
-    document.getElementById('comfyui-spinner').classList.add('hidden');
-}
-
-function showAudioResult(url) {
-    document.getElementById('elevenlabs-audio').src = url;
-    document.getElementById('elevenlabs-result').classList.remove('hidden');
-    document.getElementById('elevenlabs-spinner').classList.add('hidden');
-}
-
-function showRateLimited(tool, seconds) {
-    const btn = document.getElementById(tool === 'comfyui' ? 'btnComfyui' : 'btnElevenlabs');
-    btn.disabled = true;
-    let remaining = seconds;
-    btn.textContent = `Доступно через ${remaining} сек`;
-    const interval = setInterval(() => {
-        remaining--;
-        if (remaining <= 0) { clearInterval(interval); btn.disabled = false; btn.textContent = tool === 'comfyui' ? '🎨 Сгенерировать' : '🎵 Сгенерировать голос'; }
-        else { btn.textContent = `Доступно через ${remaining} сек`; }
-    }, 1000);
-}
-
-// ============================================
-// Overlay и панели
-// ============================================
-
-function getOverlay() { return document.getElementById('overlay'); }
-
-function toggleTasksPanel() {
-    const panel = document.getElementById('tasksPanel');
-    panel.classList.toggle('open');
-    if (panel.classList.contains('open')) { getOverlay().classList.add('active'); loadTasks(); }
-    else { getOverlay().classList.remove('active'); }
-}
-
-function closeTasksPanel() { document.getElementById('tasksPanel').classList.remove('open'); }
-
-// ============================================
-// Утилиты
-// ============================================
-
-function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-
-// ============================================
-// Discussion Panel
-// ============================================
-
+// --- Discussion ---
 async function loadDiscussion() {
     try {
         const res = await fetch(`${API_BASE}/api/discussion/`);
         const data = await res.json();
-        const messages = data.messages || [];
-
-        // Обновляем счётчик непрочитанных
-        if (messages.length > 0) {
-            const latestTimestamp = messages[messages.length - 1].timestamp || '';
-            if (latestTimestamp > lastDiscussionTimestamp) {
-                const newMessages = messages.filter(m => m.timestamp > lastDiscussionTimestamp);
-                if (newMessages.length > 0 && !document.getElementById('discussionPanel').classList.contains('open')) {
-                    discussionUnreadCount += newMessages.length;
-                    updateDiscussionBadge();
-                }
-                lastDiscussionTimestamp = latestTimestamp;
-            }
-        }
-
-        renderDiscussionMessages(messages);
-    } catch (e) {
-        console.error('Ошибка загрузки обсуждения:', e);
-    }
-}
-
-function updateDiscussionBadge() {
-    const badge = document.getElementById('discussionBadge');
-    if (badge) {
-        if (discussionUnreadCount > 0) {
-            badge.textContent = discussionUnreadCount > 99 ? '99+' : discussionUnreadCount;
-            badge.style.display = 'inline-block';
-        } else {
-            badge.style.display = 'none';
-        }
-    }
-}
-
-function resetDiscussionBadge() {
-    discussionUnreadCount = 0;
-    updateDiscussionBadge();
+        renderDiscussionMessages(data.messages || []);
+    } catch (e) {}
 }
 
 function renderDiscussionMessages(messages) {
     const container = document.getElementById('discussionMessages');
+    if (!container) return;
     if (!messages.length) {
         container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">Нет сообщений</div>';
         return;
     }
-    const typeLabels = {
-        user: 'Вы',
-        agent: 'Агент',
-        critic: 'Критик',
-        med_otdel: 'МЕД-ОТДЕЛ',
-        system: 'Система'
-    };
-    container.innerHTML = messages.map(msg => {
-        const type = msg.msg_type || 'system';
-        const sender = msg.agent_id || 'system';
-        const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '';
-        return `
-            <div class="discussion-msg type-${type}">
-                <div class="msg-header">
-                    <span class="msg-sender">${typeLabels[type] || sender}</span>
-                    <span class="msg-time">${time}</span>
-                </div>
-                <div class="msg-content">${escapeHtml(msg.content)}</div>
-            </div>
-        `;
+    container.innerHTML = messages.map(m => {
+        const type = m.msg_type || 'system';
+        return `<div class="discussion-msg type-${type}">
+            <div class="msg-sender">${escapeHtml(m.agent_id || 'system')}</div>
+            ${escapeHtml(m.content || '')}
+        </div>`;
     }).join('');
     container.scrollTop = container.scrollHeight;
 }
@@ -672,237 +370,189 @@ async function sendDiscussionMessage() {
     const input = document.getElementById('discussionInput');
     const content = input.value.trim();
     if (!content) return;
-    input.value = '';
     try {
         await fetch(`${API_BASE}/api/discussion/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ agent_id: 'user', content, msg_type: 'user' })
         });
+        input.value = '';
         loadDiscussion();
+    } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+// --- Pipeline ---
+async function startPipeline() {
+    const season = parseInt(document.getElementById('pipeSeason').value) || 1;
+    const episode = parseInt(document.getElementById('pipeEpisode').value) || 1;
+    const scene = parseInt(document.getElementById('pipeScene').value) || 1;
+    const desc = document.getElementById('pipeDesc').value.trim();
+    if (!desc) { alert('Опишите сцену'); return; }
+
+    const btn = document.getElementById('btnStartPipeline');
+    btn.disabled = true;
+    btn.textContent = '⏳ Запуск...';
+
+    // Reset stages
+    ['writer','director','hr','dop','art','sound','storyboard','image'].forEach(s => {
+        const el = document.getElementById('stage-' + s);
+        if (el) { el.textContent = '⏳ Ожидание'; el.className = 'stage-status'; }
+    });
+
+    try {
+        const res = await fetch(`${API_BASE}/api/orchestrator/scene-pipeline`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ season, episode, scene, pdf_context: desc })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            btn.textContent = '✅ Запущено';
+            // Poll for results
+            pollPipelineResults(season, episode, scene);
+        } else {
+            alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка'));
+            btn.disabled = false;
+            btn.textContent = '🚀 Запустить конвейер';
+        }
     } catch (e) {
-        alert('Ошибка отправки: ' + e.message);
+        alert('Ошибка: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = '🚀 Запустить конвейер';
     }
+}
+
+function pollPipelineResults(season, episode, scene) {
+    let attempts = 0;
+    const interval = setInterval(async () => {
+        attempts++;
+        try {
+            const res = await fetch(`${API_BASE}/api/discussion/`);
+            const data = await res.json();
+            const msgs = data.messages || [];
+
+            // Update stages based on discussion messages
+            for (const m of msgs) {
+                const content = (m.content || '').toLowerCase();
+                if (content.includes('writer') && content.includes('approved')) setStage('writer', 'done', '✅ Готово');
+                if (content.includes('director') && content.includes('approved')) setStage('director', 'done', '✅ Готово');
+                if (content.includes('hr') && content.includes('approved')) setStage('hr', 'done', '✅ Готово');
+                if (content.includes('dop') && content.includes('approved')) setStage('dop', 'done', '✅ Готово');
+                if (content.includes('art_director') && content.includes('approved')) setStage('art', 'done', '✅ Готово');
+                if (content.includes('sound') && content.includes('approved')) setStage('sound', 'done', '✅ Готово');
+                if (content.includes('storyboard') && content.includes('approved')) setStage('storyboard', 'done', '✅ Готово');
+                if (content.includes('kie') || content.includes('генерация')) setStage('image', 'running', '🔄 Генерация...');
+                if (content.includes('завершена') || content.includes('completed')) {
+                    setStage('image', 'done', '✅ Готово');
+                    clearInterval(interval);
+                    loadPipelineResult(season, episode, scene);
+                }
+            }
+
+            // Set running stages
+            for (const m of msgs.slice(-5)) {
+                const c = (m.content || '').toLowerCase();
+                if (c.includes('шаг 1') || c.includes('writer описывает')) setStage('writer', 'running', '🔄 Работает...');
+                if (c.includes('шаг 2') || c.includes('director')) setStage('director', 'running', '🔄 Работает...');
+                if (c.includes('шаг 3') || c.includes('hr')) setStage('hr', 'running', '🔄 Работает...');
+                if (c.includes('шаг 4')) { setStage('dop', 'running', '🔄 Работает...'); setStage('art', 'running', '🔄 Работает...'); setStage('sound', 'running', '🔄 Работает...'); }
+                if (c.includes('шаг 5') || c.includes('storyboarder собирает')) setStage('storyboard', 'running', '🔄 Работает...');
+                if (c.includes('шаг 6') || c.includes('генерация')) setStage('image', 'running', '🔄 Генерация...');
+            }
+        } catch (e) {}
+
+        if (attempts > 120) { // 10 min timeout
+            clearInterval(interval);
+            document.getElementById('btnStartPipeline').disabled = false;
+            document.getElementById('btnStartPipeline').textContent = '🚀 Запустить конвейер';
+        }
+    }, 5000);
+}
+
+function setStage(stage, status, text) {
+    const el = document.getElementById('stage-' + stage);
+    if (el) { el.textContent = text; el.className = 'stage-status ' + status; }
+}
+
+async function loadPipelineResult(season, episode, scene) {
+    try {
+        // Get from DB via a simple check
+        const res = await fetch(`${API_BASE}/api/discussion/`);
+        const data = await res.json();
+        const msgs = data.messages || [];
+
+        // Show final prompt and image from discussion
+        for (const m of msgs.slice().reverse()) {
+            if (m.content && (m.content.includes('tools_cache') || m.content.includes('/kie_'))) {
+                const urlMatch = m.content.match(/(\/tools_cache\/[^\s]+)/);
+                if (urlMatch) {
+                    document.getElementById('resultImage').innerHTML = `<img src="${urlMatch[1]}" alt="Generated">`;
+                }
+            }
+        }
+    } catch (e) {}
+
+    document.getElementById('btnStartPipeline').disabled = false;
+    document.getElementById('btnStartPipeline').textContent = '🚀 Запустить конвейер';
+}
+
+// --- Panels ---
+function getOverlay() { return document.getElementById('overlay'); }
+
+function togglePipelinePanel() {
+    const panel = document.getElementById('pipelinePanel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) { getOverlay().classList.add('active'); }
+    else { getOverlay().classList.remove('active'); }
+}
+
+function closePipelinePanel() {
+    document.getElementById('pipelinePanel').classList.remove('open');
 }
 
 function toggleDiscussionPanel() {
     const panel = document.getElementById('discussionPanel');
     panel.classList.toggle('open');
-    if (panel.classList.contains('open')) {
-        getOverlay().classList.add('active');
-        loadDiscussion();
-        resetDiscussionBadge();
-    } else {
-        getOverlay().classList.remove('active');
-    }
+    if (panel.classList.contains('open')) { getOverlay().classList.add('active'); loadDiscussion(); }
+    else { getOverlay().classList.remove('active'); }
 }
 
 function closeDiscussionPanel() {
     document.getElementById('discussionPanel').classList.remove('open');
 }
 
-// ============================================
-// Rule Builder
-// ============================================
-
-let availablePatterns = [];
-
-async function loadAgentRules(agentId) {
-    try {
-        const res = await fetch(`${API_BASE}/api/med-otdel/${agentId}/rules`);
-        const data = await res.json();
-        renderRules(data.rules || []);
-    } catch (e) {
-        console.error('Ошибка загрузки правил:', e);
-    }
+function dismissOnboarding() {
+    const banner = document.getElementById('onboardingBanner');
+    if (banner) banner.classList.add('hidden');
+    try { localStorage.setItem('onboarding_dismissed', '1'); } catch(e) {}
 }
 
-async function loadAvailablePatterns() {
-    try {
-        const res = await fetch(`${API_BASE}/api/med-otdel/patterns`);
-        const data = await res.json();
-        availablePatterns = data.patterns || [];
-        renderPatternsSelect();
-    } catch (e) {
-        console.error('Ошибка загрузки паттернов:', e);
-    }
+// --- Utils ---
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
-function renderRules(rules) {
-    const container = document.getElementById('rulesList');
-    if (!rules.length) {
-        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Правила появятся автоматически после оценки Critic\'ом</div>';
-        return;
-    }
-    container.innerHTML = rules.map(rule => `
-        <div class="rule-item">
-            <div>
-                <div class="rule-name">${escapeHtml(rule.name || rule.key)}</div>
-                <div class="rule-desc">${escapeHtml(rule.description || '')}</div>
-            </div>
-            <button class="rule-remove" onclick="removeRule('${rule.key}')" title="Удалить правило">✕</button>
-        </div>
-    `).join('');
-}
-
-function renderPatternsSelect() {
-    const select = document.getElementById('rulesSelect');
-    select.innerHTML = '<option value="">Выберите правило...</option>';
-    availablePatterns.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.key;
-        opt.textContent = p.name || p.key;
-        select.appendChild(opt);
-    });
-}
-
-async function addRule() {
-    const select = document.getElementById('rulesSelect');
-    const patternKey = select.value;
-    if (!patternKey || !currentAgentId) return;
-
-    try {
-        const res = await fetch(`${API_BASE}/api/med-otdel/apply-pattern`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ agent_id: currentAgentId, pattern_key: patternKey })
-        });
-        const data = await res.json();
-        if (data.ok) {
-            loadAgentRules(currentAgentId);
-            select.value = '';
-        } else {
-            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
-        }
-    } catch (e) {
-        alert('Ошибка добавления правила: ' + e.message);
-    }
-}
-
-async function removeRule(patternKey) {
-    if (!currentAgentId) return;
-    try {
-        const res = await fetch(`${API_BASE}/api/med-otdel/remove-pattern`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ agent_id: currentAgentId, pattern_key: patternKey })
-        });
-        const data = await res.json();
-        if (data.ok) {
-            loadAgentRules(currentAgentId);
-        } else {
-            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
-        }
-    } catch (e) {
-        alert('Ошибка удаления правила: ' + e.message);
-    }
-}
-
-// ============================================
-// Orchestrator
-// ============================================
-
-async function submitOrchTask() {
-    const input = document.getElementById('orchTaskInput');
-    const btn = document.getElementById('btnOrchSubmit');
-    const desc = input.value.trim();
-    if (!desc) { alert('Опишите задачу'); return; }
-
-    btn.disabled = true;
-    btn.textContent = '⏳ Анализ...';
-
-    try {
-        const res = await fetch(`${API_BASE}/api/orchestrator/submit`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ description: desc })
-        });
-        const data = await res.json();
-        if (data.ok) {
-            input.value = '';
-            loadOrchTasks();
-        } else {
-            alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка'));
-        }
-    } catch (e) {
-        alert('Ошибка: ' + e.message);
-    }
-
-    btn.disabled = false;
-    btn.textContent = '🚀 Запустить';
-}
-
-async function loadOrchTasks() {
-    try {
-        const res = await fetch(`${API_BASE}/api/orchestrator/active`);
-        const data = await res.json();
-        renderOrchTasks(data.tasks || []);
-    } catch (e) {
-        console.error('Ошибка загрузки задач Orchestrator:', e);
-    }
-}
-
-function renderOrchTasks(tasks) {
-    const container = document.getElementById('orchActiveTasks');
-    if (!tasks.length) {
-        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет активных задач</div>';
-        return;
-    }
-    container.innerHTML = tasks.map(t => {
-        const progress = Math.round(t.progress || 0);
-        const statusClass = t.status || 'pending';
-        const stepsInfo = t.steps ? `Шаг ${t.current_step + 1}/${t.steps.length}` : '';
-        const cancelBtn = t.status === 'running' ? `<button class="btn-orch-cancel" onclick="cancelOrchTask('${t.task_id}')">✕ Отмена</button>` : '';
-        return `
-            <div class="orch-task-item">
-                <div class="orch-task-desc">${escapeHtml(t.description)}</div>
-                <div class="orch-task-progress">${stepsInfo} — ${progress}%</div>
-                <div class="orch-task-bar"><div class="orch-task-fill" style="width: ${progress}%"></div></div>
-                <div class="orch-task-status ${statusClass}">${statusClass}</div>
-                ${cancelBtn}
-            </div>
-        `;
-    }).join('');
-}
-
-async function cancelOrchTask(taskId) {
-    try {
-        await fetch(`${API_BASE}/api/orchestrator/intervene/${taskId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'cancel' })
-        });
-        loadOrchTasks();
-    } catch (e) {
-        alert('Ошибка отмены: ' + e.message);
-    }
-}
-
-// ============================================
-// Bind Events
-// ============================================
-
+// --- Bind Events ---
 function bindEvents() {
     document.getElementById('panelClose').addEventListener('click', closeAgentPanel);
     document.getElementById('btnSend').addEventListener('click', sendMessage);
     document.getElementById('btnSaveInstructions').addEventListener('click', saveInstructions);
     document.getElementById('btnAttach').addEventListener('click', () => document.getElementById('fileInput').click());
     document.getElementById('fileInput').addEventListener('change', uploadFile);
-    document.getElementById('tasksOpenBtn').addEventListener('click', toggleTasksPanel);
-    document.getElementById('tasksClose').addEventListener('click', closeTasksPanel);
+    document.getElementById('btnEvaluate').addEventListener('click', evaluateResult);
+    document.getElementById('btnAddRule').addEventListener('click', addRule);
+
+    document.getElementById('pipelineOpenBtn').addEventListener('click', togglePipelinePanel);
+    document.getElementById('pipelineClose').addEventListener('click', closePipelinePanel);
+    document.getElementById('btnStartPipeline').addEventListener('click', startPipeline);
+
     document.getElementById('discussionOpenBtn').addEventListener('click', toggleDiscussionPanel);
     document.getElementById('discussionClose').addEventListener('click', closeDiscussionPanel);
     document.getElementById('discussionSend').addEventListener('click', sendDiscussionMessage);
-    document.getElementById('btnEvaluate').addEventListener('click', evaluateResult);
-    document.getElementById('btnEvolve').addEventListener('click', evolveAgent);
-    document.getElementById('btnHrCreate').addEventListener('click', createHrAgent);
-    document.getElementById('btnAddRule').addEventListener('click', addRule);
-    document.getElementById('btnOrchSubmit').addEventListener('click', submitOrchTask);
 
-    // Загрузка задач Orchestrator каждые 2 сек
-    setInterval(loadOrchTasks, 2000);
-
-    getOverlay().addEventListener('click', () => { closeAgentPanel(); closeTasksPanel(); closeDiscussionPanel(); });
+    getOverlay().addEventListener('click', () => { closeAgentPanel(); closePipelinePanel(); closeDiscussionPanel(); });
 
     document.getElementById('chatInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -910,85 +560,4 @@ function bindEvents() {
     document.getElementById('discussionInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDiscussionMessage(); }
     });
-}
-
-// ============================================
-// Roadmap v4 — Production Data
-// ============================================
-
-async function loadProductionData() {
-    loadProductionStatus();
-    loadCharacters();
-    loadMoodBoard();
-    loadDecisionLog();
-}
-
-async function loadProductionStatus() {
-    try {
-        const res = await fetch(`${API_BASE}/api/episodes/status`);
-        const data = await res.json();
-        const container = document.getElementById('productionStatus');
-        if (!container) return;
-        const total = data.total_episodes || 0;
-        const byStatus = data.by_status || {};
-        let html = `<div class="status-row"><span class="status-label">Всего эпизодов</span><span class="status-count">${total}</span></div>`;
-        const statusLabels = { draft: 'Черновик', in_review: 'На проверке', approved: 'Утверждена', in_generation: 'В генерации', completed: 'Готово' };
-        for (const [status, count] of Object.entries(byStatus)) {
-            html += `<div class="status-row"><span class="status-label">${statusLabels[status] || status}</span><span class="status-count">${count}</span></div>`;
-        }
-        container.innerHTML = html;
-    } catch (e) { /* silent */ }
-}
-
-async function loadCharacters() {
-    try {
-        const res = await fetch(`${API_BASE}/api/episodes/characters`);
-        const data = await res.json();
-        const container = document.getElementById('charactersList');
-        if (!container) return;
-        if (!data.characters || !data.characters.length) {
-            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Персонажи появятся после анализа сценария</div>';
-            return;
-        }
-        container.innerHTML = data.characters.map(c => `
-            <div class="character-item">
-                <div><div class="char-name">${escapeHtml(c.name)}</div><div class="char-desc">${escapeHtml(c.description || '')}</div></div>
-            </div>
-        `).join('');
-    } catch (e) { /* silent */ }
-}
-
-async function loadMoodBoard() {
-    try {
-        const res = await fetch(`${API_BASE}/api/episodes/mood-board`);
-        const data = await res.json();
-        const container = document.getElementById('moodBoard');
-        if (!container) return;
-        if (!data.mood_board || !data.mood_board.length) {
-            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);grid-column:span 2">Добавьте референсы через Kie.ai</div>';
-            return;
-        }
-        container.innerHTML = data.mood_board.map(m => `
-            <div class="mood-item">${m.url ? `<img src="${escapeHtml(m.url)}" alt="">` : escapeHtml(m.description || '🎨')}</div>
-        `).join('');
-    } catch (e) { /* silent */ }
-}
-
-async function loadDecisionLog() {
-    try {
-        const res = await fetch(`${API_BASE}/api/episodes/decisions`);
-        const data = await res.json();
-        const container = document.getElementById('decisionLog');
-        if (!container) return;
-        if (!data.decisions || !data.decisions.length) {
-            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Решения запишутся автоматически при работе агентов</div>';
-            return;
-        }
-        container.innerHTML = data.decisions.slice(-10).reverse().map(d => `
-            <div class="decision-item">
-                <div class="decision-title">${escapeHtml(d.title)}</div>
-                ${d.agent_id ? `<div class="decision-agent">${escapeHtml(d.agent_id)}</div>` : ''}
-            </div>
-        `).join('');
-    } catch (e) { /* silent */ }
 }

@@ -5,40 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animation Studio v2 — РОДИНА</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/static/style.css?v=20260403-v3">
+    <link rel="stylesheet" href="/static/style.css?v=20260405-v4">
 </head>
 <body>
     <div id="app">
         <!-- Шапка -->
         <header class="header">
             <div class="header-left">
-                <h1>ANIMATION STUDIO v2</h1>
-                <span class="project-badge">РОДИНА</span>
+                <h1>СТУДИЯ РОДИНА</h1>
             </div>
             <div class="header-nav">
-                <button class="nav-btn" id="discussionOpenBtn" title="Обсуждение">
-                    💬 Обсуждение
-                    <span class="discussion-badge" id="discussionBadge" style="display:none">0</span>
-                </button>
-                <button class="nav-btn" id="tasksOpenBtn" title="Задачи">☰ Задачи</button>
+                <button class="nav-btn" id="pipelineOpenBtn" title="Конвейер">🎬 Конвейер</button>
+                <button class="nav-btn" id="discussionOpenBtn" title="Обсуждение">💬 Чат</button>
             </div>
             <div class="header-right">
                 <div class="server-status" id="serverStatus">
                     <span class="status-dot"></span>
-                    <span class="status-text">Подключение...</span>
+                    <span class="status-text">...</span>
                 </div>
             </div>
         </header>
 
-        <!-- Офис — вид сверху -->
+        <!-- Офис -->
         <main class="office" id="office">
-            <!-- Баннер-подсказка -->
             <div class="onboarding-banner" id="onboardingBanner">
                 <div class="onboarding-content">
                     <span class="onboarding-icon">👋</span>
                     <div class="onboarding-text">
-                        <strong>Добро пожаловать в Студию РОДИНА!</strong>
-                        <span>Начните с <strong>Orchestrator</strong> (🎛️) — кликните и опишите задачу, или откройте <strong>Writer</strong> (✍️) для написания сценария. Загрузите PDF-сценарий через 📎.</span>
+                        <strong>Начните с Orchestrator (🎛️)</strong> — кликните и приложите PDF-сценарий через 📎, затем напишите задачу.
                     </div>
                     <button class="onboarding-dismiss" onclick="dismissOnboarding()">✕</button>
                 </div>
@@ -46,7 +40,7 @@
             <div class="office-grid" id="officeGrid"></div>
         </main>
 
-        <!-- Боковая панель агента -->
+        <!-- Панель агента -->
         <aside class="agent-panel" id="agentPanel">
             <div class="panel-header">
                 <div class="panel-title">
@@ -58,21 +52,17 @@
             </div>
 
             <div class="panel-body">
-                <!-- Чат (Основная зона) -->
+                <!-- Чат -->
                 <div class="chat-section">
-                    <div class="chat-agent-header" id="chatAgentHeader">
-                        <span class="chat-agent-icon" id="chatAgentIcon"></span>
-                        <span class="chat-agent-name" id="chatAgentName"></span>
-                    </div>
                     <div class="chat-history" id="chatHistory"></div>
                     <div class="attachment-chips" id="attachmentChips"></div>
                     <div class="chat-input-row">
                         <input type="file" id="fileInput" class="hidden-file-input" accept=".pdf,.txt,.md,.jpg,.jpeg,.png,.json">
                         <button class="btn-attach" id="btnAttach" title="Прикрепить файл">📎</button>
-                        <textarea id="chatInput" placeholder="Сообщение агенту..." rows="1"></textarea>
+                        <textarea id="chatInput" placeholder="Напишите задачу агенту..." rows="4"></textarea>
                         <button class="btn-send" id="btnSend">&#9654;</button>
                     </div>
-                    <button class="btn-evaluate" id="btnEvaluate">🔍 Оценить результат</button>
+                    <button class="btn-evaluate" id="btnEvaluate">🔍 Оценить</button>
                 </div>
 
                 <!-- Сворачиваемые секции -->
@@ -83,106 +73,38 @@
                         <div class="collapsible-content">
                             <div class="setting-row">
                                 <label>Модель</label>
-                                <div class="model-selector">
-                                    <select id="panelModel">
-                            <option value="qwen/qwen3.5-9b">Qwen 3.5 9B</option>
-                            <option value="deepseek/deepseek-v3.2">DeepSeek V3.2</option>
-                            <option value="google/gemini-3-flash-preview">Gemini 3 Flash</option>
-                            <option value="anthropic/claude-sonnet-4.5">Claude Sonnet 4.5</option>
-                            <option value="anthropic/claude-opus-4.5">Claude Opus 4.5</option>
-                            <option value="openai/gpt-4o">GPT-4o</option>
-                            <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
-                            <option value="mistralai/mistral-large-2411">Mistral Large 2411</option>
-                                    </select>
-                                </div>
+                                <select id="panelModel">
+                                    <option value="qwen/qwen3.5-9b">Qwen 3.5 9B</option>
+                                    <option value="deepseek/deepseek-v3.2">DeepSeek V3.2</option>
+                                    <option value="google/gemini-3-flash-preview">Gemini 3 Flash</option>
+                                    <option value="anthropic/claude-sonnet-4.5">Claude Sonnet 4.5</option>
+                                    <option value="openai/gpt-4o">GPT-4o</option>
+                                </select>
                             </div>
                             <div class="setting-row">
                                 <label>Инструкции</label>
-                                <textarea id="panelInstructions" rows="3" placeholder="Системный промпт агента..."></textarea>
+                                <textarea id="panelInstructions" rows="3" placeholder="Системный промпт..."></textarea>
                             </div>
                             <button class="btn-save" id="btnSaveInstructions">Сохранить</button>
                         </div>
                     </details>
 
-                    <!-- Память агента -->
-                    <details class="collapsible-section">
-                        <summary>🧠 Память агента</summary>
+                    <!-- Kie.ai (Art Director) -->
+                    <details class="collapsible-section" id="toolKieaiSection">
+                        <summary>🎨 Генерация изображения</summary>
                         <div class="collapsible-content">
-                            <div class="memory-info">
-                                <div class="memory-row">
-                                    <span>Версия промпта:</span>
-                                    <span id="memoryVersion" class="memory-badge">v1</span>
-                                </div>
-                                <div class="memory-row">
-                                    <span>Провалов подряд:</span>
-                                    <span id="memoryFailures" class="memory-badge danger">0</span>
-                                </div>
-                                <div class="memory-row">
-                                    <span>Статус лечения:</span>
-                                    <span id="memoryHealing" class="memory-badge ok">Нет</span>
-                                </div>
-                            </div>
-                            <div class="memory-lessons" id="memoryLessons"></div>
-                            <button class="btn-evolve" id="btnEvolve">🧬 Эволюционировать</button>
-                        </div>
-                    </details>
-
-                    <!-- Правила агента -->
-                    <details class="collapsible-section" id="rulesSection">
-                        <summary>📜 Правила</summary>
-                        <div class="collapsible-content">
-                            <div class="rules-list" id="rulesList"></div>
-                            <div class="rules-add">
-                                <select id="rulesSelect">
-                                    <option value="">Выберите правило...</option>
-                                </select>
-                                <button class="btn-save" id="btnAddRule">Добавить</button>
-                            </div>
-                        </div>
-                    </details>
-
-                    <!-- Инструмент: Kie.ai (Art Director) -->
-                    <details class="collapsible-section" id="toolComfyuiSection">
-                        <summary>🎨 Kie.ai — Генерация</summary>
-                        <div class="collapsible-content">
-                            <textarea id="comfyui-prompt" rows="2" maxlength="5000" placeholder="Опишите изображение..."></textarea>
-                            <div class="char-count"><span id="comfyui-char-count">0</span>/5000</div>
-                            <textarea id="comfyui-negative" rows="1" placeholder="Негативный промпт..."></textarea>
-                            <button class="btn-tool" id="btnComfyui" onclick="generateImage()">🎨 Сгенерировать</button>
-                            <div id="comfyui-spinner" class="spinner hidden">
+                            <textarea id="kieai-prompt" rows="3" maxlength="5000" placeholder="Опишите изображение..."></textarea>
+                            <button class="btn-tool" id="btnKieai" onclick="generateImage()">🎨 Сгенерировать</button>
+                            <div id="kieai-spinner" class="spinner hidden">
                                 <div class="spinner-circle"></div>
                                 <span>Генерация...</span>
                             </div>
-                            <div id="comfyui-error" class="error-banner hidden">
+                            <div id="kieai-error" class="error-banner hidden">
                                 <span class="error-text"></span>
                                 <button class="btn-retry" onclick="generateImage()">Повторить</button>
                             </div>
-                            <div id="comfyui-result" class="result hidden">
-                                <img id="comfyui-image" src="" alt="Сгенерированное изображение">
-                            </div>
-                        </div>
-                    </details>
-
-                    <!-- Инструмент: ElevenLabs (Sound Director) -->
-                    <details class="collapsible-section" id="toolElevenlabsSection">
-                        <summary>🎵 ElevenLabs — Голос</summary>
-                        <div class="collapsible-content">
-                            <select id="elevenlabs-voice" class="voice-select">
-                                <option value="">Загрузка голосов...</option>
-                            </select>
-                            <textarea id="elevenlabs-text" rows="2" maxlength="5000" placeholder="Текст для озвучки..."></textarea>
-                            <div class="char-count"><span id="elevenlabs-char-count">0</span>/5000</div>
-                            <button class="btn-tool" id="btnElevenlabs" onclick="generateVoice()">🎵 Сгенерировать голос</button>
-                            <div id="elevenlabs-spinner" class="spinner hidden">
-                                <div class="spinner-circle"></div>
-                                <span>Генерация голоса...</span>
-                            </div>
-                            <div id="elevenlabs-error" class="error-banner hidden">
-                                <span class="error-text"></span>
-                                <button class="btn-retry" onclick="generateVoice()">Повторить</button>
-                            </div>
-                            <div id="elevenlabs-result" class="result hidden">
-                                <audio id="elevenlabs-audio" controls></audio>
+                            <div id="kieai-result" class="result hidden">
+                                <img id="kieai-image" src="" alt="Изображение">
                             </div>
                         </div>
                     </details>
@@ -190,85 +112,99 @@
             </div>
         </aside>
 
-        <!-- Панель обсуждения (общий канал студии) -->
+        <!-- Панель Конвейера -->
+        <aside class="pipeline-panel" id="pipelinePanel">
+            <div class="pipeline-header">
+                <h3>🎬 Конвейер Сцены</h3>
+                <button class="pipeline-close" id="pipelineClose">&times;</button>
+            </div>
+            <div class="pipeline-body">
+                <!-- Форма запуска -->
+                <div class="pipeline-form">
+                    <label>Сезон / Эпизод / Сцена</label>
+                    <div class="pipeline-inputs">
+                        <input type="number" id="pipeSeason" value="1" min="1" class="pipe-num">
+                        <input type="number" id="pipeEpisode" value="1" min="1" class="pipe-num">
+                        <input type="number" id="pipeScene" value="1" min="1" class="pipe-num">
+                    </div>
+                    <label>Описание сцены</label>
+                    <textarea id="pipeDesc" rows="3" placeholder="Кабина самолёта, ночь. Ева слушает Пёрсела..."></textarea>
+                    <button class="btn-pipeline" id="btnStartPipeline">🚀 Запустить конвейер</button>
+                </div>
+
+                <!-- Статусы цехов -->
+                <div class="pipeline-stages" id="pipelineStages">
+                    <div class="stage-item" data-stage="writer">
+                        <span class="stage-icon">✍️</span>
+                        <span class="stage-name">Writer</span>
+                        <span class="stage-status" id="stage-writer">⏳ Ожидание</span>
+                    </div>
+                    <div class="stage-item" data-stage="director">
+                        <span class="stage-icon">🎬</span>
+                        <span class="stage-name">Director</span>
+                        <span class="stage-status" id="stage-director">⏳ Ожидание</span>
+                    </div>
+                    <div class="stage-item" data-stage="hr">
+                        <span class="stage-icon">👤</span>
+                        <span class="stage-name">HR Кастинг</span>
+                        <span class="stage-status" id="stage-hr">⏳ Ожидание</span>
+                    </div>
+                    <div class="stage-item" data-stage="dop">
+                        <span class="stage-icon">📷</span>
+                        <span class="stage-name">DOP</span>
+                        <span class="stage-status" id="stage-dop">⏳ Ожидание</span>
+                    </div>
+                    <div class="stage-item" data-stage="art">
+                        <span class="stage-icon">🎨</span>
+                        <span class="stage-name">Art Director</span>
+                        <span class="stage-status" id="stage-art">⏳ Ожидание</span>
+                    </div>
+                    <div class="stage-item" data-stage="sound">
+                        <span class="stage-icon">🎵</span>
+                        <span class="stage-name">Sound Director</span>
+                        <span class="stage-status" id="stage-sound">⏳ Ожидание</span>
+                    </div>
+                    <div class="stage-item" data-stage="storyboard">
+                        <span class="stage-icon">📋</span>
+                        <span class="stage-name">Storyboarder</span>
+                        <span class="stage-status" id="stage-storyboard">⏳ Ожидание</span>
+                    </div>
+                    <div class="stage-item" data-stage="image">
+                        <span class="stage-icon">🖼️</span>
+                        <span class="stage-name">Kie.ai Генерация</span>
+                        <span class="stage-status" id="stage-image">⏳ Ожидание</span>
+                    </div>
+                </div>
+
+                <!-- Результат -->
+                <div class="pipeline-result" id="pipelineResult">
+                    <h4>Финальный промпт</h4>
+                    <div class="result-prompt" id="resultPrompt"></div>
+                    <h4>Изображение</h4>
+                    <div class="result-image" id="resultImage"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Панель Обсуждения -->
         <aside class="discussion-panel" id="discussionPanel">
             <div class="discussion-header">
-                <div class="discussion-header-left">
-                    <h3>💬 Обсуждение</h3>
-                    <span class="discussion-subtitle">Общий канал студии</span>
-                </div>
+                <h3>💬 Обсуждение</h3>
                 <button class="discussion-close" id="discussionClose">&times;</button>
             </div>
             <div class="discussion-body">
                 <div class="discussion-messages" id="discussionMessages"></div>
                 <div class="discussion-input-row">
-                    <textarea id="discussionInput" placeholder="Сообщение в канал..." rows="1"></textarea>
+                    <textarea id="discussionInput" placeholder="Сообщение..." rows="2"></textarea>
                     <button class="btn-send" id="discussionSend">&#9654;</button>
                 </div>
             </div>
         </aside>
 
-        <!-- Боковая панель задач -->
-        <aside class="tasks-panel" id="tasksPanel">
-            <div class="tasks-header">
-                <div class="tasks-header-left">
-                    <h3>Задачи</h3>
-                </div>
-                <button class="tasks-close" id="tasksClose">&times;</button>
-            </div>
-            <div class="tasks-body" id="tasksBody">
-                <div class="tasks-section">
-                    <h4>Активные</h4>
-                    <div id="activeTasks" class="task-list"></div>
-                </div>
-                <div class="tasks-section">
-                    <h4>МЕД-ОТДЕЛ</h4>
-                    <div id="medStudioHealth" class="studio-health"></div>
-                    <div id="medAgentStatus" class="med-agent-list"></div>
-                    <div id="medLog" class="med-log"></div>
-                </div>
-                <div class="tasks-section">
-                    <h4>HR — Создать агента</h4>
-                    <div class="hr-section">
-                        <textarea id="hrTaskInput" rows="3" placeholder="Опишите задачу, для которой нужен новый агент..."></textarea>
-                        <button class="btn-hr-create" id="btnHrCreate">👤 Создать агента</button>
-                    </div>
-                    <div id="hrTempAgents" class="temp-agent-list"></div>
-                </div>
-                <div class="tasks-section">
-                    <h4>🎛️ Orchestrator</h4>
-                    <div class="orchestrator-section">
-                        <textarea id="orchTaskInput" rows="2" placeholder="Опишите задачу для студии..."></textarea>
-                        <button class="btn-orch-submit" id="btnOrchSubmit">🚀 Запустить</button>
-                        <div id="orchActiveTasks" class="orch-task-list"></div>
-                    </div>
-                </div>
-                <div class="tasks-section">
-                    <h4>📊 Статус производства</h4>
-                    <div id="productionStatus" class="production-status"></div>
-                </div>
-                <div class="tasks-section">
-                    <h4>👥 Персонажи</h4>
-                    <div class="characters-section">
-                        <div id="charactersList" class="characters-list"></div>
-                        <button class="btn-small" id="btnAddCharacter">+ Добавить</button>
-                    </div>
-                </div>
-                <div class="tasks-section">
-                    <h4>🎨 Доска настроения</h4>
-                    <div id="moodBoard" class="mood-board"></div>
-                </div>
-                <div class="tasks-section">
-                    <h4>📝 Журнал решений</h4>
-                    <div id="decisionLog" class="decision-log"></div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Overlay для закрытия панелей -->
+        <!-- Overlay -->
         <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="/static/app.js?v=20260403-v3"></script>
+    <script src="/static/app.js?v=20260405-v4"></script>
 </body>
 </html>
