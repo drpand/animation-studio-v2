@@ -95,6 +95,18 @@
       "action": "chain_healed",
       "details": "Цепочка writer→critic исправлена: обновлён промпт critic",
       "agent_id": "writer,critic"
+    },
+    {
+      "timestamp": "2026-04-04T19:40:40.904221",
+      "action": "evaluation_pass",
+      "details": "Агент writer прошёл оценку (score: 8)",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T19:41:20.923266",
+      "action": "evaluation_pass",
+      "details": "Агент writer прошёл оценку (score: 8)",
+      "agent_id": "writer"
     }
   ]
 }
