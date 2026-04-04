@@ -307,7 +307,7 @@ async def _download_and_save(url: str, task_id: str) -> str:
         _log(f"Download failed: {e}, creating placeholder")
         _create_minimal_png(dest)
 
-    return f"/static/tools_cache/images/{filename}"
+    return f"/tools_cache/{filename}"
 
 
 def _create_minimal_png(path: Path):

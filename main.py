@@ -92,8 +92,9 @@ app.include_router(episodes_router, prefix="/api/episodes", tags=["episodes"])
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Кэш инструментов (изображения, аудио)
-if os.path.exists(TOOLS_CACHE_DIR):
-    app.mount("/static/tools_cache", StaticFiles(directory=TOOLS_CACHE_DIR), name="tools_cache")
+IMAGES_CACHE_DIR = os.path.join(PROJECT_ROOT, "memory", "tools_cache", "images")
+os.makedirs(IMAGES_CACHE_DIR, exist_ok=True)
+app.mount("/tools_cache", StaticFiles(directory=IMAGES_CACHE_DIR), name="tools_cache")
 
 
 @app.get("/")
