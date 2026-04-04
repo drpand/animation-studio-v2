@@ -718,3 +718,48 @@ body {
 ::-webkit-scrollbar-track { background: var(--bg-dark); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Production Status */
+.production-status { font-size: 12px; }
+.status-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.status-row .status-label { color: var(--text-secondary); }
+.status-row .status-count { font-weight: 600; font-family: monospace; }
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+.status-badge.draft { background: var(--gray); color: #fff; }
+.status-badge.in_review { background: var(--yellow); color: #000; }
+.status-badge.approved { background: var(--accent); color: #000; }
+.status-badge.in_generation { background: #a855f7; color: #fff; }
+.status-badge.completed { background: var(--green); color: #000; }
+
+/* Characters */
+.characters-section { display: flex; flex-direction: column; gap: 6px; }
+.characters-list { display: flex; flex-direction: column; gap: 4px; }
+.character-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 10px; background: var(--bg-card); border-radius: var(--radius); font-size: 12px;
+}
+.character-item .char-name { font-weight: 600; }
+.character-item .char-desc { color: var(--text-secondary); font-size: 11px; }
+.btn-small {
+    padding: 4px 12px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-primary); font-size: 11px; cursor: pointer;
+}
+.btn-small:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Mood Board */
+.mood-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.mood-item {
+    aspect-ratio: 1; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--text-muted); text-align: center; padding: 4px;
+}
+.mood-item img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius); }
+
+/* Decision Log */
+.decision-log { display: flex; flex-direction: column; gap: 4px; }
+.decision-item {
+    padding: 6px 10px; background: var(--bg-card); border-radius: var(--radius);
+    font-size: 12px; border-left: 3px solid var(--accent);
+}
+.decision-item .decision-title { font-weight: 600; margin-bottom: 2px; }
+.decision-item .decision-agent { color: var(--text-secondary); font-size: 11px; }

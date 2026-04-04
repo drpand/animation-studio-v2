@@ -41,6 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(loadAgents, 5000);
     // Polling Discussion канала каждые 10 сек
     setInterval(loadDiscussion, 10000);
+    // Polling v4 данных каждые 15 сек
+    setInterval(loadProductionData, 15000);
+    loadProductionData();
 });
 
 // --- Проверка сервера ---
@@ -887,9 +890,85 @@ function bindEvents() {
     document.getElementById('discussionInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDiscussionMessage(); }
     });
+}
 
-    const comfyuiPrompt = document.getElementById('comfyui-prompt');
-    if (comfyuiPrompt) comfyuiPrompt.addEventListener('input', () => { document.getElementById('comfyui-char-count').textContent = comfyuiPrompt.value.length; });
-    const elevenlabsText = document.getElementById('elevenlabs-text');
-    if (elevenlabsText) elevenlabsText.addEventListener('input', () => { document.getElementById('elevenlabs-char-count').textContent = elevenlabsText.value.length; });
+// ============================================
+// Roadmap v4 — Production Data
+// ============================================
+
+async function loadProductionData() {
+    loadProductionStatus();
+    loadCharacters();
+    loadMoodBoard();
+    loadDecisionLog();
+}
+
+async function loadProductionStatus() {
+    try {
+        const res = await fetch(`${API_BASE}/api/episodes/status`);
+        const data = await res.json();
+        const container = document.getElementById('productionStatus');
+        if (!container) return;
+        const total = data.total_episodes || 0;
+        const byStatus = data.by_status || {};
+        let html = `<div class="status-row"><span class="status-label">Всего эпизодов</span><span class="status-count">${total}</span></div>`;
+        const statusLabels = { draft: 'Черновик', in_review: 'На проверке', approved: 'Утверждена', in_generation: 'В генерации', completed: 'Готово' };
+        for (const [status, count] of Object.entries(byStatus)) {
+            html += `<div class="status-row"><span class="status-label">${statusLabels[status] || status}</span><span class="status-count">${count}</span></div>`;
+        }
+        container.innerHTML = html;
+    } catch (e) { /* silent */ }
+}
+
+async function loadCharacters() {
+    try {
+        const res = await fetch(`${API_BASE}/api/episodes/characters`);
+        const data = await res.json();
+        const container = document.getElementById('charactersList');
+        if (!container) return;
+        if (!data.characters || !data.characters.length) {
+            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет персонажей</div>';
+            return;
+        }
+        container.innerHTML = data.characters.map(c => `
+            <div class="character-item">
+                <div><div class="char-name">${escapeHtml(c.name)}</div><div class="char-desc">${escapeHtml(c.description || '')}</div></div>
+            </div>
+        `).join('');
+    } catch (e) { /* silent */ }
+}
+
+async function loadMoodBoard() {
+    try {
+        const res = await fetch(`${API_BASE}/api/episodes/mood-board`);
+        const data = await res.json();
+        const container = document.getElementById('moodBoard');
+        if (!container) return;
+        if (!data.mood_board || !data.mood_board.length) {
+            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);grid-column:span 2">Пусто</div>';
+            return;
+        }
+        container.innerHTML = data.mood_board.map(m => `
+            <div class="mood-item">${m.url ? `<img src="${escapeHtml(m.url)}" alt="">` : escapeHtml(m.description || '🎨')}</div>
+        `).join('');
+    } catch (e) { /* silent */ }
+}
+
+async function loadDecisionLog() {
+    try {
+        const res = await fetch(`${API_BASE}/api/episodes/decisions`);
+        const data = await res.json();
+        const container = document.getElementById('decisionLog');
+        if (!container) return;
+        if (!data.decisions || !data.decisions.length) {
+            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет решений</div>';
+            return;
+        }
+        container.innerHTML = data.decisions.slice(-10).reverse().map(d => `
+            <div class="decision-item">
+                <div class="decision-title">${escapeHtml(d.title)}</div>
+                ${d.agent_id ? `<div class="decision-agent">${escapeHtml(d.agent_id)}</div>` : ''}
+            </div>
+        `).join('');
+    } catch (e) { /* silent */ }
 }
