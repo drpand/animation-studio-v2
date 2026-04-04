@@ -390,3 +390,59 @@ async def get_scene_versions(season_num: int, ep_num: int, scene_num: int):
                         if sc.get("scene_number") == scene_num:
                             return {"versions": sc.get("versions", [])}
     raise HTTPException(404, f"Сцена {season_num}x{ep_num}:{scene_num} не найдена")
+
+
+# ============================================
+# Экспорт эпизода
+# ============================================
+
+@router.get("/export/{season_num}/{ep_num}")
+async def export_episode(season_num: int, ep_num: int):
+    """Экспортировать эпизод — все сцены в одном пакете."""
+    data = _load_project()
+    for s in data.get("seasons", []):
+        if s.get("season_number") == season_num:
+            for ep in s.get("episodes", []):
+                if ep.get("episode_number") == ep_num:
+                    export_data = {
+                        "project": data.get("active_project", {}).get("name", ""),
+                        "season": season_num,
+                        "episode": ep_num,
+                        "title": ep.get("title", ""),
+                        "description": ep.get("description", ""),
+                        "status": ep.get("status", ""),
+                        "scenes": ep.get("scenes", []),
+                        "characters": data.get("characters", []),
+                        "exported_at": datetime.now().isoformat(),
+                    }
+                    return {"export": export_data}
+    raise HTTPException(404, f"Эпизод {season_num}x{ep_num} не найден")
+
+
+# ============================================
+# Аналитика студии
+# ============================================
+
+@router.get("/analytics")
+async def get_analytics():
+    """Аналитика студии."""
+    data = _load_project()
+    total_episodes = 0
+    total_scenes = 0
+    by_status = {}
+    for s in data.get("seasons", []):
+        for ep in s.get("episodes", []):
+            total_episodes += 1
+            total_scenes += len(ep.get("scenes", []))
+            status = ep.get("status", "draft")
+            by_status[status] = by_status.get(status, 0) + 1
+
+    return {
+        "total_episodes": total_episodes,
+        "total_scenes": total_scenes,
+        "total_characters": len(data.get("characters", [])),
+        "total_mood_items": len(data.get("mood_board", [])),
+        "total_decisions": len(data.get("decision_log", [])),
+        "by_status": by_status,
+        "seasons": len(data.get("seasons", [])),
+    }
