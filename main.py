@@ -25,6 +25,7 @@ from api.discussion_api import router as discussion_router
 from api.hr_init_api import router as hr_init_router
 from api.orchestrator_api import router as orchestrator_router
 from api.project_api import router as project_router
+from api.episodes_api import router as episodes_router
 
 # Абсолютные пути
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -65,6 +66,7 @@ app.include_router(discussion_router, prefix="/api/discussion", tags=["discussio
 app.include_router(hr_init_router, prefix="/api/hr/init", tags=["hr-init"])
 app.include_router(orchestrator_router, prefix="/api/orchestrator", tags=["orchestrator"])
 app.include_router(project_router, prefix="/api/project", tags=["project"])
+app.include_router(episodes_router, prefix="/api/episodes", tags=["episodes"])
 
 # Статика
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
