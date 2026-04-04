@@ -1,33 +1,7 @@
 {
-  "status": "completed",
-  "project_description": "Test",
-  "applied": [
-    {
-      "role": "writer",
-      "candidate_id": "writer_nicholls_youtube_hybrid",
-      "score": 0
-    },
-    {
-      "role": "director",
-      "candidate_id": "director_scene_weaver",
-      "score": 0
-    },
-    {
-      "role": "dop",
-      "candidate_id": "dop_cinemaflow",
-      "score": 0
-    },
-    {
-      "role": "critic",
-      "candidate_id": "critic_nicholls_feedback",
-      "score": 0
-    },
-    {
-      "role": "sound_director",
-      "candidate_id": "sound_custom_anime",
-      "score": 0
-    }
-  ],
-  "errors": [],
-  "initialized_at": "2026-04-04T01:34:50.026835"
+  "status": "not_started",
+  "project_description": "",
+  "evaluations": {},
+  "selected_candidates": {},
+  "initialized_at": null
 }
