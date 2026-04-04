@@ -1,15 +1,15 @@
 {
-  "project": "РОДИНА",
-  "episodes_total": 15,
-  "current_episode": 1,
-  "visual_style": "2.5D аниме, Satoshi Kon",
-  "color_palette": {
-    "goa": "красная пыль, синее море, фиолетовые ночи"
+  "active_project": {
+    "name": "РОДИНА",
+    "file": "",
+    "file_path": "",
+    "current_season": 1,
+    "current_episode": 1,
+    "total_episodes": 15,
+    "description": "Аниме-сериал для YouTube, серии по 3 минуты. Стиль 2.5D Satoshi Kon. Палитра: Гоа — красная пыль, синее море, фиолетовые ночи. Музыка: лейтмотив Пёрсела.",
+    "updated_at": ""
   },
-  "characters": {
-    "eva": "18 лет, тёмные прямые волосы, синие глаза, форма колледжа",
-    "harry": "50 лет, дорогой костюм, Ролекс, жёсткие черты"
-  },
+  "projects": [],
   "completed_tasks": [],
   "agent_decisions": []
 }

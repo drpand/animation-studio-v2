@@ -18,6 +18,7 @@ MEMORY_PATH = os.path.join(PROJECT_ROOT, "memory")
 STATE_FILE = os.path.join(MEMORY_PATH, "agents_state.json")
 ATTACHMENTS_DIR = os.path.join(MEMORY_PATH, "attachments")
 CONSTITUTION_FILE = os.path.join(PROJECT_ROOT, "constitution.md")
+PROJECT_MEMORY_FILE = os.path.join(MEMORY_PATH, "project_memory.json")
 
 # Глобальный кэш Конституции
 _constitution_cache = None
@@ -32,6 +33,33 @@ def _load_constitution() -> str:
         else:
             _constitution_cache = ""
     return _constitution_cache
+
+
+def _load_project_context() -> str:
+    """Загружает контекст активного проекта из project_memory.json."""
+    if not os.path.exists(PROJECT_MEMORY_FILE):
+        return ""
+    try:
+        with open(PROJECT_MEMORY_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        project = data.get("active_project", {})
+        if not project or not project.get("name"):
+            return ""
+        parts = []
+        parts.append(f"Название: {project.get('name', '')}")
+        if project.get("description"):
+            parts.append(f"Описание: {project['description']}")
+        if project.get("file"):
+            parts.append(f"Файл сценария: {project['file']}")
+        season = project.get("current_season", 1)
+        episode = project.get("current_episode", 1)
+        parts.append(f"Сезон {season}, Эпизод {episode}")
+        total = project.get("total_episodes", "")
+        if total:
+            parts.append(f"Всего эпизодов: {total}")
+        return "\n".join(parts)
+    except Exception:
+        return ""
 
 TEXT_READABLE_EXTENSIONS = {".txt", ".md", ".json"}
 ATTACHMENT_CONTEXT_LIMIT = 3
@@ -127,18 +155,24 @@ class BaseAgent:
         return reply
 
     def _build_full_system_prompt(self):
-        """Собирает полный системный промпт: Конституция + Роль + Инструкции."""
+        """Собирает полный системный промпт: Конституция + Проект + Роль + Инструкции."""
         constitution = _load_constitution()
+        project_context = _load_project_context()
         parts = []
         if constitution:
             parts.append("[КОНСТИТУЦИЯ СТУДИИ — НЕИЗМЕНЯЕМАЯ ЧАСТЬ]")
             parts.append(constitution)
             parts.append("")
+        if project_context:
+            parts.append("[АКТИВНЫЙ ПРОЕКТ]")
+            parts.append(project_context)
+            parts.append("")
         parts.append("[ТВОЯ РОЛЬ]")
         parts.append(self.role)
-        parts.append("")
-        parts.append("[ТВОИ ИНСТРУКЦИИ]")
-        parts.append(self.instructions)
+        if self.instructions:
+            parts.append("")
+            parts.append("[ТВОИ ИНСТРУКЦИИ]")
+            parts.append(self.instructions)
         return "\n".join(parts)
 
     def _build_context(self):

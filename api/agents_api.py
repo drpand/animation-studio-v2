@@ -18,6 +18,7 @@ router = APIRouter()
 
 MEMORY_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ATTACHMENTS_DIR = os.path.join(MEMORY_ROOT, "memory", "attachments")
+PROJECT_MEMORY_FILE = os.path.join(MEMORY_ROOT, "memory", "project_memory.json")
 
 # Допустимые расширения файлов
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".md", ".jpg", ".jpeg", ".png", ".json"}
@@ -37,6 +38,29 @@ def _load_state() -> dict:
         return {}
     with open(STATE_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _update_active_project(filename: str, file_path: str):
+    """Обновить active_project в project_memory.json при загрузке файла к Orchestrator."""
+    try:
+        if os.path.exists(PROJECT_MEMORY_FILE):
+            with open(PROJECT_MEMORY_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        else:
+            data = {"active_project": {}, "projects": [], "completed_tasks": [], "agent_decisions": []}
+
+        if "active_project" not in data:
+            data["active_project"] = {}
+
+        data["active_project"]["file"] = filename
+        data["active_project"]["file_path"] = file_path
+        from datetime import datetime
+        data["active_project"]["updated_at"] = datetime.now().isoformat()
+
+        with open(PROJECT_MEMORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
 
 
 def _save_state(state: dict):
@@ -297,6 +321,10 @@ async def upload_file(agent_id: str, file: UploadFile = File(...)):
         state[agent_id]["attachments"] = []
     state[agent_id]["attachments"].append(safe_name)
     _save_state(state)
+
+    # Если файл загружен к Orchestrator → обновить active_project
+    if agent_id == "orchestrator":
+        _update_active_project(file.filename, safe_name)
 
     return {
         "ok": True,
