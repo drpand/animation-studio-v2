@@ -400,6 +400,17 @@ def _extract_json(text: str) -> dict:
     return {}
 
 
+def _extract_json_array(text: str) -> list:
+    """Извлечь JSON массив из ответа LLM."""
+    match = re.search(r'\[.*\]', text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            return []
+    return []
+
+
 def _build_kieai_prompt(parts: dict) -> str:
     """Собрать финальный промпт из JSON частей цехов для Z-Image Turbo."""
     return (
@@ -499,9 +510,29 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     # Шаг 3: HR — кастинг персонажей
     await _post_discussion("[CONVEYOR] Шаг 3: HR — кастинг персонажей", "system", "orchestrator")
     hr_result = await run_step_with_critic("hr_agent",
-        f"Создай карточки персонажей сцены {scene_num}. Для каждого: имя, возраст, внешность, одежда, манера речи.",
+        f"Создай карточки персонажей сцены {scene_num}. Для каждого: имя, возраст, внешность, одежда, манера речи. Верни СТРОГО JSON массив: [{{\"name\": \"...\", \"age\": 20, \"appearance\": \"...\", \"clothing\": \"...\", \"speech\": \"...\"}}]",
         {"writer_output": writer_result.get("result", "")}, task_id)
     pipeline_result["steps"]["hr_casting"] = hr_result
+
+    # Сохраняем персонажей в БД
+    if hr_result["status"] in ("approved", "needs_review"):
+        hr_text = hr_result.get("result", "")
+        characters_data = _extract_json_array(hr_text)
+        if characters_data and db:
+            for char_data in characters_data:
+                try:
+                    await crud.create_character(db, {
+                        "project_id": 1,  # Default project
+                        "name": char_data.get("name", ""),
+                        "description": f"Возраст: {char_data.get('age', '')}. Внешность: {char_data.get('appearance', '')}. Одежда: {char_data.get('clothing', '')}. Манера речи: {char_data.get('speech', '')}",
+                        "voice_id": "",
+                        "relations": "",
+                        "created_at": datetime.now().isoformat(),
+                    })
+                    await _post_discussion(f"[CONVEYOR] Персонаж сохранён: {char_data.get('name', '')}", "system", "hr_agent")
+                except Exception:
+                    pass
+            await db.commit()
 
     # Авто-паттерн character_consistency
     if hr_result["status"] == "approved":

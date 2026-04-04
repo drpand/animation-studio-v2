@@ -28,8 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAgents();
     bindEvents();
     loadAvailablePatterns();
+    loadCharacters();
+    loadTimeline();
     setInterval(loadAgents, 5000);
     setInterval(loadDiscussion, 10000);
+    setInterval(loadTimeline, 30000);
     try {
         if (localStorage.getItem('onboarding_dismissed') === '1') {
             const b = document.getElementById('onboardingBanner');
@@ -498,6 +501,78 @@ async function loadPipelineResult(season, episode, scene) {
     document.getElementById('btnStartPipeline').textContent = '🚀 Запустить конвейер';
 }
 
+// --- Characters ---
+async function loadCharacters() {
+    try {
+        const res = await fetch(`${API_BASE}/api/characters/`);
+        const data = await res.json();
+        renderCharacters(data.characters || []);
+    } catch (e) {}
+}
+
+function renderCharacters(characters) {
+    const container = document.getElementById('charactersList');
+    if (!container) return;
+    if (!characters.length) {
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">Нет персонажей. Запустите конвейер — HR создаст карточки автоматически.</div>';
+        return;
+    }
+    container.innerHTML = characters.map(c => `
+        <div class="character-card">
+            <div class="char-name">${escapeHtml(c.name)}</div>
+            <div class="char-desc">${escapeHtml(c.description || '')}</div>
+        </div>
+    `).join('');
+}
+
+function toggleCharactersPanel() {
+    const panel = document.getElementById('charactersPanel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) {
+        getOverlay().classList.add('active');
+        loadCharacters();
+    } else {
+        getOverlay().classList.remove('active');
+    }
+}
+
+function closeCharactersPanel() {
+    document.getElementById('charactersPanel').classList.remove('open');
+}
+
+// --- Timeline ---
+async function loadTimeline() {
+    try {
+        const res = await fetch(`${API_BASE}/api/episodes/status`);
+        const data = await res.json();
+        renderTimeline(data);
+    } catch (e) {}
+}
+
+function renderTimeline(data) {
+    const container = document.getElementById('timelineContainer');
+    if (!container) return;
+    const total = data.total_episodes || 0;
+    const byStatus = data.by_status || {};
+    const done = byStatus.done || 0;
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    let html = `<div class="timeline-section">
+        <h4>Прогресс сезона: ${done}/${total} сцен завершено (${pct}%)</h4>
+        <div class="timeline-episodes">`;
+
+    for (let i = 1; i <= 15; i++) {
+        const epPct = i <= done ? 100 : 0;
+        html += `<div class="timeline-episode">
+            <div class="ep-num">Эп. ${i}</div>
+            <div class="ep-progress"><div class="ep-progress-fill" style="width:${epPct}%"></div></div>
+        </div>`;
+    }
+
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
 // --- Panels ---
 function getOverlay() { return document.getElementById('overlay'); }
 
@@ -549,6 +624,9 @@ function bindEvents() {
     on('btnEvaluate', 'click', evaluateResult);
     on('btnAddRule', 'click', addRule);
 
+    on('charactersOpenBtn', 'click', toggleCharactersPanel);
+    on('charactersClose', 'click', closeCharactersPanel);
+
     on('pipelineOpenBtn', 'click', togglePipelinePanel);
     on('pipelineClose', 'click', closePipelinePanel);
     on('btnStartPipeline', 'click', startPipeline);
@@ -558,7 +636,7 @@ function bindEvents() {
     on('discussionSend', 'click', sendDiscussionMessage);
 
     const overlay = getOverlay();
-    if (overlay) overlay.addEventListener('click', () => { closeAgentPanel(); closePipelinePanel(); closeDiscussionPanel(); });
+    if (overlay) overlay.addEventListener('click', () => { closeAgentPanel(); closePipelinePanel(); closeDiscussionPanel(); closeCharactersPanel(); });
 
     on('chatInput', 'keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
     on('discussionInput', 'keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDiscussionMessage(); } });

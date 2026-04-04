@@ -15,6 +15,7 @@
                 <h1>СТУДИЯ РОДИНА</h1>
             </div>
             <div class="header-nav">
+                <button class="nav-btn" id="charactersOpenBtn" title="Персонажи">👥 Персонажи</button>
                 <button class="nav-btn" id="pipelineOpenBtn" title="Конвейер">🎬 Конвейер</button>
                 <button class="nav-btn" id="discussionOpenBtn" title="Обсуждение">💬 Чат</button>
             </div>
@@ -183,6 +184,9 @@
                     <h4>Изображение</h4>
                     <div class="result-image" id="resultImage"></div>
                 </div>
+
+                <!-- Таймлайн -->
+                <div id="timelineContainer"></div>
             </div>
         </aside>
 
@@ -201,10 +205,22 @@
             </div>
         </aside>
 
+        <!-- Панель Персонажей -->
+        <aside class="characters-panel" id="charactersPanel">
+            <div class="characters-header">
+                <h3>👥 Персонажи</h3>
+                <button class="characters-close" id="charactersClose">&times;</button>
+            </div>
+            <div class="characters-body">
+                <div class="characters-list" id="charactersList"></div>
+                <button class="btn-char-add" id="btnAddCharacter">+ Добавить персонажа</button>
+            </div>
+        </aside>
+
         <!-- Overlay -->
         <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="/static/app.js?v=20260405-v9"></script>
+    <script src="/static/app.js?v=20260405-v10"></script>
 </body>
 </html>
