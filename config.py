@@ -1,5 +1,9 @@
 # Animation Studio v2 — РОДИНА
 import os
+from dotenv import load_dotenv
+
+# Загружаем .env СРАЗУ — чтобы все модули видели переменные
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 # OpenRouter
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
