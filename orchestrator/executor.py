@@ -2,6 +2,7 @@
 Orchestrator Executor — ядро выполнения цепочки задач.
 Выполняет: agent → summarize → critic → fixer цикл.
 """
+import re
 import asyncio
 import json
 import os
@@ -388,6 +389,30 @@ async def execute_chain(chain: TaskChain):
 # ПРОИЗВОДСТВЕННЫЙ КОНВЕЙЕР (Раздел 16)
 # ============================================
 
+def _extract_json(text: str) -> dict:
+    """Извлечь JSON из ответа LLM (игнорируя маркдаун и лишний текст)."""
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            return {}
+    return {}
+
+
+def _build_kieai_prompt(parts: dict) -> str:
+    """Собрать финальный промпт из JSON частей цехов для Z-Image Turbo."""
+    return (
+        f"[{parts.get('shot', 'Medium shot, cinematic angle')}] "
+        f"[{parts.get('character', '')}] "
+        f"[{parts.get('location', '')}] "
+        f"[{parts.get('lighting', '')}] "
+        f"[{parts.get('mood', '')}] "
+        f"[{parts.get('style', '2.5D anime, Satoshi Kon aesthetic, cinematic')}] "
+        f"[{parts.get('palette', 'red dust, deep blue sea, violet nights, Goa')}] "
+        f"[{parts.get('constraints', 'no watermark, no text, no logos, no extra limbs, correct anatomy, sharp focus')}]"
+    )
+
 async def run_step_with_critic(agent_id: str, task: str, context: dict, task_id: str = "pipeline") -> dict:
     """
     Выполнить один шаг с Critic/Fixer циклом (макс 3 круга).
@@ -479,51 +504,57 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     if hr_result["status"] == "approved" and db:
         await _create_character_pattern(hr_result.get("result", ""), db)
 
-    # Шаг 4: Параллельно DOP + Art Director + Sound Director
-    await _post_discussion("[CONVEYOR] Шаг 4: Параллельная работа цехов", "system", "orchestrator")
-    combined_context = {
-        "writer_output": writer_result.get("result", ""),
-        "director_notes": director_result.get("result", ""),
-        "characters": hr_result.get("result", ""),
-    }
+    # Шаг 4: Параллельно DOP + Art Director + Sound Director (JSON output)
+    await _post_discussion("[CONVEYOR] Шаг 4: Параллельная работа цехов (JSON)", "system", "orchestrator")
+    
+    json_context = f"""
+    WRITER OUTPUT: {writer_result.get('result', '')}
+    DIRECTOR NOTES: {director_result.get('result', '')}
+    CHARACTERS: {hr_result.get('result', '')}
+    """
 
+    # Задачи с требованием JSON
     dop_task = run_step_with_critic("dop",
-        "Опиши свет, камеру, атмосферу для каждого кадра сцены.",
-        combined_context, task_id)
+        "Опиши свет, камеру и локацию. Верни СТРОГО JSON: {\"shot\": \"...\", \"location\": \"...\", \"lighting\": \"...\"}",
+        {"context": json_context}, task_id)
     art_task = run_step_with_critic("art_director",
-        "Опиши визуальный стиль, цветовую палитру, детали для генерации изображений.",
-        combined_context, task_id)
+        "Опиши стиль и палитру. Верни СТРОГО JSON: {\"style\": \"...\", \"palette\": \"...\"}",
+        {"context": json_context}, task_id)
     sound_task = run_step_with_critic("sound_director",
-        "Опиши звуковое оформление: музыка, эффекты, голоса, лейтмотивы.",
-        combined_context, task_id)
+        "Опиши звук. Верни СТРОГО JSON: {\"mood\": \"...\"}",
+        {"context": json_context}, task_id)
 
-    dop_result, art_result, sound_result = await asyncio.gather(dop_task, art_task, sound_task, return_exceptions=True)
+    dop_res, art_res, sound_res = await asyncio.gather(dop_task, art_task, sound_task, return_exceptions=True)
 
-    pipeline_result["steps"]["dop"] = dop_result if not isinstance(dop_result, Exception) else {"status": "failed", "result": str(dop_result)}
-    pipeline_result["steps"]["art_director"] = art_result if not isinstance(art_result, Exception) else {"status": "failed", "result": str(art_result)}
-    pipeline_result["steps"]["sound_director"] = sound_result if not isinstance(sound_result, Exception) else {"status": "failed", "result": str(sound_result)}
+    # Извлекаем JSON
+    dop_json = _extract_json(dop_res.get("result", "") if not isinstance(dop_res, Exception) else "")
+    art_json = _extract_json(art_res.get("result", "") if not isinstance(art_res, Exception) else "")
+    sound_json = _extract_json(sound_res.get("result", "") if not isinstance(sound_res, Exception) else "")
 
-    # Шаг 5: Storyboarder собирает всё
-    await _post_discussion("[CONVEYOR] Шаг 5: Storyboarder собирает промпты", "system", "orchestrator")
-    storyboard_result = await run_step_with_critic("storyboarder",
-        "Собери промпты всех цехов в единый промпт для каждого кадра сцены. Укажи: кадр, длительность, визуал, свет, звук.",
-        {
-            "dop": dop_result.get("result", "") if not isinstance(dop_result, Exception) else "",
-            "art": art_result.get("result", "") if not isinstance(art_result, Exception) else "",
-            "sound": sound_result.get("result", "") if not isinstance(sound_result, Exception) else "",
-        }, task_id)
-    pipeline_result["steps"]["storyboarder"] = storyboard_result
+    # Объединяем JSON части
+    combined_parts = {**dop_json, **art_json, **sound_json}
+
+    pipeline_result["steps"]["dop"] = dop_res if not isinstance(dop_res, Exception) else {"status": "failed"}
+    pipeline_result["steps"]["art_director"] = art_res if not isinstance(art_res, Exception) else {"status": "failed"}
+    pipeline_result["steps"]["sound_director"] = sound_res if not isinstance(sound_res, Exception) else {"status": "failed"}
+
+    # Шаг 5: Storyboarder собирает JSON в промпт
+    await _post_discussion("[CONVEYOR] Шаг 5: Storyboarder собирает промпт", "system", "orchestrator")
+    final_prompt = _build_kieai_prompt(combined_parts)
+    
+    # Добавляем промпт в результат
+    pipeline_result["final_prompt"] = final_prompt
 
     # Шаг 6: Art Director → Kie.ai → изображение
-    await _post_discussion("[CONVEYOR] Шаг 6: Генерация изображений", "system", "orchestrator")
-    image_result = await _generate_and_review(art_result.get("result", "") if not isinstance(art_result, Exception) else "", task_id)
+    await _post_discussion("[CONVEYOR] Шаг 6: Генерация изображений (Z-Image Turbo)", "system", "orchestrator")
+    image_result = await _generate_and_review(final_prompt, task_id)
     pipeline_result["steps"]["image_generation"] = image_result
 
     # Шаг 7: Storyboarder → финальная сцена
     await _post_discussion("[CONVEYOR] Шаг 7: Финальная сборка сцены", "system", "orchestrator")
     final_result = await run_step_with_critic("storyboarder",
         "Собери все утверждённые кадры в финальную сцену. Хронологический порядок.",
-        {"storyboard": storyboard_result.get("result", ""), "images": image_result.get("result", "")}, task_id)
+        {"final_prompt": pipeline_result.get("final_prompt", ""), "image": image_result.get("result", "")}, task_id)
     pipeline_result["steps"]["final_assembly"] = final_result
 
     pipeline_result["status"] = "completed"
@@ -565,16 +596,16 @@ async def _create_character_pattern(characters_text: str, db):
     )
 
 
-async def _generate_and_review(art_prompt: str, task_id: str) -> dict:
+async def _generate_and_review(prompt: str, task_id: str) -> dict:
     """Отправить промпт в Kie.ai и оценить результат через Critic."""
-    if not art_prompt:
+    if not prompt:
         return {"status": "failed", "result": "Нет промпта для генерации"}
 
-    # Генерация через Kie.ai
+    # Генерация через Kie.ai (без negative_prompt для Z-Image Turbo)
     from tools.kieai_tool import generate_image
     result = await generate_image(
-        prompt=art_prompt[:3000],
-        negative_prompt="worst quality, low quality, blurry, deformed",
+        prompt=prompt[:4000],
+        negative_prompt="",  # Z-Image Turbo игнорирует negative prompt
         width=1024, height=1024, steps=30, cfg_scale=7.0, seed=-1
     )
 
@@ -583,7 +614,7 @@ async def _generate_and_review(art_prompt: str, task_id: str) -> dict:
 
     # Critic оценивает изображение (по описанию)
     passed, feedback = await _run_critic(
-        f"Сгенерированное изображение по промпту:\n{art_prompt[:2000]}\nURL: {result.result_url}",
+        f"Сгенерированное изображение по промпту:\n{prompt[:2000]}\nURL: {result.result_url}",
         task_id, "art_director"
     )
 

@@ -63,6 +63,14 @@
       "description": "Запрет на бессмысленный арт-хаус и нарушение тайминга.",
       "category": "format",
       "priority": 10
+    },
+    {
+      "key": "kieai_prompt_template",
+      "name": "Шаблон промпта Z-Image Turbo",
+      "rule_text": "[Shot type + angle] + [Character: age, appearance, clothing DETAILED] + [Location/background] + [Lighting] + [Mood] + [Style: 2.5D anime, Satoshi Kon aesthetic, cinematic] + [Palette: red dust, deep blue sea, violet nights, Goa] + [Constraints: no watermark, no text, no logos, no extra limbs, correct anatomy, sharp focus]",
+      "description": "Negative prompt НЕ использовать. Все ограничения в позитивном промпте.",
+      "category": "visual",
+      "priority": 100
     }
   ]
 }

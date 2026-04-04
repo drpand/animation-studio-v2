@@ -49,7 +49,7 @@ async def check_health() -> bool:
 
 async def generate_image(
     prompt: str,
-    negative_prompt: str = "",
+    negative_prompt: str = "",  # Игнорируется Z-Image Turbo
     width: int = 1024,
     height: int = 1024,
     steps: int = 30,
