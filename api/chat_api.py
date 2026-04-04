@@ -5,6 +5,7 @@ Chat API — Чат с агентом через OpenRouter.
 import os
 import json
 import tempfile
+import asyncio
 from datetime import datetime
 from io import BytesIO
 
@@ -71,32 +72,17 @@ def _build_attachment_context(attachments) -> str:
     return "\n\n".join(texts)
 
 
-def _post_discussion(agent_id: str, content: str):
-    """Записать сообщение агента в Discussion канал."""
+def _post_discussion(db: AsyncSession, agent_id: str, agent_name: str, content: str):
+    """Записать сообщение агента в Discussion канал (через БД)."""
+    import crud as crud_module
     entry = {
         "agent_id": agent_id,
-        "content": content[:500],
+        "content": f"[{agent_name}] {content[:500]}",
         "msg_type": "agent",
         "timestamp": datetime.now().isoformat(),
     }
     try:
-        if os.path.exists(DISCUSSION_FILE):
-            with open(DISCUSSION_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        else:
-            data = {"messages": []}
-        data["messages"].append(entry)
-        if len(data["messages"]) > 200:
-            data["messages"] = data["messages"][-200:]
-        dir_name = os.path.dirname(DISCUSSION_FILE)
-        fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            os.replace(tmp_path, DISCUSSION_FILE)
-        except Exception:
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+        asyncio.create_task(crud_module.add_discussion(db, entry))
     except Exception:
         pass
 
@@ -137,12 +123,26 @@ async def chat(agent_id: str, body: ChatMessage, db: AsyncSession = Depends(get_
     # Извлекаем текст из прикреплённых файлов
     attachments = await crud.get_attachments(db, agent_id)
     attachment_context = _build_attachment_context(attachments)
+
+    # Логирование: что реально передаётся агенту
     if attachment_context:
-        system_prompt += "\n\n[ПРИКРЕПЛЁННЫЕ ФАЙЛЫ — КОНТЕКСТ ПРОЕКТА]\n" + attachment_context
+        print(f"\n[CHAT API] Agent '{agent_id}' attachment context ({len(attachment_context)} chars):")
+        print(attachment_context[:500])
+        print("...")
+    else:
+        print(f"\n[CHAT API] Agent '{agent_id}' has NO attachments")
 
     # Получаем историю чата
     messages = await crud.get_messages(db, agent_id)
     context = [{"role": m.role, "content": m.content} for m in messages[-10:]]
+
+    # ВАЖНО: Текст прикреплённых файлов идёт как ПЕРВОЕ сообщение пользователя
+    # перед основным запросом, чтобы LLM видел контекст ДО ответа
+    if attachment_context:
+        context.insert(0, {
+            "role": "user",
+            "content": f"[ПРИКРЕПЛЁННЫЙ ФАЙЛ — КОНТЕКСТ ПРОЕКТА]\n{attachment_context}\n\n[КОНЕЦ ФАЙЛА. Используй этот текст как основу для ответов.]"
+        })
 
     # Вызов OpenRouter
     import httpx
@@ -190,7 +190,7 @@ async def chat(agent_id: str, body: ChatMessage, db: AsyncSession = Depends(get_
     await crud.update_agent(db, agent_id, {"status": "idle"})
 
     # Автозапись в Discussion канал
-    _post_discussion(agent_id, f"[{agent.name}] Ответил: {reply[:200]}")
+    _post_discussion(db, agent_id, agent.name, f"Ответил: {reply[:200]}")
 
     return ChatResponse(reply=reply, agent_id=agent_id, status="idle")
 
