@@ -2,7 +2,15 @@
 import os
 
 # OpenRouter
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "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")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
+# Database
+PROJECT_ROOT_CONFIG = os.path.dirname(os.path.abspath(__file__))
+DATABASE_URL = f"sqlite+aiosqlite:///{PROJECT_ROOT_CONFIG}/memory/studio.db"
+
+# Auth
+AUTH_USERNAME = os.getenv("AUTH_USERNAME", "admin")
+AUTH_PASSWORD = os.getenv("AUTH_PASSWORD", "rodina2026")
 
 # Project
 PROJECT_NAME = "РОДИНА"

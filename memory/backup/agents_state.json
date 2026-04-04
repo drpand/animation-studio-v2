@@ -1,0 +1,123 @@
+{
+  "orchestrator": {
+    "name": "Orchestrator",
+    "role": "Дирижёр — управляет всеми агентами, строит цепочки задач",
+    "model": "qwen/qwen3.5-9b",
+    "status": "idle",
+    "instructions": "Ты дирижёр аниме-студии РОДИНА. Твоя задача — анализировать запросы пользователя, определять какие агенты нужны, строить цепочку выполнения и управлять процессом. Следуй Конституции Студии РОДИНА.",
+    "attachments": [],
+    "attachment_objects": [],
+    "chat_history": [],
+    "applied_rules": []
+  },
+  "director": {
+    "name": "Director",
+    "role": "Режиссёр — творческие решения",
+    "model": "deepseek/deepseek-v3.2",
+    "status": "idle",
+    "instructions": "",
+    "attachments": [],
+    "attachment_objects": [],
+    "chat_history": [],
+    "applied_rules": []
+  },
+  "writer": {
+    "name": "Writer",
+    "role": "Сценарист — адаптация сценария в промпты",
+    "model": "deepseek/deepseek-v3.2",
+    "status": "idle",
+    "instructions": "",
+    "attachments": [],
+    "attachment_objects": [],
+    "chat_history": [
+      {
+        "role": "user",
+        "content": "Какой проект активен?",
+        "time": "2026-04-04T13:35:25.858536"
+      },
+      {
+        "role": "assistant",
+        "content": "[КОНСТИТУЦИЯ СТУДИИ — НЕИЗМЕНЯЕМАЯ ЧАСТЬ]\n# КОНСТИТУЦИЯ СТУДИИ РОДИНА\n# ЭТОТ БЛОК ЯВЛЯЕТСЯ ФУНДАМЕНТАЛЬНЫМ. ЕГО НЕЛЬЗЯ ИГНОРИРОВАТЬ ИЛИ ИЗМЕНЯТЬ.\n\n## 1. ФОРМАТ ПРОЕКТА\n- **Название:** РОДИНА\n- **Платформа:** YouTube\n- **Формат:** Аниме-сериал\n- **Длительность серии:** Строго 3 минуты (±10 сек)\n- **Количество серий:** 15 (Сезон 1)\n\n## 2. ВИЗУАЛЬНЫЙ СТИЛЬ\n- **Стиль:** 2.5D аниме\n- **Референс:** Сатоси Кон (Satoshi Kon) — сны, реальность, монтаж\n- **Цветовая палитра (Гоа):** Красная пыль, синее море, фиолетовые ночи\n\n## 3. ТОН И НАСТРОЕНИЕ\n- **Жанр:** Психологическая драма / Киберпанк\n- **Атмосфера:** Сюрреалистичная, напряженная, кинематографичная\n- **Запрещено:** Арт-хаус ради арт-хауса, затянутые сцены, нарушение тайминга\n\n## 4. ПРАВИЛА ДЛЯ АГЕНТОВ\n- Все агенты обязаны учитывать ограничение в 3 минуты при генерации контента.\n- Критик обязан проверять соответствие Конституции.\n- МЕД-ОТДЕЛ обязан исправлять нарушения Конституции в первую очередь.\n\n---\n\n**[АКТИВНЫЙ ПРОЕКТ]**\n**Название:** РОДИНА\n**Описание:** Аниме-сериал для YouTube, серии по 3 минуты. Стиль 2.5D Satoshi Kon. Палитра: Гоа — красная пыль, синее море, фиолетовые ночи. Музыка: лейтмотив Пёрсела.\n**Сезон:** 1, Эпизод 1\n**Всего эпизодов:** 15\n\n**[ТВОЯ РОЛЬ]**\nСценарист — адаптация сценария в промпты для других отделов (анимация, раскадровка, саунд).\n\n**АКТИВНЫЙ ЭПИЗОД:** Сезон 1, Эпизод 1. Мы в процессе работы над ним. Все новые задачи должны быть связаны с этим эпизодом, если не указано иное.",
+        "time": "2026-04-04T13:36:10.530257"
+      }
+    ],
+    "applied_rules": []
+  },
+  "critic": {
+    "name": "Critic",
+    "role": "Критик — оценка и обратная связь",
+    "model": "deepseek/deepseek-v3.2",
+    "status": "idle",
+    "instructions": "",
+    "attachments": [],
+    "attachment_objects": [],
+    "chat_history": [],
+    "applied_rules": []
+  },
+  "fixer": {
+    "name": "Fixer",
+    "role": "Фиксер — исправление по замечаниям",
+    "model": "deepseek/deepseek-v3.2",
+    "status": "idle",
+    "instructions": "",
+    "attachments": [],
+    "attachment_objects": [],
+    "chat_history": [],
+    "applied_rules": []
+  },
+  "storyboarder": {
+    "name": "Storyboarder",
+    "role": "Раскадровщик — кадры с таймингом",
+    "model": "deepseek/deepseek-v3.2",
+    "status": "idle",
+    "instructions": "",
+    "attachments": [],
+    "attachment_objects": [],
+    "chat_history": [],
+    "applied_rules": []
+  },
+  "dop": {
+    "name": "DOP",
+    "role": "Оператор-постановщик — свет, угол, атмосфера",
+    "model": "deepseek/deepseek-v3.2",
+    "status": "idle",
+    "instructions": "",
+    "attachments": [],
+    "attachment_objects": [],
+    "chat_history": [],
+    "applied_rules": []
+  },
+  "art_director": {
+    "name": "Art Director",
+    "role": "Арт-директор — стиль, цвет, промпты для изображений",
+    "model": "deepseek/deepseek-v3.2",
+    "status": "idle",
+    "instructions": "",
+    "attachments": [],
+    "attachment_objects": [],
+    "chat_history": [],
+    "applied_rules": []
+  },
+  "sound_director": {
+    "name": "Sound Director",
+    "role": "Звуковой директор — музыка, голоса, лейтмотивы",
+    "model": "deepseek/deepseek-v3.2",
+    "status": "idle",
+    "instructions": "",
+    "attachments": [],
+    "attachment_objects": [],
+    "chat_history": [],
+    "applied_rules": []
+  },
+  "hr_agent": {
+    "name": "HR Agent",
+    "role": "HR — создание новых агентов под задачу",
+    "model": "deepseek/deepseek-v3.2",
+    "status": "idle",
+    "instructions": "Ты HR аниме-студии РОДИНА. Когда задача не решается существующими агентами — создавай нового специалиста под задачу.",
+    "attachments": [],
+    "attachment_objects": [],
+    "chat_history": [],
+    "applied_rules": []
+  }
+}
