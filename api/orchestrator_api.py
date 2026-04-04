@@ -5,6 +5,7 @@ Orchestrator API — управление цепочками задач.
 import asyncio
 import json
 import os
+from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -13,6 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_session
 import crud
 from models import SubmitTaskRequest, InterveneRequest
+
+class ScenePipelineRequest(BaseModel):
+    season: int = 1
+    episode: int = 1
+    scene: int = 1
+    pdf_context: str = ""
 
 router = APIRouter()
 
@@ -224,6 +231,31 @@ async def _execute_chain(task_id: str, db):
         await crud.update_orchestrator_task(db, task_id, {"current_step": i + 1, "result": previous_output[:2000]})
 
     await crud.update_orchestrator_task(db, task_id, {"status": "completed"})
+
+
+@router.post("/scene-pipeline")
+async def scene_pipeline(req: ScenePipelineRequest, db: AsyncSession = Depends(get_session)):
+    """Запустить полный конвейер сцены."""
+    from orchestrator.executor import run_scene_pipeline
+    task_id = f"scene_{req.season}_{req.episode}_{req.scene}"
+
+    # Создаём запись в БД
+    await crud.create_scene_frame(db, {
+        "season_num": req.season,
+        "episode_num": req.episode,
+        "scene_num": req.scene,
+        "frame_num": 1,
+        "status": "draft",
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
+    })
+
+    # Запускаем конвейер в фоне
+    asyncio.create_task(run_scene_pipeline(
+        req.season, req.episode, req.scene, req.pdf_context, db
+    ))
+
+    return {"ok": True, "task_id": task_id, "message": "Конвейер сцены запущен"}
 
 
 async def _is_cancelled(db, task_id):

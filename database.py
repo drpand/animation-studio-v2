@@ -295,6 +295,32 @@ class InitState(Base):
     initialized_at = Column(String(30), default="")
 
 
+class SceneFrame(Base):
+    """Кадр сцены в производственном конвейере."""
+    __tablename__ = "scene_frames"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    season_num = Column(Integer, nullable=False)
+    episode_num = Column(Integer, nullable=False)
+    scene_num = Column(Integer, nullable=False)
+    frame_num = Column(Integer, nullable=False)
+    status = Column(String(20), default="draft")  # draft -> in_review -> approved -> final
+    writer_text = Column(Text, default="")
+    director_notes = Column(Text, default="")
+    characters_json = Column(Text, default="")
+    dop_prompt = Column(Text, default="")
+    art_prompt = Column(Text, default="")
+    sound_prompt = Column(Text, default="")
+    final_prompt = Column(Text, default="")
+    image_url = Column(String(500), default="")
+    critic_feedback = Column(Text, default="")
+    created_at = Column(String(30), default="")
+    updated_at = Column(String(30), default="")
+
+    __table_args__ = (
+        Index("idx_frame_scene", "season_num", "episode_num", "scene_num"),
+    )
+
+
 # ============================================
 # Database Engine & Session
 # ============================================

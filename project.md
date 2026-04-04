@@ -580,6 +580,29 @@ Meta-Critic — отдельный модуль в `med_otdel/meta_critic.py`.
 
 ---
 
+## 16. ПРОИЗВОДСТВЕННЫЙ КОНВЕЙЕР
+
+Полный конвейер сцены с Critic/Fixer на каждом этапе.
+
+### Этапы конвейера
+1. **Writer** → описывает сцену из PDF → Critic/Fixer (макс 3 круга) → утверждено
+2. **Director** → творческое решение → Critic/Fixer (макс 3 круга) → утверждено
+3. **HR (Кастинг)** → карточки персонажей сцены → Critic/Fixer → авто-паттерн `character_consistency`
+4. **DOP + Art Director + Sound Director** (параллельно) → каждый пишет свою часть промпта кадра → Critic/Fixer каждого
+5. **Storyboarder** → собирает промпты всех цехов в единый промпт кадра → Critic/Fixer
+6. **Art Director** → отправляет финальный промпт в kie.ai → изображение → Critic оценивает изображение → Пользователь утверждает
+7. **Storyboarder** → собирает все утверждённые кадры в финальную сцену
+
+### Реализация
+- `orchestrator/executor.py` — функция `run_step_with_critic`
+- `orchestrator/executor.py` — тип цепочки `scene_production` (параллельные цеха)
+- `api/orchestrator_api.py` — endpoint `POST /api/orchestrator/scene-pipeline`
+- `med_otdel/rule_builder.py` — автосоздание паттерна `character_consistency`
+- БД — таблица `scene_frames` со статусами: draft → in_review → approved → final
+- UI — в панели Storyboarder сетка кадров сцены со статусами
+
+---
+
 ## ЗАМЕТКИ
 
 - МЕД-ОТДЕЛ берём из `agent_memory.py` — не переписываем с нуля, адаптируем

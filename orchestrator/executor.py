@@ -14,6 +14,7 @@ from med_otdel.agent_memory import call_llm
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTRY_FILE = os.path.join(PROJECT_ROOT, "orchestrator", "agent_registry.json")
+PATTERNS_FILE = os.path.join(PROJECT_ROOT, "med_otdel", "patterns.json")
 
 
 def _load_registry() -> list:
@@ -381,3 +382,214 @@ async def execute_chain(chain: TaskChain):
         "system",
         "orchestrator"
     )
+
+
+# ============================================
+# ПРОИЗВОДСТВЕННЫЙ КОНВЕЙЕР (Раздел 16)
+# ============================================
+
+async def run_step_with_critic(agent_id: str, task: str, context: dict, task_id: str = "pipeline") -> dict:
+    """
+    Выполнить один шаг с Critic/Fixer циклом (макс 3 круга).
+    Возвращает: {"status": "approved"|"needs_review"|"failed", "result": str, "rounds": int}
+    """
+    # Формируем входной текст из контекста
+    input_parts = []
+    for key, value in context.items():
+        if value:
+            input_parts.append(f"[{key.upper()}]\n{value}")
+    input_parts.append(f"[ЗАДАЧА]\n{task}")
+    input_text = "\n\n".join(input_parts)
+
+    # Шаг 1: Агент выполняет задачу
+    result, success = await _run_agent_step(agent_id, input_text, task_id)
+    if not success:
+        return {"status": "failed", "result": result, "rounds": 0}
+
+    # Critic/Fixer цикл (макс 3 круга)
+    for round_num in range(3):
+        passed, feedback = await _run_critic(result, task_id, agent_id)
+        if passed:
+            await _post_discussion(
+                f"[CONVEYOR] {agent_id}: APPROVED (round {round_num + 1})",
+                "system",
+                agent_id
+            )
+            return {"status": "approved", "result": result, "rounds": round_num + 1}
+
+        if round_num < 2:
+            result = await _run_fixer(result, feedback, task_id)
+        else:
+            # 3 круга — отправляем на ручную проверку
+            await _post_discussion(
+                f"[CONVEYOR] {agent_id}: NEEDS REVIEW после 3 кругов Critic/Fixer",
+                "system",
+                agent_id
+            )
+            return {"status": "needs_review", "result": result, "rounds": 3, "critique": feedback}
+
+    return {"status": "approved", "result": result, "rounds": 3}
+
+
+async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_context: str, db=None) -> dict:
+    """
+    Полный конвейер одной сцены:
+    1. Writer → 2. Director → 3. HR Casting → 4. DOP+Art+Sound (параллельно)
+    → 5. Storyboarder → 6. Art Director → Kie.ai → 7. Storyboarder финал
+    """
+    task_id = f"scene_{season}_{episode}_{scene_num}"
+    pipeline_result = {
+        "task_id": task_id,
+        "season": season,
+        "episode": episode,
+        "scene": scene_num,
+        "status": "running",
+        "steps": {},
+        "frames": [],
+    }
+
+    await _post_discussion(f"[CONVEYOR] Запуск конвейера: Сцена {season}x{episode}:{scene_num}", "system", "orchestrator")
+
+    # Шаг 1: Writer описывает сцену
+    await _post_discussion("[CONVEYOR] Шаг 1: Writer описывает сцену", "system", "orchestrator")
+    writer_result = await run_step_with_critic("writer",
+        f"Опиши сцену {scene_num} из PDF-сценария. Детально: диалоги, действия, атмосфера.",
+        {"pdf_context": pdf_context}, task_id)
+    pipeline_result["steps"]["writer"] = writer_result
+
+    if writer_result["status"] == "failed":
+        pipeline_result["status"] = "failed"
+        return pipeline_result
+
+    # Шаг 2: Director — творческое решение
+    await _post_discussion("[CONVEYOR] Шаг 2: Director — режиссёрское решение", "system", "orchestrator")
+    director_result = await run_step_with_critic("director",
+        f"Режиссёрское решение для сцены {scene_num}. Ракурсы, эмоции, ритм.",
+        {"writer_output": writer_result.get("result", "")}, task_id)
+    pipeline_result["steps"]["director"] = director_result
+
+    # Шаг 3: HR — кастинг персонажей
+    await _post_discussion("[CONVEYOR] Шаг 3: HR — кастинг персонажей", "system", "orchestrator")
+    hr_result = await run_step_with_critic("hr_agent",
+        f"Создай карточки персонажей сцены {scene_num}. Для каждого: имя, возраст, внешность, одежда, манера речи.",
+        {"writer_output": writer_result.get("result", "")}, task_id)
+    pipeline_result["steps"]["hr_casting"] = hr_result
+
+    # Авто-паттерн character_consistency
+    if hr_result["status"] == "approved" and db:
+        await _create_character_pattern(hr_result.get("result", ""), db)
+
+    # Шаг 4: Параллельно DOP + Art Director + Sound Director
+    await _post_discussion("[CONVEYOR] Шаг 4: Параллельная работа цехов", "system", "orchestrator")
+    combined_context = {
+        "writer_output": writer_result.get("result", ""),
+        "director_notes": director_result.get("result", ""),
+        "characters": hr_result.get("result", ""),
+    }
+
+    dop_task = run_step_with_critic("dop",
+        "Опиши свет, камеру, атмосферу для каждого кадра сцены.",
+        combined_context, task_id)
+    art_task = run_step_with_critic("art_director",
+        "Опиши визуальный стиль, цветовую палитру, детали для генерации изображений.",
+        combined_context, task_id)
+    sound_task = run_step_with_critic("sound_director",
+        "Опиши звуковое оформление: музыка, эффекты, голоса, лейтмотивы.",
+        combined_context, task_id)
+
+    dop_result, art_result, sound_result = await asyncio.gather(dop_task, art_task, sound_task, return_exceptions=True)
+
+    pipeline_result["steps"]["dop"] = dop_result if not isinstance(dop_result, Exception) else {"status": "failed", "result": str(dop_result)}
+    pipeline_result["steps"]["art_director"] = art_result if not isinstance(art_result, Exception) else {"status": "failed", "result": str(art_result)}
+    pipeline_result["steps"]["sound_director"] = sound_result if not isinstance(sound_result, Exception) else {"status": "failed", "result": str(sound_result)}
+
+    # Шаг 5: Storyboarder собирает всё
+    await _post_discussion("[CONVEYOR] Шаг 5: Storyboarder собирает промпты", "system", "orchestrator")
+    storyboard_result = await run_step_with_critic("storyboarder",
+        "Собери промпты всех цехов в единый промпт для каждого кадра сцены. Укажи: кадр, длительность, визуал, свет, звук.",
+        {
+            "dop": dop_result.get("result", "") if not isinstance(dop_result, Exception) else "",
+            "art": art_result.get("result", "") if not isinstance(art_result, Exception) else "",
+            "sound": sound_result.get("result", "") if not isinstance(sound_result, Exception) else "",
+        }, task_id)
+    pipeline_result["steps"]["storyboarder"] = storyboard_result
+
+    # Шаг 6: Art Director → Kie.ai → изображение
+    await _post_discussion("[CONVEYOR] Шаг 6: Генерация изображений", "system", "orchestrator")
+    image_result = await _generate_and_review(art_result.get("result", "") if not isinstance(art_result, Exception) else "", task_id)
+    pipeline_result["steps"]["image_generation"] = image_result
+
+    # Шаг 7: Storyboarder → финальная сцена
+    await _post_discussion("[CONVEYOR] Шаг 7: Финальная сборка сцены", "system", "orchestrator")
+    final_result = await run_step_with_critic("storyboarder",
+        "Собери все утверждённые кадры в финальную сцену. Хронологический порядок.",
+        {"storyboard": storyboard_result.get("result", ""), "images": image_result.get("result", "")}, task_id)
+    pipeline_result["steps"]["final_assembly"] = final_result
+
+    pipeline_result["status"] = "completed"
+    await _post_discussion(f"[CONVEYOR] Сцена {season}x{episode}:{scene_num} завершена!", "system", "orchestrator")
+
+    return pipeline_result
+
+
+async def _create_character_pattern(characters_text: str, db):
+    """Создать паттерн character_consistency из карточек HR."""
+    import sys
+    sys.path.insert(0, os.path.dirname(PROJECT_ROOT))
+    from med_otdel.rule_builder import _load_patterns
+    import json
+
+    pattern_text = f"[RULE] При генерации изображений строго соблюдай внешность персонажей:\n{characters_text[:2000]}"
+
+    # Сохраняем в patterns.json
+    patterns = _load_patterns()
+    patterns.append({
+        "key": "character_consistency",
+        "name": "Единообразие персонажей",
+        "rule_text": pattern_text,
+        "description": "Автоматически создано HR при кастинге",
+        "category": "visual",
+        "priority": 100,
+    })
+
+    try:
+        with open(PATTERNS_FILE, "w", encoding="utf-8") as f:
+            json.dump({"patterns": patterns}, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+    await _post_discussion(
+        f"[CONVEYOR] Создан паттерн character_consistency для Art Director",
+        "system",
+        "hr_agent"
+    )
+
+
+async def _generate_and_review(art_prompt: str, task_id: str) -> dict:
+    """Отправить промпт в Kie.ai и оценить результат через Critic."""
+    if not art_prompt:
+        return {"status": "failed", "result": "Нет промпта для генерации"}
+
+    # Генерация через Kie.ai
+    from tools.kieai_tool import generate_image
+    result = await generate_image(
+        prompt=art_prompt[:3000],
+        negative_prompt="worst quality, low quality, blurry, deformed",
+        width=1024, height=1024, steps=30, cfg_scale=7.0, seed=-1
+    )
+
+    if result.status != "success":
+        return {"status": "failed", "result": f"Генерация не удалась: {result.error}"}
+
+    # Critic оценивает изображение (по описанию)
+    passed, feedback = await _run_critic(
+        f"Сгенерированное изображение по промпту:\n{art_prompt[:2000]}\nURL: {result.result_url}",
+        task_id, "art_director"
+    )
+
+    return {
+        "status": "approved" if passed else "needs_review",
+        "result": result.result_url,
+        "image_url": result.result_url,
+        "critic_feedback": feedback,
+    }

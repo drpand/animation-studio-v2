@@ -10,7 +10,7 @@ from database import (
     Agent, AgentAttachment, AgentRule, Message,
     Event, Discussion, MedLog,
     Character, MoodBoard, Decision,
-    OrchestratorTask, OrchestratorStep, Passport, InitState
+    OrchestratorTask, OrchestratorStep, Passport, InitState, SceneFrame
 )
 
 # ============================================
@@ -385,3 +385,38 @@ async def update_init_state(db: AsyncSession, data: Dict[str, Any]):
         new_state = InitState(**data)
         db.add(new_state)
         await db.commit()
+
+
+# ============================================
+# Scene Frames (Production Pipeline)
+# ============================================
+
+async def create_scene_frame(db: AsyncSession, data: Dict[str, Any]) -> SceneFrame:
+    frame = SceneFrame(**data)
+    db.add(frame)
+    await db.commit()
+    await db.refresh(frame)
+    return frame
+
+async def get_scene_frames(db: AsyncSession, season: int, episode: int, scene: int) -> List[SceneFrame]:
+    result = await db.execute(
+        select(SceneFrame).where(
+            SceneFrame.season_num == season,
+            SceneFrame.episode_num == episode,
+            SceneFrame.scene_num == scene
+        ).order_by(SceneFrame.frame_num)
+    )
+    return result.scalars().all()
+
+async def update_scene_frame(db: AsyncSession, frame_id: int, data: Dict[str, Any]) -> Optional[SceneFrame]:
+    result = await db.execute(select(SceneFrame).where(SceneFrame.id == frame_id))
+    frame = result.scalars().first()
+    if frame:
+        for key, value in data.items():
+            if hasattr(frame, key) and value is not None:
+                setattr(frame, key, value)
+        from datetime import datetime
+        frame.updated_at = datetime.now().isoformat()
+        await db.commit()
+        await db.refresh(frame)
+    return frame
