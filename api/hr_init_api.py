@@ -4,15 +4,15 @@ HR Init API — API инициализации проекта.
 """
 import os
 import json
+import tempfile
+from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from med_otdel.meta_critic import (
-    initialize_project,
-    approve_and_apply,
-    _load_constitution,
-)
+from database import get_session
+import crud
 
 router = APIRouter()
 
@@ -25,25 +25,24 @@ class InitStartRequest(BaseModel):
 
 
 class ApproveRequest(BaseModel):
-    approvals: dict  # {writer: "candidate_id", director: "candidate_id", ...}
+    approvals: dict
     project_description: str = ""
 
 
 @router.post("/start")
-async def start_init(req: InitStartRequest):
-    """Начать инициализацию: оценить всех кандидатов."""
+async def start_init(req: InitStartRequest, db: AsyncSession = Depends(get_session)):
+    """Начать инициализацию."""
+    from med_otdel.meta_critic import initialize_project
     result = await initialize_project(req.project_description)
     return result
 
 
 @router.get("/candidates")
-async def get_candidates():
-    """Получить всех кандидатов с оценками Meta-Critic."""
+async def get_candidates(db: AsyncSession = Depends(get_session)):
+    """Получить кандидатов с оценками."""
     from med_otdel.meta_critic import CANDIDATES_DIR, EVALUATION_CRITERIA
-
     roles = ["writer", "director", "dop", "critic", "sound_director"]
     all_candidates = {}
-
     for role in roles:
         candidates_file = os.path.join(CANDIDATES_DIR, f"{role}.json")
         if os.path.exists(candidates_file):
@@ -53,9 +52,7 @@ async def get_candidates():
                 "candidates": data.get("candidates", []),
                 "evaluations": [
                     {
-                        "id": c.get("id"),
-                        "name": c.get("name"),
-                        "source": c.get("source", ""),
+                        "id": c.get("id"), "name": c.get("name"), "source": c.get("source", ""),
                         "score": c.get("meta_critic_evaluation", {}).get("total", 0),
                         "max_score": c.get("meta_critic_evaluation", {}).get("max_total", 40),
                         "feedback": c.get("meta_critic_evaluation", {}).get("feedback", ""),
@@ -63,33 +60,32 @@ async def get_candidates():
                     for c in data.get("candidates", [])
                 ],
             }
-
     return {
-        "criteria": {
-            k: {"label": v["label"], "description": v["description"], "max_score": v["max_score"]}
-            for k, v in EVALUATION_CRITERIA.items()
-        },
+        "criteria": {k: {"label": v["label"], "description": v["description"], "max_score": v["max_score"]}
+                     for k, v in EVALUATION_CRITERIA.items()},
         "roles": all_candidates,
     }
 
 
 @router.post("/approve")
-async def approve_candidates(req: ApproveRequest):
-    """Утвердить промпты и применить к агентам."""
+async def approve_candidates(req: ApproveRequest, db: AsyncSession = Depends(get_session)):
+    """Утвердить промпты."""
+    from med_otdel.meta_critic import approve_and_apply
     result = await approve_and_apply(req.approvals, req.project_description)
     return result
 
 
 @router.get("/status")
-async def init_status():
+async def init_status(db: AsyncSession = Depends(get_session)):
     """Статус инициализации."""
-    if os.path.exists(INIT_STATE_FILE):
-        with open(INIT_STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+    state = await crud.get_init_state(db)
+    if state:
+        return {"status": state.status, "project_description": state.project_description, "initialized_at": state.initialized_at}
     return {"status": "not_started"}
 
 
 @router.get("/constitution")
-async def get_constitution():
-    """Получить текст конституции."""
+async def get_constitution(db: AsyncSession = Depends(get_session)):
+    """Получить конституцию."""
+    from agents.base_agent import _load_constitution
     return {"constitution": _load_constitution()}

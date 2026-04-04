@@ -7,442 +7,374 @@ import json
 import tempfile
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from database import get_session
+import crud
+from models import (
+    EpisodeCreate, EpisodeUpdate, SceneCreate, SceneUpdate,
+    SceneVersionCreate, CharacterCreate, MoodItemCreate, DecisionCreate
+)
 
 router = APIRouter()
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJECT_MEMORY_FILE = os.path.join(PROJECT_ROOT, "memory", "project_memory.json")
 
-
-def _load_project() -> dict:
-    if not os.path.exists(PROJECT_MEMORY_FILE):
-        return {"seasons": [], "characters": [], "mood_board": [], "decision_log": []}
-    with open(PROJECT_MEMORY_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _save_project(data: dict):
-    dir_name = os.path.dirname(PROJECT_MEMORY_FILE)
-    fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        os.replace(tmp_path, PROJECT_MEMORY_FILE)
-    except Exception:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-        raise
-
-
-class EpisodeCreate(BaseModel):
-    season: int = 1
-    title: str = ""
-    description: str = ""
-
-
-class SceneCreate(BaseModel):
-    season: int = 1
-    episode: int = 1
-    scene_number: int = 1
-    title: str = ""
-    description: str = ""
-    duration_seconds: int = 0
-    status: str = "draft"
-
-
-class EpisodeUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    status: str | None = None
-
-
-class SceneUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    duration_seconds: int | None = None
-    status: str | None = None
+def _get_active_project_id(db):
+    """Вспомогательная функция для получения ID активного проекта."""
+    import asyncio
+    loop = asyncio.get_event_loop()
+    project = loop.run_until_complete(crud.get_active_project(db))
+    return project.id if project else None
 
 
 @router.get("/seasons")
-async def get_seasons():
-    """Получить все сезоны."""
-    data = _load_project()
-    return {"seasons": data.get("seasons", [])}
+async def get_seasons(db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        return {"seasons": []}
+    seasons = await crud.get_seasons(db, project.id)
+    result = []
+    for s in seasons:
+        episodes = await crud.get_episodes(db, s.id)
+        result.append({
+            "season_number": s.season_number,
+            "title": s.title,
+            "description": s.description,
+            "episodes": [
+                {
+                    "episode_number": ep.episode_number,
+                    "title": ep.title,
+                    "description": ep.description,
+                    "status": ep.status,
+                    "created_at": ep.created_at,
+                    "updated_at": ep.updated_at,
+                }
+                for ep in episodes
+            ]
+        })
+    return {"seasons": result}
 
 
 @router.get("/season/{season_num}")
-async def get_season(season_num: int):
-    """Получить конкретный сезон."""
-    data = _load_project()
-    for s in data.get("seasons", []):
-        if s.get("season_number") == season_num:
-            return {"season": s}
+async def get_season(season_num: int, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    seasons = await crud.get_seasons(db, project.id)
+    for s in seasons:
+        if s.season_number == season_num:
+            episodes = await crud.get_episodes(db, s.id)
+            return {"season": {
+                "season_number": s.season_number,
+                "title": s.title,
+                "description": s.description,
+                "episodes": [{"episode_number": ep.episode_number, "title": ep.title, "status": ep.status} for ep in episodes]
+            }}
     raise HTTPException(404, f"Сезон {season_num} не найден")
 
 
 @router.post("/episode")
-async def create_episode(req: EpisodeCreate):
-    """Создать новый эпизод."""
-    data = _load_project()
-    now = datetime.now().isoformat()
+async def create_episode(req: EpisodeCreate, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
 
-    # Найти или создать сезон
+    seasons = await crud.get_seasons(db, project.id)
     season = None
-    for s in data.get("seasons", []):
-        if s.get("season_number") == req.season:
+    for s in seasons:
+        if s.season_number == req.season:
             season = s
             break
 
     if not season:
-        season = {
-            "season_number": req.season,
-            "title": f"Сезон {req.season}",
-            "description": "",
-            "episodes": []
-        }
-        data["seasons"].append(season)
+        from database import Season
+        season_data = {"project_id": project.id, "season_number": req.season, "title": f"Сезон {req.season}", "description": ""}
+        season_obj = Season(**season_data)
+        db.add(season_obj)
+        await db.commit()
+        await db.refresh(season_obj)
+        season = season_obj
 
-    ep_num = len(season.get("episodes", [])) + 1
-    episode = {
+    episodes = await crud.get_episodes(db, season.id)
+    ep_num = len(episodes) + 1
+    now = datetime.now().isoformat()
+
+    episode = await crud.create_episode(db, season.id, {
         "episode_number": ep_num,
         "title": req.title or f"Эпизод {ep_num}",
         "description": req.description,
         "status": "draft",
-        "scenes": [],
         "created_at": now,
         "updated_at": now,
-    }
-    season["episodes"].append(episode)
-    _save_project(data)
-    return {"ok": True, "episode": episode}
+    })
+    return {"ok": True, "episode": {
+        "episode_number": episode.episode_number,
+        "title": episode.title,
+        "description": episode.description,
+        "status": episode.status,
+    }}
 
 
 @router.get("/episode/{season_num}/{ep_num}")
-async def get_episode(season_num: int, ep_num: int):
-    """Получить эпизод."""
-    data = _load_project()
-    for s in data.get("seasons", []):
-        if s.get("season_number") == season_num:
-            for ep in s.get("episodes", []):
-                if ep.get("episode_number") == ep_num:
-                    return {"episode": ep}
+async def get_episode(season_num: int, ep_num: int, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    seasons = await crud.get_seasons(db, project.id)
+    for s in seasons:
+        if s.season_number == season_num:
+            episode = await crud.get_episode(db, s.id, ep_num)
+            if episode:
+                scenes = await crud.get_scenes(db, episode.id)
+                return {"episode": {
+                    "episode_number": episode.episode_number,
+                    "title": episode.title,
+                    "description": episode.description,
+                    "status": episode.status,
+                    "scenes": [
+                        {
+                            "scene_number": sc.scene_number,
+                            "title": sc.title,
+                            "description": sc.description,
+                            "duration_seconds": sc.duration_seconds,
+                            "status": sc.status,
+                        }
+                        for sc in scenes
+                    ]
+                }}
     raise HTTPException(404, f"Эпизод {season_num}x{ep_num} не найден")
 
 
 @router.put("/episode/{season_num}/{ep_num}")
-async def update_episode(season_num: int, ep_num: int, update: EpisodeUpdate):
-    """Обновить эпизод."""
-    data = _load_project()
-    for s in data.get("seasons", []):
-        if s.get("season_number") == season_num:
-            for ep in s.get("episodes", []):
-                if ep.get("episode_number") == ep_num:
-                    if update.title is not None:
-                        ep["title"] = update.title
-                    if update.description is not None:
-                        ep["description"] = update.description
-                    if update.status is not None:
-                        ep["status"] = update.status
-                    ep["updated_at"] = datetime.now().isoformat()
-                    _save_project(data)
-                    return {"ok": True, "episode": ep}
+async def update_episode(season_num: int, ep_num: int, update: EpisodeUpdate, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    seasons = await crud.get_seasons(db, project.id)
+    for s in seasons:
+        if s.season_number == season_num:
+            episode = await crud.get_episode(db, s.id, ep_num)
+            if episode:
+                data = {k: v for k, v in update.model_dump().items() if v is not None}
+                data["updated_at"] = datetime.now().isoformat()
+                await crud.update_episode(db, episode.id, data)
+                return {"ok": True, "episode": {
+                    "episode_number": episode.episode_number,
+                    "title": episode.title,
+                    "status": episode.status,
+                }}
     raise HTTPException(404, f"Эпизод {season_num}x{ep_num} не найден")
 
 
 @router.post("/scene")
-async def create_scene(req: SceneCreate):
-    """Создать сцену в эпизоде."""
-    data = _load_project()
-    now = datetime.now().isoformat()
-
-    for s in data.get("seasons", []):
-        if s.get("season_number") == req.season:
-            for ep in s.get("episodes", []):
-                if ep.get("episode_number") == req.episode:
-                    scene_num = len(ep.get("scenes", [])) + 1
-                    scene = {
-                        "scene_number": req.scene_number or scene_num,
-                        "title": req.title or f"Сцена {req.scene_number or scene_num}",
-                        "description": req.description,
-                        "duration_seconds": req.duration_seconds,
-                        "status": req.status or "draft",
-                        "versions": [],
-                        "created_at": now,
-                        "updated_at": now,
-                    }
-                    ep["scenes"].append(scene)
-                    ep["updated_at"] = now
-                    _save_project(data)
-                    return {"ok": True, "scene": scene}
+async def create_scene(req: SceneCreate, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    seasons = await crud.get_seasons(db, project.id)
+    for s in seasons:
+        if s.season_number == req.season:
+            episode = await crud.get_episode(db, s.id, req.episode)
+            if episode:
+                scenes = await crud.get_scenes(db, episode.id)
+                scene_num = len(scenes) + 1
+                now = datetime.now().isoformat()
+                scene = await crud.create_scene(db, episode.id, {
+                    "scene_number": req.scene_number or scene_num,
+                    "title": req.title or f"Сцена {req.scene_number or scene_num}",
+                    "description": req.description,
+                    "duration_seconds": req.duration_seconds,
+                    "status": req.status or "draft",
+                    "created_at": now,
+                    "updated_at": now,
+                })
+                return {"ok": True, "scene": {
+                    "scene_number": scene.scene_number,
+                    "title": scene.title,
+                    "status": scene.status,
+                }}
     raise HTTPException(404, f"Эпизод {req.season}x{req.episode} не найден")
 
 
 @router.put("/scene/{season_num}/{ep_num}/{scene_num}")
-async def update_scene(season_num: int, ep_num: int, scene_num: int, update: SceneUpdate):
-    """Обновить сцену."""
-    data = _load_project()
-    for s in data.get("seasons", []):
-        if s.get("season_number") == season_num:
-            for ep in s.get("episodes", []):
-                if ep.get("episode_number") == ep_num:
-                    for sc in ep.get("scenes", []):
-                        if sc.get("scene_number") == scene_num:
-                            if update.title is not None:
-                                sc["title"] = update.title
-                            if update.description is not None:
-                                sc["description"] = update.description
-                            if update.duration_seconds is not None:
-                                sc["duration_seconds"] = update.duration_seconds
-                            if update.status is not None:
-                                sc["status"] = update.status
-                            sc["updated_at"] = datetime.now().isoformat()
-                            _save_project(data)
-                            return {"ok": True, "scene": sc}
+async def update_scene(season_num: int, ep_num: int, scene_num: int, update: SceneUpdate, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    seasons = await crud.get_seasons(db, project.id)
+    for s in seasons:
+        if s.season_number == season_num:
+            episode = await crud.get_episode(db, s.id, ep_num)
+            if episode:
+                scenes = await crud.get_scenes(db, episode.id)
+                for sc in scenes:
+                    if sc.scene_number == scene_num:
+                        data = {k: v for k, v in update.model_dump().items() if v is not None}
+                        data["updated_at"] = datetime.now().isoformat()
+                        await crud.update_scene(db, sc.id, data)
+                        return {"ok": True, "scene": {"scene_number": sc.scene_number, "title": sc.title}}
     raise HTTPException(404, f"Сцена {season_num}x{ep_num}:{scene_num} не найдена")
 
 
 @router.get("/status")
-async def get_production_status():
-    """Получить статусы производства всего проекта."""
-    data = _load_project()
-    summary = {"total_episodes": 0, "by_status": {}}
-    for s in data.get("seasons", []):
-        for ep in s.get("episodes", []):
-            summary["total_episodes"] += 1
-            status = ep.get("status", "draft")
-            summary["by_status"][status] = summary["by_status"].get(status, 0) + 1
-    return summary
-
-
-# ============================================
-# Персонажи
-# ============================================
-
-class CharacterCreate(BaseModel):
-    name: str
-    description: str = ""
-    voice_id: str = ""
-    relations: str = ""
+async def get_production_status(db: AsyncSession = Depends(get_session)):
+    analytics = await crud.get_production_analytics(db)
+    return {
+        "total_episodes": analytics["total_episodes"],
+        "by_status": analytics["by_status"],
+    }
 
 
 @router.get("/characters")
-async def get_characters():
-    """Получить всех персонажей."""
-    data = _load_project()
-    return {"characters": data.get("characters", [])}
+async def get_characters(db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        return {"characters": []}
+    characters = await crud.get_characters(db, project.id)
+    return {"characters": [
+        {"id": c.id, "name": c.name, "description": c.description, "voice_id": c.voice_id, "relations": c.relations}
+        for c in characters
+    ]}
 
 
 @router.post("/character")
-async def create_character(req: CharacterCreate):
-    """Создать персонажа."""
-    data = _load_project()
-    if "characters" not in data:
-        data["characters"] = []
-    character = {
-        "id": f"char_{len(data['characters']) + 1}",
-        "name": req.name,
-        "description": req.description,
-        "voice_id": req.voice_id,
-        "relations": req.relations,
-        "created_at": datetime.now().isoformat(),
-    }
-    data["characters"].append(character)
-    _save_project(data)
-    return {"ok": True, "character": character}
+async def create_character(req: CharacterCreate, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    now = datetime.now().isoformat()
+    char = await crud.create_character(db, project.id, {
+        "name": req.name, "description": req.description,
+        "voice_id": req.voice_id, "relations": req.relations, "created_at": now,
+    })
+    return {"ok": True, "character": {"id": char.id, "name": char.name}}
 
 
 @router.delete("/character/{char_id}")
-async def delete_character(char_id: str):
-    """Удалить персонажа."""
-    data = _load_project()
-    data["characters"] = [c for c in data.get("characters", []) if c.get("id") != char_id]
-    _save_project(data)
+async def delete_character(char_id: int, db: AsyncSession = Depends(get_session)):
+    await crud.delete_character(db, char_id)
     return {"ok": True}
-
-
-# ============================================
-# Mood Board
-# ============================================
-
-class MoodItemCreate(BaseModel):
-    url: str = ""
-    description: str = ""
-    tags: str = ""
 
 
 @router.get("/mood-board")
-async def get_mood_board():
-    """Получить доску настроения."""
-    data = _load_project()
-    return {"mood_board": data.get("mood_board", [])}
+async def get_mood_board(db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        return {"mood_board": []}
+    items = await crud.get_mood_board(db, project.id)
+    return {"mood_board": [{"id": m.id, "url": m.url, "description": m.description, "tags": m.tags} for m in items]}
 
 
 @router.post("/mood-board")
-async def add_mood_item(req: MoodItemCreate):
-    """Добавить элемент на доску настроения."""
-    data = _load_project()
-    if "mood_board" not in data:
-        data["mood_board"] = []
-    item = {
-        "id": f"mood_{len(data['mood_board']) + 1}",
-        "url": req.url,
-        "description": req.description,
-        "tags": req.tags,
+async def add_mood_item(req: MoodItemCreate, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    item = await crud.add_mood_item(db, project.id, {
+        "url": req.url, "description": req.description, "tags": req.tags,
         "created_at": datetime.now().isoformat(),
-    }
-    data["mood_board"].append(item)
-    _save_project(data)
-    return {"ok": True, "item": item}
+    })
+    return {"ok": True, "item": {"id": item.id, "url": item.url}}
 
 
 @router.delete("/mood-board/{item_id}")
-async def delete_mood_item(item_id: str):
-    """Удалить элемент с доски настроения."""
-    data = _load_project()
-    data["mood_board"] = [m for m in data.get("mood_board", []) if m.get("id") != item_id]
-    _save_project(data)
+async def delete_mood_item(item_id: int, db: AsyncSession = Depends(get_session)):
+    await crud.delete_mood_item(db, item_id)
     return {"ok": True}
 
 
-# ============================================
-# Decision Log
-# ============================================
-
-class DecisionCreate(BaseModel):
-    title: str
-    description: str = ""
-    agent_id: str = ""
-
-
 @router.get("/decisions")
-async def get_decisions():
-    """Получить журнал решений."""
-    data = _load_project()
-    return {"decisions": data.get("decision_log", [])}
+async def get_decisions(db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        return {"decisions": []}
+    decisions = await crud.get_decisions(db, project.id)
+    return {"decisions": [
+        {"id": d.id, "title": d.title, "description": d.description, "agent_id": d.agent_id, "created_at": d.created_at}
+        for d in decisions
+    ]}
 
 
 @router.post("/decision")
-async def create_decision(req: DecisionCreate):
-    """Записать решение."""
-    data = _load_project()
-    if "decision_log" not in data:
-        data["decision_log"] = []
-    decision = {
-        "id": f"dec_{len(data['decision_log']) + 1}",
-        "title": req.title,
-        "description": req.description,
-        "agent_id": req.agent_id,
+async def create_decision(req: DecisionCreate, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    dec = await crud.create_decision(db, project.id, {
+        "title": req.title, "description": req.description, "agent_id": req.agent_id,
         "created_at": datetime.now().isoformat(),
-    }
-    data["decision_log"].append(decision)
-    _save_project(data)
-    return {"ok": True, "decision": decision}
-
-
-# ============================================
-# Версионирование сцен
-# ============================================
-
-class SceneVersionCreate(BaseModel):
-    season: int
-    episode: int
-    scene: int
-    content: str
-    comment: str = ""
+    })
+    return {"ok": True, "decision": {"id": dec.id, "title": dec.title}}
 
 
 @router.post("/scene/version")
-async def create_scene_version(req: SceneVersionCreate):
-    """Создать версию сцены."""
-    data = _load_project()
-    for s in data.get("seasons", []):
-        if s.get("season_number") == req.season:
-            for ep in s.get("episodes", []):
-                if ep.get("episode_number") == req.episode:
-                    for sc in ep.get("scenes", []):
-                        if sc.get("scene_number") == req.scene:
-                            if "versions" not in sc:
-                                sc["versions"] = []
-                            version = {
-                                "version_number": len(sc["versions"]) + 1,
-                                "content": req.content,
-                                "comment": req.comment,
-                                "created_at": datetime.now().isoformat(),
-                            }
-                            sc["versions"].append(version)
-                            sc["updated_at"] = datetime.now().isoformat()
-                            _save_project(data)
-                            return {"ok": True, "version": version}
+async def create_scene_version(req: SceneVersionCreate, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    seasons = await crud.get_seasons(db, project.id)
+    for s in seasons:
+        if s.season_number == req.season:
+            episode = await crud.get_episode(db, s.id, req.episode)
+            if episode:
+                scenes = await crud.get_scenes(db, episode.id)
+                for sc in scenes:
+                    if sc.scene_number == req.scene:
+                        versions = await crud.get_scene_versions(db, sc.id)
+                        version = await crud.create_scene_version(db, sc.id, {
+                            "version_number": len(versions) + 1,
+                            "content": req.content, "comment": req.comment,
+                            "created_at": datetime.now().isoformat(),
+                        })
+                        return {"ok": True, "version": {"version_number": version.version_number}}
     raise HTTPException(404, f"Сцена {req.season}x{req.episode}:{req.scene} не найдена")
 
 
 @router.get("/scene/{season_num}/{ep_num}/{scene_num}/versions")
-async def get_scene_versions(season_num: int, ep_num: int, scene_num: int):
-    """Получить все версии сцены."""
-    data = _load_project()
-    for s in data.get("seasons", []):
-        if s.get("season_number") == season_num:
-            for ep in s.get("episodes", []):
-                if ep.get("episode_number") == ep_num:
-                    for sc in ep.get("scenes", []):
-                        if sc.get("scene_number") == scene_num:
-                            return {"versions": sc.get("versions", [])}
+async def get_scene_versions(season_num: int, ep_num: int, scene_num: int, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    seasons = await crud.get_seasons(db, project.id)
+    for s in seasons:
+        if s.season_number == season_num:
+            episode = await crud.get_episode(db, s.id, ep_num)
+            if episode:
+                scenes = await crud.get_scenes(db, episode.id)
+                for sc in scenes:
+                    if sc.scene_number == scene_num:
+                        versions = await crud.get_scene_versions(db, sc.id)
+                        return {"versions": [
+                            {"version_number": v.version_number, "content": v.content[:500], "comment": v.comment, "created_at": v.created_at}
+                            for v in versions
+                        ]}
     raise HTTPException(404, f"Сцена {season_num}x{ep_num}:{scene_num} не найдена")
 
 
-# ============================================
-# Экспорт эпизода
-# ============================================
-
 @router.get("/export/{season_num}/{ep_num}")
-async def export_episode(season_num: int, ep_num: int):
-    """Экспортировать эпизод — все сцены в одном пакете."""
-    data = _load_project()
-    for s in data.get("seasons", []):
-        if s.get("season_number") == season_num:
-            for ep in s.get("episodes", []):
-                if ep.get("episode_number") == ep_num:
-                    export_data = {
-                        "project": data.get("active_project", {}).get("name", ""),
-                        "season": season_num,
-                        "episode": ep_num,
-                        "title": ep.get("title", ""),
-                        "description": ep.get("description", ""),
-                        "status": ep.get("status", ""),
-                        "scenes": ep.get("scenes", []),
-                        "characters": data.get("characters", []),
-                        "exported_at": datetime.now().isoformat(),
-                    }
-                    return {"export": export_data}
+async def export_episode(season_num: int, ep_num: int, db: AsyncSession = Depends(get_session)):
+    project = await crud.get_active_project(db)
+    if not project:
+        raise HTTPException(404, "Проект не найден")
+    seasons = await crud.get_seasons(db, project.id)
+    for s in seasons:
+        if s.season_number == season_num:
+            episode = await crud.get_episode(db, s.id, ep_num)
+            if episode:
+                scenes = await crud.get_scenes(db, episode.id)
+                characters = await crud.get_characters(db, project.id)
+                return {"export": {
+                    "project": project.name, "season": season_num, "episode": ep_num,
+                    "title": episode.title, "description": episode.description,
+                    "status": episode.status,
+                    "scenes": [{"scene_number": sc.scene_number, "title": sc.title, "description": sc.description} for sc in scenes],
+                    "characters": [{"name": c.name, "description": c.description} for c in characters],
+                    "exported_at": datetime.now().isoformat(),
+                }}
     raise HTTPException(404, f"Эпизод {season_num}x{ep_num} не найден")
 
 
-# ============================================
-# Аналитика студии
-# ============================================
-
 @router.get("/analytics")
-async def get_analytics():
-    """Аналитика студии."""
-    data = _load_project()
-    total_episodes = 0
-    total_scenes = 0
-    by_status = {}
-    for s in data.get("seasons", []):
-        for ep in s.get("episodes", []):
-            total_episodes += 1
-            total_scenes += len(ep.get("scenes", []))
-            status = ep.get("status", "draft")
-            by_status[status] = by_status.get(status, 0) + 1
-
-    return {
-        "total_episodes": total_episodes,
-        "total_scenes": total_scenes,
-        "total_characters": len(data.get("characters", [])),
-        "total_mood_items": len(data.get("mood_board", [])),
-        "total_decisions": len(data.get("decision_log", [])),
-        "by_status": by_status,
-        "seasons": len(data.get("seasons", [])),
-    }
+async def get_analytics(db: AsyncSession = Depends(get_session)):
+    return await crud.get_production_analytics(db)

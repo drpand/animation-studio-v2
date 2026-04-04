@@ -5,94 +5,55 @@ Med Otdel API — API МЕД-ОТДЕЛА.
 import os
 import json
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from med_otdel.med_core import (
-    run_evaluation,
-    run_fix,
-    manual_evolve,
-    write_event,
-    log_med_action,
-    _load_bus,
-    _load_log,
-    _load_agents_state,
-)
-from med_otdel.agent_memory import AgentMemory
-from med_otdel.chain_analyzer import analyze_chains
-from med_otdel.studio_monitor import check_studio_health, reset_agent_error
-from med_otdel.rule_builder import get_available_patterns, apply_pattern, remove_pattern, get_agent_rules
+from database import get_session
+import crud
+from models import EvaluateRequest, FixRequest, PatternRequest
 
 router = APIRouter()
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-AGENTS_STATE_FILE = os.path.join(PROJECT_ROOT, "memory", "agents_state.json")
-
-
-class EvaluateRequest(BaseModel):
-    agent_id: str
-    task_description: str = ""
-
-
-class FixRequest(BaseModel):
-    agent_id: str
-    original_result: str
-    critic_feedback: str
-
-
-class PatternRequest(BaseModel):
-    agent_id: str
-    pattern_key: str
 
 
 @router.post("/evaluate")
-async def evaluate(req: EvaluateRequest):
-    """
-    Critic оценивает последний ответ агента.
-    Берёт последний ответ из chat_history, формирует событие, запускает Critic.
-    """
-    # Загружаем состояние агента для получения chat_history
-    if not os.path.exists(AGENTS_STATE_FILE):
-        raise HTTPException(404, "agents_state.json не найден")
-
-    with open(AGENTS_STATE_FILE, "r", encoding="utf-8") as f:
-        state = json.load(f)
-
-    if req.agent_id not in state:
+async def evaluate(req: EvaluateRequest, db: AsyncSession = Depends(get_session)):
+    """Critic оценивает последний ответ агента."""
+    agent = await crud.get_agent(db, req.agent_id)
+    if not agent:
         raise HTTPException(404, f"Агент '{req.agent_id}' не найден")
 
-    chat_history = state[req.agent_id].get("chat_history", [])
-
-    # Берём последний ответ агента (assistant message)
+    messages = await crud.get_messages(db, req.agent_id)
     last_result = ""
-    for msg in reversed(chat_history):
-        if msg.get("role") == "assistant":
-            last_result = msg.get("content", "")
+    for msg in reversed(messages):
+        if msg.role == "assistant":
+            last_result = msg.content
             break
 
     if not last_result:
-        raise HTTPException(400, "Нет результатов для оценки. Агент ещё не ответил.")
+        raise HTTPException(400, "Нет результатов для оценки.")
 
-    # Запускаем оценку
+    from med_otdel.med_core import run_evaluation
     result = await run_evaluation(
-        task_result=last_result,
-        agent_id=req.agent_id,
-        task_description=req.task_description,
+        task_result=last_result, agent_id=req.agent_id, task_description=req.task_description
     )
-
     return result
 
 
 @router.post("/fix")
-async def fix(req: FixRequest):
-    """Fixer исправляет результат по замечаниям Critic."""
+async def fix(req: FixRequest, db: AsyncSession = Depends(get_session)):
+    """Fixer исправляет результат."""
+    from med_otdel.med_core import run_fix
     fixed_result = await run_fix(req.original_result, req.critic_feedback)
     return {"fixed_result": fixed_result}
 
 
 @router.get("/{agent_id}/memory")
-async def get_agent_memory(agent_id: str):
-    """Получить память агента: версия, промпт, ошибки, уроки."""
+async def get_agent_memory(agent_id: str, db: AsyncSession = Depends(get_session)):
+    """Получить память агента."""
+    from med_otdel.agent_memory import AgentMemory
     memory = AgentMemory(agent_id)
     return {
         "agent_id": agent_id,
@@ -100,22 +61,24 @@ async def get_agent_memory(agent_id: str):
         "current_prompt": memory.data.get("current_prompt", ""),
         "total_failures": memory.data.get("total_failures", 0),
         "consecutive_failures": memory.get_consecutive_failures(),
-        "failures": memory.data.get("failures", [])[-10:],  # Последние 10
-        "lessons": memory.data.get("lessons", [])[-5:],  # Последние 5
+        "failures": memory.data.get("failures", [])[-10:],
+        "lessons": memory.data.get("lessons", [])[-5:],
         "history_versions": list(memory.data.get("history", {}).keys()),
     }
 
 
 @router.post("/{agent_id}/evolve")
-async def evolve_agent(agent_id: str):
+async def evolve_agent(agent_id: str, db: AsyncSession = Depends(get_session)):
     """Ручная эволюция агента."""
+    from med_otdel.med_core import manual_evolve
     result = await manual_evolve(agent_id)
     return result
 
 
 @router.get("/{agent_id}/versions")
-async def get_agent_versions(agent_id: str):
-    """Получить историю версий промптов агента."""
+async def get_agent_versions(agent_id: str, db: AsyncSession = Depends(get_session)):
+    """Получить историю версий промптов."""
+    from med_otdel.agent_memory import AgentMemory
     memory = AgentMemory(agent_id)
     return {
         "agent_id": agent_id,
@@ -125,64 +88,81 @@ async def get_agent_versions(agent_id: str):
 
 
 @router.get("/studio-health")
-async def studio_health():
-    """Здоровье всей студии (3 режима)."""
+async def studio_health(db: AsyncSession = Depends(get_session)):
+    """Здоровье всей студии."""
+    from med_otdel.studio_monitor import check_studio_health
     return check_studio_health()
 
 
 @router.get("/chains")
-async def get_chains():
-    """Проблемные цепочки агент→агент."""
+async def get_chains(db: AsyncSession = Depends(get_session)):
+    """Проблемные цепочки."""
+    from med_otdel.chain_analyzer import analyze_chains
     return {"chains": analyze_chains()}
 
 
 @router.get("/events")
-async def get_events(limit: int = 20):
-    """Последние события на шине."""
-    bus = _load_bus()
-    events = bus.get("events", [])
-    return {"events": events[-limit:]}
+async def get_events(limit: int = 20, db: AsyncSession = Depends(get_session)):
+    """Последние события."""
+    events = await crud.get_events(db, limit)
+    return {"events": [
+        {"id": e.id, "task_id": e.task_id, "agent_id": e.agent_id, "event_type": e.event_type,
+         "status": e.status, "timestamp": e.timestamp}
+        for e in reversed(events)
+    ]}
 
 
 @router.get("/log")
-async def get_med_log(limit: int = 20):
+async def get_med_log(limit: int = 20, db: AsyncSession = Depends(get_session)):
     """Лог МЕД-ОТДЕЛА."""
-    log = _load_log()
-    return {"entries": log.get("entries", [])[-limit:]}
+    logs = await crud.get_med_logs(db, limit)
+    return {"entries": [
+        {"action": l.action, "details": l.details, "agent_id": l.agent_id, "timestamp": l.timestamp}
+        for l in reversed(logs)
+    ]}
 
 
 @router.post("/{agent_id}/reset-error")
-async def reset_error(agent_id: str):
-    """Сбросить статус error агента."""
+async def reset_error(agent_id: str, db: AsyncSession = Depends(get_session)):
+    """Сбросить статус error."""
+    from med_otdel.studio_monitor import reset_agent_error
     reset_agent_error(agent_id)
     return {"ok": True, "agent_id": agent_id}
 
 
 @router.get("/patterns")
-async def list_patterns():
-    """Список доступных паттернов правил."""
+async def list_patterns(db: AsyncSession = Depends(get_session)):
+    """Список доступных паттернов."""
+    from med_otdel.rule_builder import get_available_patterns
     return {"patterns": get_available_patterns()}
 
 
 @router.post("/apply-pattern")
-async def apply_pattern_endpoint(req: PatternRequest):
+async def apply_pattern_endpoint(req: PatternRequest, db: AsyncSession = Depends(get_session)):
     """Применить паттерн к агенту."""
+    from med_otdel.rule_builder import apply_pattern
     result = apply_pattern(req.agent_id, req.pattern_key)
     if result.get("ok"):
-        log_med_action("pattern_applied", f"Применён {req.pattern_key} к {req.agent_id}", req.agent_id)
+        await crud.add_rule(db, req.agent_id, req.pattern_key)
+        await crud.add_discussion(db, {
+            "agent_id": "med_otdel", "content": f"[RULE_APPLIED] {req.pattern_key} -> {req.agent_id}",
+            "msg_type": "med_otdel", "timestamp": __import__('datetime').datetime.now().isoformat(),
+        })
     return result
 
 
 @router.post("/remove-pattern")
-async def remove_pattern_endpoint(req: PatternRequest):
-    """Удалить паттерн у агента."""
+async def remove_pattern_endpoint(req: PatternRequest, db: AsyncSession = Depends(get_session)):
+    """Удалить паттерн."""
+    from med_otdel.rule_builder import remove_pattern
     result = remove_pattern(req.agent_id, req.pattern_key)
     if result.get("ok"):
-        log_med_action("pattern_removed", f"Удалён {req.pattern_key} у {req.agent_id}", req.agent_id)
+        await crud.remove_rule(db, req.agent_id, req.pattern_key)
     return result
 
 
 @router.get("/{agent_id}/rules")
-async def get_agent_rules_endpoint(agent_id: str):
-    """Получить список применённых правил агента."""
-    return {"agent_id": agent_id, "rules": get_agent_rules(agent_id)}
+async def get_agent_rules(agent_id: str, db: AsyncSession = Depends(get_session)):
+    """Получить правила агента."""
+    rules = await crud.get_rules(db, agent_id)
+    return {"agent_id": agent_id, "rules": [r.pattern_key for r in rules]}

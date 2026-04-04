@@ -4,16 +4,21 @@ FastAPI сервер, точка входа.
 """
 import os
 import time
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.security import HTTPBasic
 from starlette.middleware.base import BaseHTTPMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Загружаем .env ДО импорта config
 load_dotenv()
 
 from config import PORT, PROJECT_NAME
+from database import init_db, async_session, get_session
+from auth import AuthMiddleware
 from utils.logger import info, warn, error
 from api.agents_api import router as agents_router
 from api.tasks_api import router as tasks_router
@@ -32,7 +37,20 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(PROJECT_ROOT, "static")
 TOOLS_CACHE_DIR = os.path.join(PROJECT_ROOT, "memory", "tools_cache")
 
-app = FastAPI(title=f"Animation Studio v2 — {PROJECT_NAME}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup/Shutdown hooks."""
+    # Startup
+    info("Initializing database...")
+    await init_db()
+    info("Database initialized.")
+    yield
+    # Shutdown
+    info("Server shutting down.")
+
+
+app = FastAPI(title=f"Animation Studio v2 — {PROJECT_NAME}", lifespan=lifespan)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -53,7 +71,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             raise
 
 
+# Logging first, then Auth (disabled for now - local dev)
 app.add_middleware(LoggingMiddleware)
+# app.add_middleware(AuthMiddleware)  # Uncomment when ready
 
 # API роуты (префиксы задаются здесь, в роут-файлах префиксов нет)
 app.include_router(agents_router, prefix="/api/agents", tags=["agents"])

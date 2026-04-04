@@ -7,10 +7,14 @@ import json
 import tempfile
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from agents.base_agent import BaseAgent, STATE_FILE
+from database import get_session
+import crud
+from models import ChatMessage, ChatResponse
 
 router = APIRouter()
 
@@ -48,60 +52,102 @@ def _post_discussion(agent_id: str, content: str):
         pass
 
 
-def _load_state() -> dict:
-    if not os.path.exists(STATE_FILE):
-        return {}
-    with open(STATE_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _create_agent_from_state(agent_id: str) -> BaseAgent:
-    """Создать BaseAgent из сохранённого состояния (с историей чата)."""
-    state = _load_state()
-    if agent_id not in state:
+@router.post("/{agent_id}", response_model=ChatResponse)
+async def chat(agent_id: str, body: ChatMessage, db: AsyncSession = Depends(get_session)):
+    """Отправить сообщение агенту и получить ответ."""
+    agent = await crud.get_agent(db, agent_id)
+    if not agent:
         raise HTTPException(404, f"Агент '{agent_id}' не найден")
 
-    data = state[agent_id]
-    return BaseAgent(
-        agent_id=agent_id,
-        name=data.get("name", agent_id),
-        role=data.get("role", ""),
-        model=data.get("model", ""),
-        instructions=data.get("instructions", ""),
-        status=data.get("status", "idle"),
-        attachment_objects=data.get("attachment_objects", []),
-        attachments=data.get("attachments", []),
-        chat_history=data.get("chat_history", []),
-    )
+    # Сохраняем сообщение пользователя в БД
+    await crud.add_message(db, agent_id, "user", body.message, datetime.now().isoformat())
 
+    # Строим системный промпт
+    from agents.base_agent import _load_constitution, _load_project_context
+    constitution = _load_constitution()
+    project_context = _load_project_context()
 
-class ChatMessage(BaseModel):
-    message: str
+    parts = []
+    if constitution:
+        parts.append("[КОНСТИТУЦИЯ СТУДИИ — НЕИЗМЕНЯЕМАЯ ЧАСТЬ]")
+        parts.append(constitution)
+        parts.append("")
+    if project_context:
+        parts.append("[АКТИВНЫЙ ПРОЕКТ]")
+        parts.append(project_context)
+        parts.append("")
+    parts.append("[ТВОЯ РОЛЬ]")
+    parts.append(agent.role)
+    if agent.instructions:
+        parts.append("")
+        parts.append("[ТВОИ ИНСТРУКЦИИ]")
+        parts.append(agent.instructions)
 
+    system_prompt = "\n".join(parts)
 
-@router.post("/{agent_id}")
-async def chat(agent_id: str, body: ChatMessage):
-    """Отправить сообщение агенту и получить ответ."""
-    agent = _create_agent_from_state(agent_id)
-    reply = await agent.chat(body.message)
+    # Получаем историю чата
+    messages = await crud.get_messages(db, agent_id)
+    context = [{"role": m.role, "content": m.content} for m in messages[-10:]]
+
+    # Вызов OpenRouter
+    import httpx
+    from config import OPENROUTER_API_KEY
+
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            response = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "http://localhost:7860",
+                    "X-Title": "Animation Studio v2"
+                },
+                json={
+                    "model": agent.model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        *context,
+                        {"role": "user", "content": body.message}
+                    ]
+                }
+            )
+            data = response.json()
+            if response.status_code >= 400:
+                error_obj = data.get("error", {}) if isinstance(data, dict) else {}
+                error_message = error_obj.get("message") or data.get("message") or response.text
+                reply = f"OpenRouter {response.status_code}: {error_message}"
+            elif not isinstance(data, dict) or "choices" not in data or not data.get("choices"):
+                reply = f"OpenRouter: неожиданный формат ответа: {str(data)[:300]}"
+            else:
+                reply = data["choices"][0]["message"]["content"]
+    except httpx.TimeoutException:
+        reply = "OpenRouter: таймаут запроса"
+    except httpx.ConnectError as e:
+        reply = f"OpenRouter: ошибка соединения: {str(e)}"
+    except Exception as e:
+        reply = f"Ошибка API: {str(e)}"
+
+    # Сохраняем ответ в БД
+    await crud.add_message(db, agent_id, "assistant", reply, datetime.now().isoformat())
+
+    # Обновляем статус агента
+    await crud.update_agent(db, agent_id, {"status": "idle"})
 
     # Автозапись в Discussion канал
     _post_discussion(agent_id, f"[{agent.name}] Ответил: {reply[:200]}")
 
-    return {
-        "reply": reply,
-        "agent_id": agent_id,
-        "status": agent.status,
-    }
+    return ChatResponse(reply=reply, agent_id=agent_id, status="idle")
 
 
 @router.get("/{agent_id}/history")
-async def get_history(agent_id: str):
+async def get_history(agent_id: str, db: AsyncSession = Depends(get_session)):
     """Получить историю чата агента."""
-    state = _load_state()
-    if agent_id not in state:
+    agent = await crud.get_agent(db, agent_id)
+    if not agent:
         raise HTTPException(404, f"Агент '{agent_id}' не найден")
+    messages = await crud.get_messages(db, agent_id)
     return {
         "agent_id": agent_id,
-        "history": state[agent_id].get("chat_history", []),
+        "history": [{"role": m.role, "content": m.content, "time": m.time} for m in messages],
     }
