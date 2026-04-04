@@ -132,6 +132,12 @@ async function openAgentPanel(agentId) {
         const icon = agent.icon || AGENT_ICONS[agentId] || '🤖';
         document.getElementById('panelIcon').textContent = icon;
         document.getElementById('panelName').textContent = agent.name;
+
+        // Chat agent header
+        const chatIcon = document.getElementById('chatAgentIcon');
+        const chatName = document.getElementById('chatAgentName');
+        if (chatIcon) chatIcon.textContent = icon;
+        if (chatName) chatName.textContent = agent.name;
         const status = STATUS_MAP[agent.status] || STATUS_MAP.idle;
         document.getElementById('panelStatus').textContent = status.label;
         document.getElementById('panelModel').value = agent.model;

@@ -214,6 +214,14 @@ body {
 .chat-msg .msg-time { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
 
 /* Chips */
+.chat-agent-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; margin-bottom: 10px;
+    background: var(--bg-card); border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+.chat-agent-icon { font-size: 24px; }
+.chat-agent-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .attachment-chips {
     display: flex;
     flex-wrap: wrap;

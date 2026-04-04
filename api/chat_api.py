@@ -6,11 +6,13 @@ import os
 import json
 import tempfile
 from datetime import datetime
+from io import BytesIO
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
+from pypdf import PdfReader
 
 from database import get_session
 import crud
@@ -20,6 +22,53 @@ router = APIRouter()
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DISCUSSION_FILE = os.path.join(PROJECT_ROOT, "memory", "discussion_log.json")
+ATTACHMENTS_DIR = os.path.join(PROJECT_ROOT, "memory", "attachments")
+MAX_ATTACHMENT_TEXT = 8000
+
+
+def _extract_text_from_file(filepath: str, ext: str) -> str:
+    """Извлечь текст из прикреплённого файла."""
+    if not os.path.exists(filepath):
+        return ""
+    try:
+        if ext == ".pdf":
+            reader = PdfReader(filepath)
+            texts = []
+            for page in reader.pages[:20]:  # Макс 20 страниц
+                text = page.extract_text() or ""
+                texts.append(text)
+                if sum(len(t) for t in texts) > MAX_ATTACHMENT_TEXT:
+                    break
+            result = "\n\n".join(texts)[:MAX_ATTACHMENT_TEXT]
+            return result
+        elif ext in (".txt", ".md"):
+            with open(filepath, "r", encoding="utf-8") as f:
+                return f.read()[:MAX_ATTACHMENT_TEXT]
+        elif ext == ".json":
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return json.dumps(data, ensure_ascii=False, indent=2)[:MAX_ATTACHMENT_TEXT]
+    except Exception as e:
+        return f"[Ошибка чтения файла: {str(e)}]"
+    return ""
+
+
+def _build_attachment_context(attachments) -> str:
+    """Собрать текст из всех прикреплённых файлов агента."""
+    if not attachments:
+        return ""
+    texts = []
+    for att in attachments:
+        filename = att.filename if hasattr(att, 'filename') else att.get('filename', '')
+        ext = os.path.splitext(filename)[1].lower()
+        if ext in (".pdf", ".txt", ".md", ".json"):
+            filepath = os.path.join(ATTACHMENTS_DIR, filename)
+            text = _extract_text_from_file(filepath, ext)
+            if text:
+                texts.append(f"--- Файл: {filename} ---\n{text}")
+    if not texts:
+        return ""
+    return "\n\n".join(texts)
 
 
 def _post_discussion(agent_id: str, content: str):
@@ -84,6 +133,12 @@ async def chat(agent_id: str, body: ChatMessage, db: AsyncSession = Depends(get_
         parts.append(agent.instructions)
 
     system_prompt = "\n".join(parts)
+
+    # Извлекаем текст из прикреплённых файлов
+    attachments = await crud.get_attachments(db, agent_id)
+    attachment_context = _build_attachment_context(attachments)
+    if attachment_context:
+        system_prompt += "\n\n[ПРИКРЕПЛЁННЫЕ ФАЙЛЫ — КОНТЕКСТ ПРОЕКТА]\n" + attachment_context
 
     # Получаем историю чата
     messages = await crud.get_messages(db, agent_id)

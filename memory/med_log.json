@@ -35,6 +35,66 @@
       "action": "evaluation_fail",
       "details": "Агент art_director провалил оценку: SCORE: 6\n**FAIL**\n\n**FEEDBACK:**\n\nКак критик студии РОДИНА, я не могу пропустить работу, которая обрывается на полуслове. Это производственный брак.\n\n**Что сделано хорошо:**\n1.  **Соблюдение ДНК студи",
       "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-04T19:14:03.618294",
+      "action": "evaluation_fail",
+      "details": "Агент writer провалил оценку: ",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T19:14:03.659559",
+      "action": "agent_heal_triggered",
+      "details": "Агент writer: 3 провалов подряд → эволюция",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T19:14:10.650432",
+      "action": "agent_evolved",
+      "details": "Агент writer эволюционировал в v4",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T19:14:10.680831",
+      "action": "chain_heal_triggered",
+      "details": "Цепочка writer→critic: 2 провалов",
+      "agent_id": "writer,critic"
+    },
+    {
+      "timestamp": "2026-04-04T19:14:10.712936",
+      "action": "chain_healed",
+      "details": "Цепочка writer→critic исправлена: обновлён промпт critic",
+      "agent_id": "writer,critic"
+    },
+    {
+      "timestamp": "2026-04-04T19:18:21.074301",
+      "action": "evaluation_fail",
+      "details": "Агент writer провалил оценку: ",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T19:18:21.110978",
+      "action": "agent_heal_triggered",
+      "details": "Агент writer: 4 провалов подряд → эволюция",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T19:18:28.640864",
+      "action": "agent_evolved",
+      "details": "Агент writer эволюционировал в v5",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T19:18:28.672942",
+      "action": "chain_heal_triggered",
+      "details": "Цепочка writer→critic: 3 провалов",
+      "agent_id": "writer,critic"
+    },
+    {
+      "timestamp": "2026-04-04T19:18:28.706885",
+      "action": "chain_healed",
+      "details": "Цепочка writer→critic исправлена: обновлён промпт critic",
+      "agent_id": "writer,critic"
     }
   ]
 }
