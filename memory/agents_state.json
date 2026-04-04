@@ -91,7 +91,7 @@
     "name": "Art Director",
     "role": "Арт-директор — стиль, цвет, промпты для изображений",
     "model": "deepseek/deepseek-v3.2",
-    "status": "idle",
+    "status": "error",
     "instructions": "",
     "attachments": [],
     "attachment_objects": [],

@@ -41,6 +41,12 @@
       "content": "[evaluation_pass] Агент storyboarder прошёл оценку (score: 610)",
       "msg_type": "critic",
       "timestamp": "2026-04-04T17:32:29.160480"
+    },
+    {
+      "agent_id": "art_director",
+      "content": "[evaluation_fail] Агент art_director провалил оценку: SCORE: 6\n**FAIL**\n\n**FEEDBACK:**\n\nКак критик студии РОДИНА, я не могу пропустить работу, которая обрывается на полуслове. Это производственный брак.\n\n**Что сделано хорошо:**\n1.  **Соблюдение ДНК студи",
+      "msg_type": "critic",
+      "timestamp": "2026-04-04T17:37:02.867695"
     }
   ]
 }

@@ -17,10 +17,10 @@
             </div>
             <div class="header-right">
                 <button class="discussion-open-btn" id="discussionOpenBtn" title="Обсуждение">
-                    💬
+                    💬 <span class="btn-label">Чат</span>
                     <span class="discussion-badge" id="discussionBadge" style="display:none">0</span>
                 </button>
-                <button class="tasks-open-btn" id="tasksOpenBtn" title="Задачи">☰</button>
+                <button class="tasks-open-btn" id="tasksOpenBtn" title="Задачи">☰ <span class="btn-label">Задачи</span></button>
                 <div class="server-status" id="serverStatus">
                     <span class="status-dot"></span>
                     <span class="status-text">Подключение...</span>
@@ -30,7 +30,18 @@
 
         <!-- Офис — вид сверху -->
         <main class="office" id="office">
-            <div class="office-loading">Загрузка офиса...</div>
+            <!-- Баннер-подсказка -->
+            <div class="onboarding-banner" id="onboardingBanner">
+                <div class="onboarding-content">
+                    <span class="onboarding-icon">👋</span>
+                    <div class="onboarding-text">
+                        <strong>Добро пожаловать в Студию РОДИНА!</strong>
+                        <span>Начните с <strong>Orchestrator</strong> (🎛️) — кликните и опишите задачу, или откройте <strong>Writer</strong> (✍️) для написания сценария. Загрузите PDF-сценарий через 📎.</span>
+                    </div>
+                    <button class="onboarding-dismiss" onclick="dismissOnboarding()">✕</button>
+                </div>
+            </div>
+            <div class="office-grid" id="officeGrid"></div>
         </main>
 
         <!-- Боковая панель агента -->

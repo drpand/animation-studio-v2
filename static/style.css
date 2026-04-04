@@ -128,9 +128,31 @@ body {
 .desk-status.waiting .dot { background: var(--yellow); animation: pulse 1.5s infinite; }
 .desk-status.error .dot { background: var(--red); animation: pulse 1s infinite; }
 .desk-model { font-size: 10px; color: var(--text-muted); font-family: monospace; }
-.desk-open-btn { font-size: 11px; color: var(--accent); opacity: 0; transition: opacity 0.2s; }
+.desk-open-btn { font-size: 11px; color: var(--accent); opacity: 0.7; transition: opacity 0.2s; }
 .agent-desk:hover .desk-open-btn { opacity: 1; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes glow-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(88,166,255,0.3); } 50% { box-shadow: 0 0 0 6px rgba(88,166,255,0); } }
+.agent-desk[data-agent-id="orchestrator"] { animation: glow-pulse 3s infinite; border-color: var(--accent); }
+
+/* --- Onboarding Banner --- */
+.onboarding-banner {
+    max-width: 1200px; margin: 0 auto 20px; padding: 16px 24px;
+    background: linear-gradient(135deg, rgba(88,166,255,0.1), rgba(63,185,80,0.05));
+    border: 1px solid var(--accent); border-radius: var(--radius);
+}
+.onboarding-banner.hidden { display: none; }
+.onboarding-content { display: flex; align-items: center; gap: 16px; }
+.onboarding-icon { font-size: 32px; }
+.onboarding-text { flex: 1; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+.onboarding-text strong { color: var(--text-primary); }
+.onboarding-dismiss {
+    background: none; border: none; color: var(--text-muted); font-size: 18px;
+    cursor: pointer; padding: 4px 8px; border-radius: 4px;
+}
+.onboarding-dismiss:hover { background: var(--bg-card); color: var(--text-primary); }
+
+/* --- Header Button Labels --- */
+.btn-label { font-size: 12px; margin-left: 4px; }
 
 /* --- Agent Panel --- */
 .agent-panel {

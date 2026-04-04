@@ -44,6 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Polling v4 данных каждые 15 сек
     setInterval(loadProductionData, 15000);
     loadProductionData();
+    // Onboarding
+    try {
+        if (localStorage.getItem('onboarding_dismissed') === '1') {
+            const banner = document.getElementById('onboardingBanner');
+            if (banner) banner.classList.add('hidden');
+        }
+    } catch(e) {}
 });
 
 // --- Проверка сервера ---
@@ -76,12 +83,13 @@ async function loadAgents() {
 
 // --- Рендер офиса ---
 function renderOffice() {
-    const office = document.getElementById('office');
+    const grid = document.getElementById('officeGrid');
+    if (!grid) return;
     if (agents.length === 0) {
-        office.innerHTML = '<div class="office-loading">Нет агентов</div>';
+        grid.innerHTML = '<div class="office-loading">Нет агентов</div>';
         return;
     }
-    let html = '<div class="office-grid">';
+    let html = '';
     for (const agent of agents) {
         const icon = agent.icon || AGENT_ICONS[agent.agent_id] || '🤖';
         const status = STATUS_MAP[agent.status] || STATUS_MAP.idle;
@@ -103,8 +111,14 @@ function renderOffice() {
             </div>
         `;
     }
-    html += '</div>';
-    office.innerHTML = html;
+    grid.innerHTML = html;
+}
+
+// --- Onboarding ---
+function dismissOnboarding() {
+    const banner = document.getElementById('onboardingBanner');
+    if (banner) banner.classList.add('hidden');
+    try { localStorage.setItem('onboarding_dismissed', '1'); } catch(e) {}
 }
 
 // --- Открыть панель агента ---
@@ -188,7 +202,7 @@ function renderAttachmentChips(objects, legacyNames = []) {
 function renderChatHistory(history) {
     const container = document.getElementById('chatHistory');
     if (history.length === 0) {
-        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">Нет сообщений</div>';
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px">💬 Напишите задачу, например:<br><em>"Адаптируй сцену 3 эпизода 1"</em></div>';
         return;
     }
     container.innerHTML = history.map(msg => {
@@ -303,7 +317,7 @@ async function loadAgentMemory(agentId) {
         if (data.lessons && data.lessons.length > 0) {
             lessonsContainer.innerHTML = data.lessons.map(l => `<div class="lesson-item">📝 ${escapeHtml(l.lesson)}</div>`).join('');
         } else {
-            lessonsContainer.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Уроков пока нет</div>';
+            lessonsContainer.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Уроки появятся после оценки Critic\'ом</div>';
         }
     } catch (e) {
         console.error('Ошибка загрузки памяти:', e);
@@ -368,7 +382,7 @@ async function loadTasks() {
         if (data.active && data.active.length > 0) {
             activeContainer.innerHTML = data.active.map(t => `<div class="task-item"><div class="task-title">${escapeHtml(t.title)}</div><div class="task-agent">${t.agent_id}</div></div>`).join('');
         } else {
-            activeContainer.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет активных задач</div>';
+            activeContainer.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет активных задач — используйте Orchestrator для запуска</div>';
         }
         try {
             const logRes = await fetch(`${API_BASE}/api/med-otdel/log`);
@@ -377,7 +391,7 @@ async function loadTasks() {
             if (logData.entries && logData.entries.length > 0) {
                 medContainer.innerHTML = logData.entries.slice(-10).reverse().map(entry => `<div class="log-entry"><div style="font-weight:600">${escapeHtml(entry.action)}</div><div>${escapeHtml(entry.details)}</div>${entry.agent_id ? `<div style="color:var(--text-muted);font-size:11px">${entry.agent_id}</div>` : ''}</div>`).join('');
             } else {
-                medContainer.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Записей нет</div>';
+                medContainer.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Записи появятся после оценки Critic\'ом</div>';
             }
         } catch (e) { console.error('Ошибка загрузки лога МЕД-ОТДЕЛА:', e); }
     } catch (e) { console.error('Ошибка загрузки задач:', e); }
@@ -436,7 +450,7 @@ async function loadTempAgents() {
         if (data.agents && data.agents.length > 0) {
             container.innerHTML = data.agents.map(a => `<div class="temp-agent-item"><div class="temp-agent-info"><span class="temp-agent-icon">${a.icon || '🤖'}</span><div><div class="temp-agent-name">${a.name}</div><div class="temp-agent-role">${a.role}</div></div></div><button class="btn-remove-agent" onclick="removeTempAgent('${a.agent_id}')">✕</button></div>`).join('');
         } else {
-            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет временных агентов</div>';
+            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Временные агенты создаются HR по запросу</div>';
         }
     } catch (e) { console.error('Ошибка загрузки временных агентов:', e); }
 }
@@ -711,7 +725,7 @@ async function loadAvailablePatterns() {
 function renderRules(rules) {
     const container = document.getElementById('rulesList');
     if (!rules.length) {
-        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет применённых правил</div>';
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Правила появятся автоматически после оценки Critic\'ом</div>';
         return;
     }
     container.innerHTML = rules.map(rule => `
@@ -927,7 +941,7 @@ async function loadCharacters() {
         const container = document.getElementById('charactersList');
         if (!container) return;
         if (!data.characters || !data.characters.length) {
-            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет персонажей</div>';
+            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Персонажи появятся после анализа сценария</div>';
             return;
         }
         container.innerHTML = data.characters.map(c => `
@@ -945,7 +959,7 @@ async function loadMoodBoard() {
         const container = document.getElementById('moodBoard');
         if (!container) return;
         if (!data.mood_board || !data.mood_board.length) {
-            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);grid-column:span 2">Пусто</div>';
+            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);grid-column:span 2">Добавьте референсы через Kie.ai</div>';
             return;
         }
         container.innerHTML = data.mood_board.map(m => `
@@ -961,7 +975,7 @@ async function loadDecisionLog() {
         const container = document.getElementById('decisionLog');
         if (!container) return;
         if (!data.decisions || !data.decisions.length) {
-            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Нет решений</div>';
+            container.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">Решения запишутся автоматически при работе агентов</div>';
             return;
         }
         container.innerHTML = data.decisions.slice(-10).reverse().map(d => `
