@@ -11,6 +11,36 @@
       "content": "[Writer] Ответил: Привет! \n\nВижу, ты обращаешься к AI Сценаристу проекта **РОДИНА**. \n\nСейчас активен **Сезон 1, Эпизод 1**. Моя задача — адаптировать сценарий в промпты для анимации, раскадровки и звука, строго соблюд",
       "msg_type": "agent",
       "timestamp": "2026-04-04T14:54:47.407240"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[evaluation_fail] Агент writer провалил оценку: Как критик студии **РОДИНА**, я рассмотрел представленный раскадрованный сценарий первого эпизода. Мой вердикт основан на технической реализуемости, сценарной логике и соответствии заявленной эстетике",
+      "msg_type": "critic",
+      "timestamp": "2026-04-04T17:30:24.648808"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[agent_heal_triggered] Агент writer: 2 провалов подряд → эволюция",
+      "msg_type": "med_otdel",
+      "timestamp": "2026-04-04T17:30:24.698994"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[agent_evolved] Агент writer эволюционировал в v3",
+      "msg_type": "med_otdel",
+      "timestamp": "2026-04-04T17:30:30.870565"
+    },
+    {
+      "agent_id": "director",
+      "content": "[evaluation_pass] Агент director прошёл оценку (score: 610)",
+      "msg_type": "critic",
+      "timestamp": "2026-04-04T17:31:16.175625"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[evaluation_pass] Агент storyboarder прошёл оценку (score: 610)",
+      "msg_type": "critic",
+      "timestamp": "2026-04-04T17:32:29.160480"
     }
   ]
 }

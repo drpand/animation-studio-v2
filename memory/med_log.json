@@ -1,3 +1,34 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "timestamp": "2026-04-04T17:30:24.647387",
+      "action": "evaluation_fail",
+      "details": "Агент writer провалил оценку: Как критик студии **РОДИНА**, я рассмотрел представленный раскадрованный сценарий первого эпизода. Мой вердикт основан на технической реализуемости, сценарной логике и соответствии заявленной эстетике",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T17:30:24.691861",
+      "action": "agent_heal_triggered",
+      "details": "Агент writer: 2 провалов подряд → эволюция",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T17:30:30.862643",
+      "action": "agent_evolved",
+      "details": "Агент writer эволюционировал в v3",
+      "agent_id": "writer"
+    },
+    {
+      "timestamp": "2026-04-04T17:31:16.166997",
+      "action": "evaluation_pass",
+      "details": "Агент director прошёл оценку (score: 610)",
+      "agent_id": "director"
+    },
+    {
+      "timestamp": "2026-04-04T17:32:29.151000",
+      "action": "evaluation_pass",
+      "details": "Агент storyboarder прошёл оценку (score: 610)",
+      "agent_id": "storyboarder"
+    }
+  ]
 }
