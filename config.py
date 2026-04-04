@@ -17,7 +17,7 @@ PROJECT_NAME = "РОДИНА"
 PORT = 7860
 
 # ComfyUI
-COMFYUI_URL = os.getenv("COMFYUI_URL", "http://localhost:8188")
+COMFYUI_URL = os.getenv("COMFYUI_URL", "http://127.0.0.1:8188")
 COMFYUI_POLL_ATTEMPTS = int(os.getenv("COMFYUI_POLL_ATTEMPTS", "150"))
 COMFYUI_POLL_INTERVAL_SEC = int(os.getenv("COMFYUI_POLL_INTERVAL_SEC", "5"))
 

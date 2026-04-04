@@ -61,7 +61,7 @@ async def generate_image_endpoint(req: ImageGenRequest):
     if len(prompt) > MAX_PROMPT_LENGTH:
         return {"status": "error", "error": f"Промпт {len(prompt)} > {MAX_PROMPT_LENGTH} символов"}
 
-    # 1. Пробуем Kie.ai
+    # 1. Пробуем Kie.ai (стабильный облачный)
     result = await kieai_generate(
         prompt=prompt,
         negative_prompt=req.negative_prompt,

@@ -202,44 +202,67 @@ def _build_workflow(
 
 async def _save_result(output: dict, task_id: str) -> str:
     """
-    Сохраняем результат ComfyUI в tools_cache.
-    ComfyUI сохраняет в свою output/ папку — мы копируем оттуда.
+    Скачиваем результат из ComfyUI через /view endpoint и сохраняем в tools_cache.
     """
-    # ComfyUI output обычно в ../ComfyUI/output/
-    # Для простоты — создаём placeholder если ComfyUI output недоступен
-    filename = f"{task_id}.png"
+    filename = f"comfy_{task_id}.png"
     dest = TOOLS_CACHE_DIR / filename
 
-    # Пытаемся найти файл в ComfyUI output
+    # Пытаемся скачать через ComfyUI API /view
+    try:
+        # Получаем информацию о выходном изображении из outputs
+        image_info = None
+        for node_id, node_output in output.items():
+            if "images" in node_output:
+                image_info = node_output["images"][0]
+                break
+
+        if image_info:
+            # Скачиваем через /view
+            async with httpx.AsyncClient(timeout=60) as client:
+                resp = await client.get(
+                    f"{COMFYUI_URL}/view",
+                    params={
+                        "filename": image_info.get("filename", ""),
+                        "subfolder": image_info.get("subfolder", ""),
+                        "type": image_info.get("type", "output"),
+                    }
+                )
+                resp.raise_for_status()
+                dest.write_bytes(resp.content)
+                _log(f"Downloaded from ComfyUI /view: {dest} ({len(resp.content)} bytes)")
+                return f"/tools_cache/{filename}"
+    except Exception as e:
+        _log(f"ComfyUI /view download failed: {e}")
+
+    # Fallback: ищем в папке ComfyUI/output
     comfyui_output = Path(__file__).parent.parent.parent.parent / "ComfyUI" / "output"
     if comfyui_output.exists():
-        # Ищем последний сохранённый файл
         images = list(comfyui_output.glob("*.png"))
         if images:
             latest = max(images, key=lambda p: p.stat().st_mtime)
+            import shutil
             shutil.copy2(latest, dest)
-            return f"/static/tools_cache/images/{filename}"
+            _log(f"Copied from ComfyUI output: {dest}")
+            return f"/tools_cache/{filename}"
 
-    # Если ComfyUI output недоступен — создаём placeholder
-    # В реальном использовании ComfyUI должен быть настроен правильно
-    if not dest.exists():
-        # Создаём минимальный PNG placeholder
-        import struct
-        import zlib
-        # 1x1 красный пиксель
-        def create_minimal_png(path):
-            signature = b'\x89PNG\r\n\x1a\n'
-            ihdr = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
-            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr) & 0xffffffff)
-            raw_data = b'\x00\xff\x00\x00'  # filter + RGB
-            compressed = zlib.compress(raw_data)
-            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
-            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
-            with open(path, 'wb') as f:
-                f.write(signature)
-                f.write(struct.pack('>I', 13) + b'IHDR' + ihdr + ihdr_crc)
-                f.write(struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc)
-                f.write(struct.pack('>I', 0) + b'IEND' + iend_crc)
-        create_minimal_png(dest)
+    # Последний fallback: placeholder
+    _create_minimal_png(dest)
+    return f"/tools_cache/{filename}"
 
-    return f"/static/tools_cache/images/{filename}"
+
+def _create_minimal_png(path: Path):
+    """Создаёт минимальный PNG placeholder."""
+    import struct
+    import zlib
+    signature = b'\x89PNG\r\n\x1a\n'
+    ihdr = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
+    ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr) & 0xffffffff)
+    raw_data = b'\x00\xff\x00\x00'
+    compressed = zlib.compress(raw_data)
+    idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
+    iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
+    with open(path, 'wb') as f:
+        f.write(signature)
+        f.write(struct.pack('>I', 13) + b'IHDR' + ihdr + ihdr_crc)
+        f.write(struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc)
+        f.write(struct.pack('>I', 0) + b'IEND' + iend_crc)
