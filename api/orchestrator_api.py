@@ -20,6 +20,7 @@ class ScenePipelineRequest(BaseModel):
     episode: int = 1
     scene: int = 1
     pdf_context: str = ""
+    description: str = ""
 
 router = APIRouter()
 
@@ -251,8 +252,9 @@ async def scene_pipeline(req: ScenePipelineRequest, db: AsyncSession = Depends(g
     })
 
     # Запускаем конвейер в фоне
+    pdf_context = req.pdf_context or req.description or ""
     asyncio.create_task(run_scene_pipeline(
-        req.season, req.episode, req.scene, req.pdf_context, db
+        req.season, req.episode, req.scene, pdf_context, db
     ))
 
     return {"ok": True, "task_id": task_id, "message": "Конвейер сцены запущен"}
