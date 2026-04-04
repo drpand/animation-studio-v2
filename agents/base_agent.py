@@ -19,9 +19,11 @@ STATE_FILE = os.path.join(MEMORY_PATH, "agents_state.json")
 ATTACHMENTS_DIR = os.path.join(MEMORY_PATH, "attachments")
 CONSTITUTION_FILE = os.path.join(PROJECT_ROOT, "constitution.md")
 PROJECT_MEMORY_FILE = os.path.join(MEMORY_PATH, "project_memory.json")
+INSTRUCTIONS_FILE = os.path.join(PROJECT_ROOT, "agents", "instructions.json")
 
-# Глобальный кэш Конституции
+# Глобальный кэш Конституции и Инструкций
 _constitution_cache = None
+_instructions_cache = None
 
 def _load_constitution() -> str:
     """Загружает constitution.md один раз и кэширует."""
@@ -33,6 +35,32 @@ def _load_constitution() -> str:
         else:
             _constitution_cache = ""
     return _constitution_cache
+
+def _load_instructions() -> dict:
+    """Загружает instructions.json один раз и кэширует."""
+    global _instructions_cache
+    if _instructions_cache is None:
+        if os.path.exists(INSTRUCTIONS_FILE):
+            with open(INSTRUCTIONS_FILE, "r", encoding="utf-8") as f:
+                _instructions_cache = json.load(f)
+        else:
+            _instructions_cache = {}
+    return _instructions_cache
+
+def _save_instructions(instructions: dict):
+    """Атомарно сохраняет instructions.json."""
+    dir_name = os.path.dirname(INSTRUCTIONS_FILE)
+    fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(instructions, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, INSTRUCTIONS_FILE)
+        global _instructions_cache
+        _instructions_cache = instructions
+    except Exception:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
 
 
 def _load_project_context() -> str:

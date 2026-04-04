@@ -39,6 +39,15 @@ async def evaluate(req: EvaluateRequest, db: AsyncSession = Depends(get_session)
     result = await run_evaluation(
         task_result=last_result, agent_id=req.agent_id, task_description=req.task_description
     )
+
+    # Если Fixer исправил результат — сохраняем в историю агента
+    if result.get("fixed_result"):
+        import crud
+        from datetime import datetime
+        await crud.add_message(db, req.agent_id, "assistant",
+            f"[ИСПРАВЛЕНО FIXER'ом]\n\n{result['fixed_result'][:4000]}",
+            datetime.now().isoformat())
+
     return result
 
 

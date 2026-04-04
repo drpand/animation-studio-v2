@@ -19,6 +19,11 @@ from database import get_session
 import crud
 from models import AgentOut, AgentUpdate
 
+# Import instructions helpers
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from agents.base_agent import _load_instructions, _save_instructions
+
 router = APIRouter()
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -132,16 +137,18 @@ def _update_active_project(filename: str, file_path: str):
 @router.get("/")
 async def list_agents(db: AsyncSession = Depends(get_session)):
     agents = await crud.get_all_agents(db)
+    instructions = _load_instructions()
     result = []
     for agent in agents:
         attachments = await crud.get_attachments(db, agent.agent_id)
+        instr = instructions.get(agent.agent_id, agent.instructions)
         result.append(AgentOut(
             agent_id=agent.agent_id,
             name=agent.name,
             role=agent.role,
             model=agent.model,
             status=agent.status,
-            instructions=agent.instructions,
+            instructions=instr,
         ))
     return {"agents": result}
 
@@ -154,13 +161,15 @@ async def get_agent(agent_id: str, db: AsyncSession = Depends(get_session)):
     attachments = await crud.get_attachments(db, agent_id)
     rules = await crud.get_rules(db, agent_id)
     messages = await crud.get_messages(db, agent_id)
+    instructions = _load_instructions()
+    instr = instructions.get(agent_id, agent.instructions)
     return {
         "agent_id": agent.agent_id,
         "name": agent.name,
         "role": agent.role,
         "model": agent.model,
         "status": agent.status,
-        "instructions": agent.instructions,
+        "instructions": instr,
         "attachment_objects": [
             {
                 "filename": a.filename, "original_name": a.original_name,
@@ -184,8 +193,17 @@ async def update_agent(agent_id: str, update: AgentUpdate, db: AsyncSession = De
     agent = await crud.get_agent(db, agent_id)
     if not agent:
         raise HTTPException(404, f"Агент '{agent_id}' не найден")
-    data = {k: v for k, v in update.model_dump().items() if v is not None}
-    await crud.update_agent(db, agent_id, data)
+    
+    # Обновляем инструкции в JSON файле (не в БД)
+    if update.instructions is not None:
+        instructions = _load_instructions()
+        instructions[agent_id] = update.instructions
+        _save_instructions(instructions)
+    
+    # Обновляем модель в БД
+    if update.model is not None:
+        await crud.update_agent(db, agent_id, {"model": update.model})
+    
     return {"ok": True, "agent_id": agent_id}
 
 

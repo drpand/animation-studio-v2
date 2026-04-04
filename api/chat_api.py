@@ -19,6 +19,11 @@ from database import get_session
 import crud
 from models import ChatMessage, ChatResponse
 
+# Import instructions helpers
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from agents.base_agent import _load_constitution, _load_project_context, _load_instructions
+
 router = APIRouter()
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -98,9 +103,10 @@ async def chat(agent_id: str, body: ChatMessage, db: AsyncSession = Depends(get_
     await crud.add_message(db, agent_id, "user", body.message, datetime.now().isoformat())
 
     # Строим системный промпт
-    from agents.base_agent import _load_constitution, _load_project_context
     constitution = _load_constitution()
     project_context = _load_project_context()
+    instructions = _load_instructions()
+    agent_instructions = instructions.get(agent_id, agent.instructions)
 
     parts = []
     if constitution:
@@ -113,10 +119,10 @@ async def chat(agent_id: str, body: ChatMessage, db: AsyncSession = Depends(get_
         parts.append("")
     parts.append("[ТВОЯ РОЛЬ]")
     parts.append(agent.role)
-    if agent.instructions:
+    if agent_instructions:
         parts.append("")
         parts.append("[ТВОИ ИНСТРУКЦИИ]")
-        parts.append(agent.instructions)
+        parts.append(agent_instructions)
 
     system_prompt = "\n".join(parts)
 

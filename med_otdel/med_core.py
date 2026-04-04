@@ -213,17 +213,52 @@ FEEDBACK: <текст>"""
         target_agent_id=agent_id,
     )
 
-    # 5. Если fail — обновляем статус агента и записываем в память
+    # 5. Если fail — запускаем Fixer
     if not passed:
         set_agent_error(agent_id)
 
         # Записываем провал в память агента
         memory = AgentMemory(agent_id)
         memory.add_failure("evaluation_fail", feedback, {"task_id": task_id, "score": score})
-        memory.save()  # Сохраняем на диск для последующего чтения
-        memory.save()  # Сохраняем на диск для последующего чтения
+        memory.save()
 
         log_med_action("evaluation_fail", f"Агент {agent_id} провалил оценку: {feedback[:200]}", agent_id)
+
+        # 5b. Запускаем Fixer (до 3 попыток)
+        fixed_result = task_result
+        for fix_attempt in range(3):
+            log_med_action("fixer_attempt", f"Попытка исправления {fix_attempt + 1}/3 для {agent_id}", agent_id)
+            fixed_result = await run_fix(fixed_result, feedback)
+
+            # Повторная оценка исправленного результата
+            fix_crit_prompt = f"""Ты критик аниме-студии РОДИНА. Оцени ИСПРАВЛЕННЫЙ результат.
+
+Задача: {task_description or "Не указана"}
+Исправленный результат:
+{fixed_result[:4000]}
+
+Оцени по шкале 1-10. Если >= 7 — PASS, иначе FAIL.
+Формат:
+SCORE: <число>
+PASS/FAIL
+FEEDBACK: <текст>"""
+
+            fix_response, _ = await call_llm(
+                system_prompt="Ты строгий критик. Оценивай исправленные результаты.",
+                user_prompt=fix_crit_prompt,
+            )
+            fix_passed, fix_score, fix_feedback = _parse_critic_response(fix_response)
+
+            if fix_passed:
+                log_med_action("fixer_success", f"Fixer исправил результат для {agent_id} (попытка {fix_attempt + 1})", agent_id)
+                passed = True
+                score = fix_score
+                feedback = fix_feedback
+                task_result = fixed_result
+                reset_agent_error(agent_id)
+                break
+            else:
+                log_med_action("fixer_fail", f"Fixer не справился (попытка {fix_attempt + 1}/3): {fix_feedback[:200]}", agent_id)
 
         # 6. Проверяем 3 режима МЕД-ОТДЕЛА
         await _check_all_modes(agent_id, task_id, feedback)
@@ -236,7 +271,8 @@ FEEDBACK: <текст>"""
         "score": score,
         "feedback": feedback,
         "task_id": task_id,
-        "raw_response": response,
+        "raw_response": response[:500] if response else "",
+        "fixed_result": fixed_result[:2000] if (not passed and fixed_result and fixed_result != task_result) else None,
     }
 
 

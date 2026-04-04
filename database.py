@@ -4,9 +4,7 @@ Database — SQLite через SQLAlchemy (Async).
 """
 import os
 from datetime import datetime
-from sqlalchemy import (
-    Column, Integer, String, Text, Boolean, REAL, DateTime, ForeignKey, Index, create_engine
-)
+from sqlalchemy import event, Column, Integer, String, Text, Boolean, REAL, DateTime, ForeignKey, Index, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
@@ -326,7 +324,18 @@ class SceneFrame(Base):
 # ============================================
 
 # DATABASE_URL = "sqlite+aiosqlite:///./memory/studio.db"
-engine = create_async_engine(DATABASE_URL, echo=False)
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    connect_args={"timeout": 30},
+)
+
+@event.listens_for(engine.sync_engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA busy_timeout=5000")
+    cursor.close()
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 

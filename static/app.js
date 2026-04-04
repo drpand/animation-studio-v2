@@ -638,6 +638,16 @@ function bindEvents() {
     const overlay = getOverlay();
     if (overlay) overlay.addEventListener('click', () => { closeAgentPanel(); closePipelinePanel(); closeDiscussionPanel(); closeCharactersPanel(); });
 
+    // Close panels on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeAgentPanel();
+            closePipelinePanel();
+            closeDiscussionPanel();
+            closeCharactersPanel();
+        }
+    });
+
     on('chatInput', 'keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
     on('discussionInput', 'keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDiscussionMessage(); } });
 }
