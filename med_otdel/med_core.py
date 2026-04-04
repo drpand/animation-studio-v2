@@ -214,6 +214,7 @@ FEEDBACK: <текст>"""
     )
 
     # 5. Если fail — запускаем Fixer
+    fixed_result = task_result  # Инициализируем до условия
     if not passed:
         set_agent_error(agent_id)
 

@@ -235,26 +235,15 @@ async def _execute_chain(task_id: str, db):
 
 
 @router.post("/scene-pipeline")
-async def scene_pipeline(req: ScenePipelineRequest, db: AsyncSession = Depends(get_session)):
+async def scene_pipeline(req: ScenePipelineRequest):
     """Запустить полный конвейер сцены."""
     from orchestrator.executor import run_scene_pipeline
     task_id = f"scene_{req.season}_{req.episode}_{req.scene}"
 
-    # Создаём запись в БД
-    await crud.create_scene_frame(db, {
-        "season_num": req.season,
-        "episode_num": req.episode,
-        "scene_num": req.scene,
-        "frame_num": 1,
-        "status": "draft",
-        "created_at": datetime.now().isoformat(),
-        "updated_at": datetime.now().isoformat(),
-    })
-
-    # Запускаем конвейер в фоне
+    # Запускаем конвейер в фоне (без БД — executor создаст свою сессию)
     pdf_context = req.pdf_context or req.description or ""
     asyncio.create_task(run_scene_pipeline(
-        req.season, req.episode, req.scene, pdf_context, db
+        req.season, req.episode, req.scene, pdf_context, None
     ))
 
     return {"ok": True, "task_id": task_id, "message": "Конвейер сцены запущен"}

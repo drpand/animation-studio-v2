@@ -36,17 +36,32 @@ async def evaluate(req: EvaluateRequest, db: AsyncSession = Depends(get_session)
         raise HTTPException(400, "Нет результатов для оценки.")
 
     from med_otdel.med_core import run_evaluation
-    result = await run_evaluation(
-        task_result=last_result, agent_id=req.agent_id, task_description=req.task_description
-    )
+    try:
+        result = await run_evaluation(
+            task_result=last_result, agent_id=req.agent_id, task_description=req.task_description
+        )
+    except Exception as e:
+        import logging
+        logging.error(f"Evaluation error: {e}")
+        result = {
+            "passed": False,
+            "score": 0,
+            "feedback": f"Ошибка оценки: {str(e)[:500]}",
+            "task_id": "",
+            "raw_response": "",
+            "fixed_result": None,
+        }
 
     # Если Fixer исправил результат — сохраняем в историю агента
     if result.get("fixed_result"):
-        import crud
-        from datetime import datetime
-        await crud.add_message(db, req.agent_id, "assistant",
-            f"[ИСПРАВЛЕНО FIXER'ом]\n\n{result['fixed_result'][:4000]}",
-            datetime.now().isoformat())
+        try:
+            import crud as crud_mod
+            from datetime import datetime
+            await crud_mod.add_message(db, req.agent_id, "assistant",
+                f"[ИСПРАВЛЕНО FIXER'ом]\n\n{result['fixed_result'][:4000]}",
+                datetime.now().isoformat())
+        except Exception:
+            pass
 
     return result
 

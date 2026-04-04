@@ -594,38 +594,42 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     pipeline_result["status"] = "completed"
 
     # === СОХРАНЕНИЕ В БД ===
-    try:
-        async with async_session() as session:
-            # Находим или создаём frame
-            frames = await crud.get_scene_frames(session, season, episode, scene_num)
-            if frames:
-                frame = frames[0]
-                frame_id = frame.id
-            else:
-                new_frame = await crud.create_scene_frame(session, {
-                    "season_num": season, "episode_num": episode, "scene_num": scene_num,
-                    "frame_num": 1, "status": "draft",
-                    "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat(),
-                })
-                frame_id = new_frame.id
+    for retry in range(3):
+        try:
+            async with async_session() as session:
+                frames = await crud.get_scene_frames(session, season, episode, scene_num)
+                if frames:
+                    frame = frames[0]
+                    frame_id = frame.id
+                else:
+                    new_frame = await crud.create_scene_frame(session, {
+                        "season_num": season, "episode_num": episode, "scene_num": scene_num,
+                        "frame_num": 1, "status": "draft",
+                        "created_at": datetime.now().isoformat(), "updated_at": datetime.now().isoformat(),
+                    })
+                    frame_id = new_frame.id
 
-            # Обновляем данные
-            await crud.update_scene_frame(session, frame_id, {
-                "writer_text": writer_result.get("result", "")[:4000],
-                "director_notes": director_result.get("result", "")[:4000],
-                "characters_json": json.dumps(hr_result.get("result", ""), ensure_ascii=False)[:4000],
-                "dop_prompt": json.dumps(dop_json, ensure_ascii=False)[:4000],
-                "art_prompt": json.dumps(art_json, ensure_ascii=False)[:4000],
-                "sound_prompt": json.dumps(sound_json, ensure_ascii=False)[:4000],
-                "final_prompt": final_prompt[:8000],
-                "image_url": image_result.get("image_url", "")[:500],
-                "critic_feedback": image_result.get("critic_feedback", "")[:2000],
-                "status": "approved" if image_result.get("status") == "approved" else "in_review",
-                "updated_at": datetime.now().isoformat(),
-            })
-            await _post_discussion(f"[CONVEYOR] Результаты сцены {season}x{episode}:{scene_num} сохранены в БД", "system", "orchestrator")
-    except Exception as e:
-        await _post_discussion(f"[CONVEYOR] Ошибка сохранения в БД: {str(e)}", "system", "orchestrator")
+                await crud.update_scene_frame(session, frame_id, {
+                    "writer_text": writer_result.get("result", "")[:4000],
+                    "director_notes": director_result.get("result", "")[:4000],
+                    "characters_json": json.dumps(hr_result.get("result", ""), ensure_ascii=False)[:4000],
+                    "dop_prompt": json.dumps(dop_json, ensure_ascii=False)[:4000],
+                    "art_prompt": json.dumps(art_json, ensure_ascii=False)[:4000],
+                    "sound_prompt": json.dumps(sound_json, ensure_ascii=False)[:4000],
+                    "final_prompt": final_prompt[:8000],
+                    "image_url": image_result.get("image_url", "")[:500],
+                    "critic_feedback": image_result.get("critic_feedback", "")[:2000],
+                    "status": "approved" if image_result.get("status") == "approved" else "in_review",
+                    "updated_at": datetime.now().isoformat(),
+                })
+                await _post_discussion(f"[CONVEYOR] Результаты сцены {season}x{episode}:{scene_num} сохранены в БД", "system", "orchestrator")
+                break
+        except Exception as e:
+            if retry < 2:
+                import asyncio
+                await asyncio.sleep(2)
+            else:
+                await _post_discussion(f"[CONVEYOR] Ошибка сохранения в БД: {str(e)}", "system", "orchestrator")
 
     await _post_discussion(f"[CONVEYOR] Сцена {season}x{episode}:{scene_num} завершена!", "system", "orchestrator")
 
