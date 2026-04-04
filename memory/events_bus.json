@@ -1,3 +1,22 @@
 {
-  "events": []
+  "events": [
+    {
+      "id": "evt_0cefb48e",
+      "task_id": "task_7c04fd07",
+      "timestamp": "2026-04-04T16:53:57.300644",
+      "agent_id": "writer",
+      "event_type": "task_completed",
+      "result": "Error: [Errno 11001] getaddrinfo failed",
+      "status": "success"
+    },
+    {
+      "id": "evt_ab989ae4",
+      "task_id": "task_5723f9c2",
+      "timestamp": "2026-04-04T16:53:58.395587",
+      "agent_id": "director",
+      "event_type": "task_completed",
+      "result": "Error: [Errno 11001] getaddrinfo failed",
+      "status": "success"
+    }
+  ]
 }

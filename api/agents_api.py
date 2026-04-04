@@ -129,7 +129,7 @@ def _update_active_project(filename: str, file_path: str):
         pass
 
 
-@router.get("/", response_model=List[AgentOut])
+@router.get("/")
 async def list_agents(db: AsyncSession = Depends(get_session)):
     agents = await crud.get_all_agents(db)
     result = []
@@ -143,7 +143,7 @@ async def list_agents(db: AsyncSession = Depends(get_session)):
             status=agent.status,
             instructions=agent.instructions,
         ))
-    return result
+    return {"agents": result}
 
 
 @router.get("/{agent_id}")
