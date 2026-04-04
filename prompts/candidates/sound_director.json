@@ -14,13 +14,13 @@
       },
       "total_score": 38,
       "meta_critic_evaluation": {
-        "constitution_match": 8,
+        "constitution_match": 9,
         "role_clarity": 10,
         "source_credibility": 7,
-        "rodina_adaptation": 9,
-        "total": 34,
+        "rodina_adaptation": 10,
+        "total": 36,
         "max_total": 40,
-        "feedback": "Промпт отлично связывает барокко Пёрселла с атмосферой Гоа, но требует жесткого контроля хронометража в 3 минуты для музыкальных кью."
+        "feedback": "Промпт отлично интегрирует специфические референсы проекта, но требует более жесткой связки аудиоряда с хронометражем в 3 минуты."
       }
     }
   ]

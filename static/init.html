@@ -50,27 +50,33 @@
         .role-table .score.high { color: var(--green); }
         .role-table .score.mid { color: var(--yellow); }
         .role-table .score.low { color: var(--red); }
-        .role-table input[type="radio"] { cursor: pointer; pointer-events: auto; }
+        .role-table input[type="radio"] {
+            cursor: pointer;
+            accent-color: var(--accent);
+            width: 18px;
+            height: 18px;
+        }
         .role-table .feedback { font-size: 11px; color: var(--text-secondary); max-width: 250px; }
         .step2-layout {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 120px);
-            max-height: 700px;
         }
         .step2-table-container {
-            flex: 1;
             overflow-y: auto;
+            max-height: 60vh;
             margin-bottom: 16px;
             border: 1px solid var(--border);
             border-radius: var(--radius);
         }
         .step2-actions {
-            flex-shrink: 0;
             display: flex;
             gap: 12px;
-            padding: 12px 0;
+            padding: 16px 0;
             border-top: 1px solid var(--border);
+            position: sticky;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 10;
         }
         .spinner-overlay {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
