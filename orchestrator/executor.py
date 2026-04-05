@@ -102,10 +102,37 @@ async def _summarize_for_next_agent(text: str, next_agent_role: str, task_id: st
 async def _run_agent_step(agent_id: str, input_text: str, task_id: str) -> tuple[str, bool]:
     """
     Запустить агента с таймаутом и проверкой отмены.
+    Проверяет access_level — если agent не допущен (rejected), не запускает.
     Возвращает (output, success).
     """
     if tracker.is_cancelled(task_id):
         return "", False
+
+    # Проверка access_level — Уровень 1: Meta-Critic
+    try:
+        from database import async_session
+        from sqlalchemy import select
+        from database import Agent
+        
+        async with async_session() as db:
+            result = await db.execute(select(Agent).where(Agent.agent_id == agent_id))
+            agent = result.scalars().first()
+            if agent and agent.status == "rejected":
+                await _post_discussion(
+                    f"[{agent_id.upper()}] Агент отклонён Meta-Critic — не допущен к работе",
+                    "system",
+                    agent_id
+                )
+                return f"[ОТКЛОНЁН] Агент {agent_id} не прошёл проверку Meta-Critic", False
+            if agent and agent.status == "idle":
+                await _post_discussion(
+                    f"[{agent_id.upper()}] Агент допущен (access_level: {agent.access_level})",
+                    "system",
+                    agent_id
+                )
+    except Exception as e:
+        # Если не удалось проверить — продолжаем (обратная совместимость)
+        pass
 
     model = _get_agent_model(agent_id)
     timeout = _get_agent_timeout(agent_id)
@@ -363,6 +390,32 @@ async def execute_chain(chain: TaskChain):
                         "system",
                         "orchestrator"
                     )
+                    # Уровень 3: МЕД-ОТДЕЛ — логируем провал
+                    try:
+                        from database import async_session
+                        import crud
+                        async with async_session() as db:
+                            await crud.add_med_log(db, {
+                                "action": "critic_fixer_failed",
+                                "details": f"Agent {step.agent_id} failed critic after 3 fix attempts. Task: {chain.task_id}",
+                                "agent_id": step.agent_id,
+                                "timestamp": datetime.now().isoformat(),
+                            })
+                    except Exception:
+                        pass
+                    # Уровень 3: МЕД-ОТДЕЛ — логируем провал
+                    try:
+                        from database import async_session
+                        import crud
+                        async with async_session() as db:
+                            await crud.add_med_log(db, {
+                                "action": "critic_fixer_failed",
+                                "details": f"Agent {step.agent_id} failed critic after 3 fix attempts. Task: {chain.task_id}",
+                                "agent_id": step.agent_id,
+                                "timestamp": datetime.now().isoformat(),
+                            })
+                    except Exception:
+                        pass
                 else:
                     step.status = "completed"
             else:
@@ -586,23 +639,21 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     CHARACTERS: {hr_result.get('result', '')}
     """
 
-    # Задачи с требованием JSON
-    dop_task = run_step_with_critic("dop",
+    # Задачи — последовательные вызовы (asyncio.gather вызывал deadlock)
+    dop_res = await run_step_with_critic("dop",
         "Опиши свет, камеру и локацию. Верни СТРОГО JSON: {\"shot\": \"...\", \"location\": \"...\", \"lighting\": \"...\"}",
         {"context": json_context}, task_id)
-    art_task = run_step_with_critic("art_director",
+    art_res = await run_step_with_critic("art_director",
         "Опиши стиль и палитру. Верни СТРОГО JSON: {\"style\": \"...\", \"palette\": \"...\"}",
         {"context": json_context}, task_id)
-    sound_task = run_step_with_critic("sound_director",
+    sound_res = await run_step_with_critic("sound_director",
         "Опиши звук. Верни СТРОГО JSON: {\"mood\": \"...\"}",
         {"context": json_context}, task_id)
 
-    dop_res, art_res, sound_res = await asyncio.gather(dop_task, art_task, sound_task, return_exceptions=True)
-
     # Извлекаем JSON
-    dop_json = _extract_json(dop_res.get("result", "") if not isinstance(dop_res, Exception) else "")
-    art_json = _extract_json(art_res.get("result", "") if not isinstance(art_res, Exception) else "")
-    sound_json = _extract_json(sound_res.get("result", "") if not isinstance(sound_res, Exception) else "")
+    dop_json = _extract_json(dop_res.get("result", "") if isinstance(dop_res, dict) else "")
+    art_json = _extract_json(art_res.get("result", "") if isinstance(art_res, dict) else "")
+    sound_json = _extract_json(sound_res.get("result", "") if isinstance(sound_res, dict) else "")
 
     # Объединяем JSON части
     combined_parts = {**dop_json, **art_json, **sound_json}

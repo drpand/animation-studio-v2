@@ -249,42 +249,135 @@ async def create_task(req: dict):
 
 
 @router.post("/upload-script")
-async def upload_script(file: UploadFile = File(...)):
-    """Продюсер загружает сценарий. Оркестратор принимает и запускает Writer."""
-    if not file.filename.endswith(('.pdf', '.txt', '.md')):
-        raise HTTPException(400, "Поддерживаются только .pdf, .txt, .md")
-    
-    # Сохраняем файл
-    import os
-    from datetime import datetime
-    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    UPLOAD_DIR = os.path.join(PROJECT_ROOT, "memory", "scripts")
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    
-    safe_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-    file_path = os.path.join(UPLOAD_DIR, safe_name)
-    
-    content = await file.read()
-    with open(file_path, "wb") as f:
-        f.write(content)
+async def upload_script(file: UploadFile = File(...), db: AsyncSession = Depends(get_session)):
+    """Продюсер загружает сценарий. Оркестратор принимает, извлекает текст и запускает Writer."""
+    try:
+        if not file.filename or not file.filename.endswith(('.pdf', '.txt', '.md')):
+            raise HTTPException(400, "Поддерживаются только .pdf, .txt, .md файлы")
         
-    # TODO: Запустить Writer для разбивки на сцены
-    # asyncio.create_task(run_script_analysis(file_path))
-    
-    return {"ok": True, "filename": safe_name, "message": "Сценарий загружен. Запуск анализа..."}
+        # Защита от дублирования: проверяем не загружался ли такой же файл за последние 10 сек
+        from sqlalchemy import select, func
+        from database import AgentAttachment
+        recent = await db.execute(
+            select(AgentAttachment).where(
+                AgentAttachment.agent_id == "orchestrator",
+                AgentAttachment.original_name == file.filename,
+                AgentAttachment.uploaded_at >= (datetime.now().isoformat()[:19])
+            ).order_by(AgentAttachment.uploaded_at.desc()).limit(1)
+        )
+        if recent.scalars().first():
+            print(f"⚠️ Дубликат: {file.filename} уже загружен, пропускаю")
+            return {"ok": True, "filename": file.filename, "message": "Файл уже загружен", "duplicate": True}
+        
+        from pypdf import PdfReader
+        
+        PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        UPLOAD_DIR = os.path.join(PROJECT_ROOT, "memory", "scripts")
+        ATTACHMENTS_DIR = os.path.join(PROJECT_ROOT, "memory", "attachments")
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        os.makedirs(ATTACHMENTS_DIR, exist_ok=True)
+        
+        safe_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
+        file_path = os.path.join(UPLOAD_DIR, safe_name)
+        
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        # Также копируем в attachments для агентов
+        attach_path = os.path.join(ATTACHMENTS_DIR, safe_name)
+        with open(attach_path, "wb") as f:
+            f.write(content)
+            
+        print(f"✅ Файл сохранен: {file_path} ({len(content)} bytes)")
+        
+        # Извлекаем текст из файла
+        ext = os.path.splitext(file.filename)[1].lower()
+        extracted_text = ""
+        try:
+            if ext == ".pdf":
+                reader = PdfReader(file_path)
+                texts = []
+                for page in reader.pages[:50]:
+                    text = page.extract_text() or ""
+                    texts.append(text)
+                extracted_text = "\n\n".join(texts)[:20000]
+            elif ext in (".txt", ".md"):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    extracted_text = f.read()[:20000]
+        except Exception as e:
+            print(f"⚠️ Ошибка извлечения текста: {e}")
+            extracted_text = f"[Ошибка извлечения текста: {str(e)}]"
+        
+        # Прикрепляем файл к Orchestrator в БД
+        await crud.add_attachment(db, "orchestrator", {
+            "filename": safe_name,
+            "original_name": file.filename,
+            "content_type": file.content_type or "application/octet-stream",
+            "size_bytes": len(content),
+            "extension": ext,
+            "uploaded_at": datetime.now().isoformat(),
+            "is_text_readable": len(extracted_text) > 0,
+            "unreadable_reason": "" if extracted_text else "Не удалось извлечь текст",
+        })
+        
+        # Обновляем статус Orchestrator
+        await crud.update_agent(db, "orchestrator", {"status": "working"})
+        
+        # Отправляем текст Writer'у для анализа
+        if extracted_text:
+            await crud.add_message(db, "writer", "user", 
+                f"[НОВЫЙ СЦЕНАРИЙ ЗАГРУЖЕН]\n\nФайл: {file.filename}\n\n{extracted_text}\n\n[КОНЕЦ СЦЕНАРИЯ]\n\nПроанализируй этот сценарий и разбей его на сцены. Для каждой сцены опиши: локацию, время суток, персонажей, ключевые действия.",
+                datetime.now().isoformat())
+            await crud.update_agent(db, "writer", {"status": "working"})
+        
+        print(f"✅ Текст извлечён: {len(extracted_text)} символов")
+        print(f"✅ Файл прикреплён к Orchestrator")
+        print(f"✅ Сценарий отправлен Writer'у для анализа")
+        
+        return {
+            "ok": True, 
+            "filename": safe_name, 
+            "message": f"Сценарий загружен и отправлен Writer'у для анализа",
+            "extracted_chars": len(extracted_text),
+            "pages_analyzed": len(extracted_text) // 2000 if ext == ".pdf" else 1
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка загрузки сценария: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Ошибка загрузки файла: {str(e)}")
+
+
+# Глобальный набор запущенных конвейеров (защита от двойного запуска)
+_running_pipelines: set = set()
 
 
 @router.post("/scene-pipeline")
 async def scene_pipeline(req: ScenePipelineRequest):
     """Запустить полный конвейер сцены."""
     from orchestrator.executor import run_scene_pipeline
-    task_id = f"scene_{req.season}_{req.episode}_{req.scene}"
+    scene_id = f"{req.season}_{req.episode}_{req.scene}"
+    task_id = f"scene_{scene_id}"
+
+    # Защита от двойного запуска
+    if scene_id in _running_pipelines:
+        raise HTTPException(409, f"Конвейер для сцены {scene_id} уже запущен")
+
+    _running_pipelines.add(scene_id)
 
     # Запускаем конвейер в фоне (без БД — executor создаст свою сессию)
     pdf_context = req.pdf_context or req.description or ""
-    asyncio.create_task(run_scene_pipeline(
-        req.season, req.episode, req.scene, pdf_context, None
-    ))
+
+    async def _run_with_cleanup():
+        try:
+            await run_scene_pipeline(req.season, req.episode, req.scene, pdf_context, None)
+        finally:
+            _running_pipelines.discard(scene_id)
+
+    asyncio.create_task(_run_with_cleanup())
 
     return {"ok": True, "task_id": task_id, "message": "Конвейер сцены запущен"}
 
