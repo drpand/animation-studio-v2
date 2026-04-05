@@ -57,8 +57,7 @@ async def get_characters(db: AsyncSession = Depends(get_session)):
 async def create_character(req: CharacterCreate, db: AsyncSession = Depends(get_session)):
     """Создать персонажа."""
     description = f"Возраст: {req.age}. Внешность: {req.appearance}. Одежда: {req.clothing}. Манера речи: {req.speech}"
-    char = await crud.create_character(db, {
-        "project_id": 1,
+    char = await crud.create_character(db, 1, {
         "name": req.name,
         "description": description,
         "voice_id": req.voice_id,
