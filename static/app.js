@@ -877,7 +877,7 @@ async function cvCheckFrame(frameId) {
         const res = await fetch(`${API_BASE}/api/tools/cv-check`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ frame_id: frameId, model: 'openai/gpt-4o' }),
+            body: JSON.stringify({ frame_id: frameId, model: 'google/gemini-3.1-flash-lite-preview' }),
             signal: controller.signal
         });
         clearTimeout(timeoutId);

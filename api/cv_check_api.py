@@ -31,7 +31,7 @@ VISION_MODELS = [
 
 class CVCheckRequest(BaseModel):
     frame_id: int
-    model: str = "openai/gpt-4o"
+    model: str = "google/gemini-3.1-flash-lite-preview"
 
 
 async def _image_to_base64(image_url: str) -> str:
