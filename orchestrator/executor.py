@@ -102,37 +102,10 @@ async def _summarize_for_next_agent(text: str, next_agent_role: str, task_id: st
 async def _run_agent_step(agent_id: str, input_text: str, task_id: str) -> tuple[str, bool]:
     """
     Запустить агента с таймаутом и проверкой отмены.
-    Проверяет access_level — если agent не допущен (rejected), не запускает.
     Возвращает (output, success).
     """
     if tracker.is_cancelled(task_id):
         return "", False
-
-    # Проверка access_level — Уровень 1: Meta-Critic
-    try:
-        from database import async_session
-        from sqlalchemy import select
-        from database import Agent
-        
-        async with async_session() as db:
-            result = await db.execute(select(Agent).where(Agent.agent_id == agent_id))
-            agent = result.scalars().first()
-            if agent and agent.status == "rejected":
-                await _post_discussion(
-                    f"[{agent_id.upper()}] Агент отклонён Meta-Critic — не допущен к работе",
-                    "system",
-                    agent_id
-                )
-                return f"[ОТКЛОНЁН] Агент {agent_id} не прошёл проверку Meta-Critic", False
-            if agent and agent.status == "idle":
-                await _post_discussion(
-                    f"[{agent_id.upper()}] Агент допущен (access_level: {agent.access_level})",
-                    "system",
-                    agent_id
-                )
-    except Exception as e:
-        # Если не удалось проверить — продолжаем (обратная совместимость)
-        pass
 
     model = _get_agent_model(agent_id)
     timeout = _get_agent_timeout(agent_id)
