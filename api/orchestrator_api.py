@@ -7,13 +7,14 @@ import json
 import os
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_session
 import crud
 from models import SubmitTaskRequest, InterveneRequest
+from config import PROJECT_NAME
 
 class ScenePipelineRequest(BaseModel):
     season: int = 1
@@ -124,7 +125,7 @@ async def _build_task_chain(description: str):
         for a in registry if a.get("id") not in ("critic", "fixer")
     )
 
-    system = "Ты Orchestrator аниме-студии РОДИНА. Определи какие агенты нужны для задачи."
+    system = f"Ты Orchestrator аниме-студии {PROJECT_NAME}. Определи какие агенты нужны для задачи."
     user = f"""Задача: {description}
 Доступные агенты:
 {agents_info}

@@ -8,6 +8,7 @@ import uuid
 import tempfile
 import threading
 from datetime import datetime
+from config import PROJECT_NAME
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -99,7 +100,7 @@ async def create_agent(req: CreateAgentRequest):
     if not req.task_description.strip():
         raise HTTPException(400, "Описание задачи не может быть пустым")
 
-    analysis_prompt = f"""Ты HR аниме-студии РОДИНА. Тебе нужно создать нового агента для задачи.
+    analysis_prompt = f"""Ты HR аниме-студии {PROJECT_NAME}. Тебе нужно создать нового агента для задачи.
 
 Описание задачи:
 {req.task_description[:2000]}
@@ -176,7 +177,7 @@ def _parse_hr_response(response: str, req: CreateAgentRequest) -> tuple:
             model = line_stripped[len("MODEL:"):].strip()
 
     if not prompt or len(prompt) < 10:
-        prompt = f"Ты {role} аниме-студии РОДИНА. {req.task_description[:500]}"
+        prompt = f"Ты {role} аниме-студии {PROJECT_NAME}. {req.task_description[:500]}"
 
     return name, role, prompt, model
 

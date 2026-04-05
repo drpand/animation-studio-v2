@@ -8,6 +8,8 @@ import json
 import os
 from datetime import datetime
 
+from config import PROJECT_NAME
+
 from config import OPENROUTER_API_KEY
 from orchestrator.task_chain import TaskChain, AgentStep
 from orchestrator.progress_tracker import tracker
@@ -185,7 +187,7 @@ async def _run_critic(text: str, task_id: str, agent_id: str = "") -> tuple[bool
     if tracker.is_cancelled(task_id):
         return False, "Задача отменена"
 
-    system = "Ты строгий критик аниме-студии РОДИНА. Оценивай результаты объективно."
+    system = f"Ты строгий критик аниме-студии {PROJECT_NAME}. Оценивай результаты объективно."
     user = f"""Оцени результат работы агента.
 
 Текст:

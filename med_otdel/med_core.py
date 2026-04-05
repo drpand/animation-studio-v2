@@ -10,7 +10,7 @@ import threading
 from datetime import datetime
 from typing import Optional
 
-from config import OPENROUTER_API_KEY
+from config import OPENROUTER_API_KEY, PROJECT_NAME
 from med_otdel.agent_memory import AgentMemory, call_llm
 from med_otdel.chain_analyzer import analyze_chains, get_chain_heal_prompt
 from med_otdel.studio_monitor import check_studio_health, set_agent_error, reset_agent_error
@@ -180,7 +180,7 @@ async def run_evaluation(task_result: str, agent_id: str, task_description: str 
     )
 
     # 2. Запускаем Critic
-    critic_prompt = f"""Ты критик аниме-студии РОДИНА. Оцени результат работы агента.
+    critic_prompt = f"""Ты критик аниме-студии {PROJECT_NAME}. Оцени результат работы агента.
 
 Задача: {task_description or "Не указана"}
 Результат агента:
@@ -232,7 +232,7 @@ FEEDBACK: <текст>"""
             fixed_result = await run_fix(fixed_result, feedback)
 
             # Повторная оценка исправленного результата
-            fix_crit_prompt = f"""Ты критик аниме-студии РОДИНА. Оцени ИСПРАВЛЕННЫЙ результат.
+            fix_crit_prompt = f"""Ты критик аниме-студии {PROJECT_NAME}. Оцени ИСПРАВЛЕННЫЙ результат.
 
 Задача: {task_description or "Не указана"}
 Исправленный результат:
@@ -410,7 +410,7 @@ async def run_fix(original_result: str, critic_feedback: str) -> str:
     """
     Запустить Fixer для исправления результата по замечаниям Critic.
     """
-    fix_prompt = f"""Ты фиксер аниме-студии РОДИНА. Исправь результат работы агента по замечаниям критика.
+    fix_prompt = f"""Ты фиксер аниме-студии {PROJECT_NAME}. Исправь результат работы агента по замечаниям критика.
 
 Оригинальный результат:
 {original_result[:4000]}
