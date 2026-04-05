@@ -115,6 +115,7 @@ class Agent(Base):
     model = Column(String(100), default="")
     status = Column(String(20), default="idle")
     instructions = Column(Text, default="")
+    access_level = Column(String(20), default="production")  # level_1, level_2, level_3, production
     created_at = Column(String(30), default="")
     updated_at = Column(String(30), default="")
 

@@ -1,3 +1,748 @@
 {
-  "messages": []
+  "messages": [
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:04:10.015504"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[CONVEYOR] storyboarder: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:04:10.026944"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Результаты сцены 1x1:1 сохранены в БД",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:04:10.076879"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Сцена 1x1:1 завершена!",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:04:10.089425"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Запуск конвейера: Сцена 1x1:1",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:55:11.724326"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 1: Writer описывает сцену",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:55:11.727562"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[WRITER] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:55:11.739936"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[WRITER] Завершил работу. Результат: 2996 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:55:20.735834"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:55:26.738195"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[CONVEYOR] writer: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:55:26.741294"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 2: Director — режиссёрское решение",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:55:26.750861"
+    },
+    {
+      "agent_id": "director",
+      "content": "[DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:55:26.760877"
+    },
+    {
+      "agent_id": "director",
+      "content": "[DIRECTOR] Завершил работу. Результат: 2672 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:55:34.623037"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:55:40.646590"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 2569 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:55:49.309932"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:55:54.267785"
+    },
+    {
+      "agent_id": "director",
+      "content": "[CONVEYOR] director: APPROVED (round 2)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:55:54.270439"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 3: HR — кастинг персонажей",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:55:54.280011"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:55:54.288830"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Завершил работу. Результат: 2168 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:01.504318"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:56:08.179183"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CONVEYOR] hr_agent: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:56:08.182830"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CONVEYOR] Создан паттерн character_consistency для Art Director",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:56:08.194676"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 4: Параллельная работа цехов (JSON)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:56:08.203168"
+    },
+    {
+      "agent_id": "dop",
+      "content": "[DOP] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:08.211676"
+    },
+    {
+      "agent_id": "art_director",
+      "content": "[ART_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:08.598432"
+    },
+    {
+      "agent_id": "sound_director",
+      "content": "[SOUND_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:08.981937"
+    },
+    {
+      "agent_id": "sound_director",
+      "content": "[SOUND_DIRECTOR] Завершил работу. Результат: 280 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:12.288470"
+    },
+    {
+      "agent_id": "dop",
+      "content": "[DOP] Завершил работу. Результат: 803 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:13.590577"
+    },
+    {
+      "agent_id": "art_director",
+      "content": "[ART_DIRECTOR] Завершил работу. Результат: 421 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:13.985945"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:56:16.398150"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. Агент попытался прыгнуть выше головы, замахнувшись на гений Сатоси Кона, но допустил критическую техническую ошибку в колористике.",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:56:18.851522"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 731 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:19.970952"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:56:20.351397"
+    },
+    {
+      "agent_id": "dop",
+      "content": "[CONVEYOR] dop: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:56:20.361073"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 1345 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:22.844058"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:56:27.617500"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:56:28.001692"
+    },
+    {
+      "agent_id": "art_director",
+      "content": "[CONVEYOR] art_director: APPROVED (round 2)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:56:28.012582"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 927 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:33.370353"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:56:36.551767"
+    },
+    {
+      "agent_id": "sound_director",
+      "content": "[CONVEYOR] sound_director: APPROVED (round 3)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:56:36.561381"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 5: Storyboarder собирает промпт",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:56:36.572540"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 6: Генерация изображений (Z-Image Turbo)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:56:36.581700"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 7: Финальная сборка сцены",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:56:37.019702"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[STORYBOARDER] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:37.029503"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[STORYBOARDER] Завершил работу. Результат: 2558 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:56:48.608289"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:56:54.653822"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 2745 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T02:57:04.719578"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T02:57:09.434350"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[CONVEYOR] storyboarder: APPROVED (round 2)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:57:09.446281"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Результаты сцены 1x1:1 сохранены в БД",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:57:09.466671"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Сцена 1x1:1 завершена!",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T02:57:09.475994"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Запуск конвейера: Сцена 1x1:1",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:05:16.926906"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 1: Writer описывает сцену",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:05:16.929374"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[WRITER] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:05:16.939670"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[WRITER] Завершил работу. Результат: 2758 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:05:26.945055"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:05:32.442754"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[CONVEYOR] writer: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:05:32.453754"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 2: Director — режиссёрское решение",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:05:32.462348"
+    },
+    {
+      "agent_id": "director",
+      "content": "[DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:05:32.471476"
+    },
+    {
+      "agent_id": "director",
+      "content": "[DIRECTOR] Завершил работу. Результат: 2761 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:05:41.144700"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:05:48.946957"
+    },
+    {
+      "agent_id": "director",
+      "content": "[CONVEYOR] director: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:05:48.950375"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 3: HR — кастинг персонажей",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:05:48.963110"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:05:48.974233"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Завершил работу. Результат: 2139 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:05:56.562271"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. Агент продемонстрировал поверхностное понимание стилистики, но допустил ряд критических ошибок, не позволяющих отправить эти карточки в производство без радикальной переработки.",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:06:02.191406"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 2700 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:06:13.611585"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:06:19.423503"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 2895 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:06:28.102630"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:06:33.404310"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CONVEYOR] hr_agent: APPROVED (round 3)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:06:33.407353"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CONVEYOR] Создан паттерн character_consistency для Art Director",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:06:33.417481"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 4: Параллельная работа цехов (JSON)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:06:33.426897"
+    },
+    {
+      "agent_id": "dop",
+      "content": "[DOP] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:06:33.437213"
+    },
+    {
+      "agent_id": "art_director",
+      "content": "[ART_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:06:33.819027"
+    },
+    {
+      "agent_id": "sound_director",
+      "content": "[SOUND_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:06:34.202578"
+    },
+    {
+      "agent_id": "sound_director",
+      "content": "[SOUND_DIRECTOR] Завершил работу. Результат: 243 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:06:37.279172"
+    },
+    {
+      "agent_id": "art_director",
+      "content": "[ART_DIRECTOR] Завершил работу. Результат: 597 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:06:37.660488"
+    },
+    {
+      "agent_id": "dop",
+      "content": "[DOP] Завершил работу. Результат: 1124 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:06:39.196536"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:06:42.183232"
+    },
+    {
+      "agent_id": "art_director",
+      "content": "[CONVEYOR] art_director: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:06:42.193432"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:06:42.486799"
+    },
+    {
+      "agent_id": "sound_director",
+      "content": "[CONVEYOR] sound_director: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:06:42.496476"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:06:45.764425"
+    },
+    {
+      "agent_id": "dop",
+      "content": "[CONVEYOR] dop: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:06:45.767501"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 5: Storyboarder собирает промпт",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:06:45.779911"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 6: Генерация изображений (Z-Image Turbo)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:06:45.791150"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 7: Финальная сборка сцены",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:06:46.513870"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[STORYBOARDER] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:06:46.525060"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[STORYBOARDER] Завершил работу. Результат: 2157 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:06:54.261710"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:06:59.785194"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 2461 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T03:07:06.670202"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:07:14.360232"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[CONVEYOR] storyboarder: APPROVED (round 2)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:07:14.364137"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Результаты сцены 1x1:1 сохранены в БД",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:07:14.386083"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Сцена 1x1:1 завершена!",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T03:07:14.396481"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[evaluation_pass] Агент writer прошёл оценку (score: 5)",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T03:26:35.097130"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[evaluation_pass] Агент writer прошёл оценку (score: 5)",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T04:08:38.457848"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Запуск конвейера: Сцена 1x1:1",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T04:13:10.011745"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 1: Writer описывает сцену",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T04:13:10.013831"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[WRITER] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T04:13:10.026619"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[WRITER] Завершил работу. Результат: 2591 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T04:13:18.941579"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T04:13:24.099440"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 2876 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T04:13:33.120810"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T04:13:38.337891"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 3491 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T04:13:48.036814"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T04:13:55.295505"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[CONVEYOR] writer: NEEDS REVIEW после 3 кругов Critic/Fixer",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T04:13:55.297701"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 2: Director — режиссёрское решение",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T04:13:55.305972"
+    },
+    {
+      "agent_id": "director",
+      "content": "[DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T04:13:55.322484"
+    },
+    {
+      "agent_id": "director",
+      "content": "[DIRECTOR] Завершил работу. Результат: 2802 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T04:14:06.245952"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T04:14:11.143662"
+    },
+    {
+      "agent_id": "director",
+      "content": "[CONVEYOR] director: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T04:14:11.147627"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 3: HR — кастинг персонажей",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T04:14:11.164143"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T04:14:11.175602"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Завершил работу. Результат: 1393 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T04:14:16.828040"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. Агент предоставил качественные литературные описания, но полностью провалил задачу с точки зрения производственных нужд аниме-студии.",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T04:14:21.515629"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 2497 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-05T04:14:29.730364"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-05T04:14:34.891656"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CONVEYOR] hr_agent: APPROVED (round 2)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T04:14:34.895225"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CONVEYOR] Создан паттерн character_consistency для Art Director",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T04:14:34.920016"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 4: Параллельная работа цехов (JSON)",
+      "msg_type": "system",
+      "timestamp": "2026-04-05T04:14:34.931098"
+    }
+  ]
 }

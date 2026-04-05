@@ -439,6 +439,18 @@ def _extract_json_array(text: str) -> list:
     return []
 
 
+def _extract_names_to_remove(feedback: str) -> list:
+    """Извлечь имена персонажей для удаления из feedback Critic."""
+    names = []
+    for line in feedback.split('\n'):
+        line = line.strip()
+        if any(kw in line.lower() for kw in ['галлюцин', 'удал', 'нет в тексте', 'не упоминается', 'выдуман']):
+            # Ищем имена в кавычках или после тире
+            quoted = re.findall(r'["«"]([^"»"]+)["»"]', line)
+            names.extend(quoted)
+    return names
+
+
 def _build_kieai_prompt(parts: dict) -> str:
     """Собрать финальный промпт из JSON частей цехов для Z-Image Turbo.
     Kie.ai Z-Image имеет лимит ~800 символов — собираем компактно."""
@@ -509,90 +521,80 @@ async def run_casting(pdf_context: str, task_id: str, db=None) -> dict:
 
     await _post_discussion("[CASTING] Начало кастинга — извлечение персонажей из сценария...", "system", "orchestrator")
 
-    # 1. HR извлекает персонажей из PDF
-    hr_result = await run_step_with_critic("hr_agent",
-        f"""Извлеки ВСЕХ персонажей из текста сценария. ВАЖНО: создавай карточки ТОЛЬКО для персонажей которые реально появляются в тексте. НЕ выдумывай персонажей.
+    # 1. HR извлекает персонажей из PDF (БЕЗ run_step_with_critic — чтобы сохранить JSON)
+    hr_prompt = (
+        "Извлеки ВСЕХ персонажей из текста сценария. ВАЖНО: создавай карточки ТОЛЬКО для персонажей "
+        "которые реально появляются в тексте. НЕ выдумывай персонажей.\n\n"
+        "Верни СТРОГО JSON массив, НИЧЕГО кроме JSON:\n"
+        "[{\"name\":\"Имя\",\"age\":\"возраст\",\"appearance\":\"внешность\","
+        "\"clothing\":\"одежда\",\"voice\":\"манера речи\",\"role\":\"роль\","
+        "\"kieai_description\":\"English description for AI image generation\"}]\n\n"
+        f"Текст сценария:\n{pdf_context[:6000]}"
+    )
 
-Для каждого персонажа верни СТРОГО JSON массив:
-[{{
-  "name": "Имя",
-  "age": "возраст или примерный возраст",
-  "appearance": "внешность из текста",
-  "clothing": "описание одежды из текста",
-  "voice": "манера речи, язык",
-  "role": "роль в сюжете",
-  "kieai_description": "English description for AI image generation"
-}}]
+    hr_result, hr_success = await _run_agent_step("hr_agent", hr_prompt, task_id)
 
-Текст сценария:
-{pdf_context[:6000]}""",
-        {}, task_id)
-
-    if hr_result["status"] == "failed":
+    if not hr_success:
         await _post_discussion("[CASTING] HR не смог извлечь персонажей", "system", "orchestrator")
         return {"status": "failed", "characters": []}
 
+    # Извлекаем JSON
+    characters_data = _extract_json_array(hr_result)
+
+    await _post_discussion(
+        f"[CASTING] HR вернул {len(hr_result)} chars, извлечено {len(characters_data)} персонажей",
+        "system", "orchestrator")
+
+    if characters_data:
+        for c in characters_data:
+            await _post_discussion(f"[CASTING] Персонаж: {c.get('name', '?')}", "system", "orchestrator")
+
+    if not characters_data:
+        await _post_discussion("[CASTING] Не удалось извлечь JSON из ответа HR", "system", "orchestrator")
+        await _post_discussion(f"[CASTING] HR output: {hr_result[:500]}", "system", "orchestrator")
+        return {"status": "failed", "characters": []}
+
     # 2. Critic сверяет персонажей с PDF — отклоняет галлюцинации
-    hr_text = hr_result.get("result", "")
     critic_passed = False
     critic_feedback = ""
 
     await _post_discussion("[CASTING] Critic сверяет персонажей с PDF сценария...", "system", "orchestrator")
 
+    char_list = "\n".join(
+        f"- {c.get('name', '?')}: {c.get('appearance', '')[:100]}"
+        for c in characters_data
+    )
+
     passed, feedback = await _run_critic(
-        f"Проверь: эти персонажи реально есть в тексте сценария? Отклони тех кого НЕТ в тексте.
-
-Персонажи от HR:
-{hr_text[:3000]}
-
-Оригинальный текст сценария:
-{pdf_context[:4000]}
-
-Если персонаж НЕ упоминается в тексте — это ГАЛЛЮЦИНАЦИЯ. Отклоняй безжалостно.
-Формат:
-SCORE: <число>
-PASS/FAIL
-FEEDBACK: <текст>",
+        ("Проверь: эти персонажи реально есть в тексте сценария? Отклони тех кого НЕТ в тексте.\n\n"
+         "Персонажи от HR:\n{chars}\n\n"
+         "Оригинальный текст сценария:\n{pdf}\n\n"
+         "Если персонаж НЕ упоминается в тексте — это ГАЛЛЮЦИНАЦИЯ. Отклоняй безжалостно.\n"
+         "Формат:\nSCORE: <число>\nPASS/FAIL\nFEEDBACK: <текст>").format(
+            chars=char_list, pdf=pdf_context[:4000]),
         task_id, "critic")
 
     if passed:
         critic_passed = True
-        await _post_discussion(f"[CASTING] Critic: PASS. Персонажи подтверждены.", "system", "orchestrator")
+        await _post_discussion(f"[CASTING] Critic: PASS. Все {len(characters_data)} персонажей подтверждены.", "system", "orchestrator")
     else:
         critic_feedback = feedback
         await _post_discussion(f"[CASTING] Critic: FAIL. {feedback[:200]}", "system", "orchestrator")
 
-        # 3. Fixer исправляет — убирает галлюцинации
-        await _post_discussion("[CASTING] Fixer убирает галлюцинированных персонажей...", "system", "orchestrator")
-        fixed_text = await _run_fixer(hr_text, feedback, task_id)
+        # Удаляем галлюцинированных персонажей из списка
+        names_to_remove = _extract_names_to_remove(feedback)
+        if names_to_remove:
+            original_count = len(characters_data)
+            characters_data = [c for c in characters_data if c.get("name", "") not in names_to_remove]
+            await _post_discussion(
+                f"[CASTING] Удалено {original_count - len(characters_data)} галлюцинированных персонажей: {', '.join(names_to_remove)}",
+                "system", "orchestrator")
 
-        # Повторная проверка Critic
-        passed2, feedback2 = await _run_critic(
-            f"Проверь исправленный список. Все ли персонажи теперь есть в тексте?
+            if characters_data:
+                critic_passed = True
+                await _post_discussion(f"[CASTING] Осталось {len(characters_data)} подтверждённых персонажей", "system", "orchestrator")
 
-Исправленные персонажи:
-{fixed_text[:3000]}
-
-Оригинальный текст сценария:
-{pdf_context[:4000]}
-
-Формат:
-SCORE: <число>
-PASS/FAIL
-FEEDBACK: <текст>",
-            task_id, "critic")
-
-        if passed2:
-            critic_passed = True
-            hr_text = fixed_text
-            await _post_discussion(f"[CASTING] Critic после Fixer: PASS.", "system", "orchestrator")
-        else:
-            await _post_discussion(f"[CASTING] Critic после Fixer: FAIL. {feedback2[:200]}", "system", "orchestrator")
-            # Всё равно принимаем — на ручную проверку
-            hr_text = fixed_text
-
-    # 4. Извлекаем JSON и сохраняем в БД
-    characters_data = _extract_json_array(hr_text)
+    # 3. Сохраняем персонажей в БД
     saved_count = 0
 
     if characters_data and db:
@@ -614,9 +616,9 @@ FEEDBACK: <текст>",
                 await _post_discussion(f"[CASTING] Ошибка сохранения {name}: {str(e)[:100]}", "system", "hr_agent")
         await db.commit()
 
-    # 5. Создаём паттерн character_consistency
+    # 4. Создаём паттерн character_consistency
     if saved_count > 0:
-        await _create_character_pattern(hr_text, db)
+        await _create_character_pattern(hr_result, db)
 
     await _post_discussion(f"[CASTING] Кастинг завершён: {saved_count} персонажей сохранено", "system", "orchestrator")
 
@@ -627,6 +629,127 @@ FEEDBACK: <текст>",
         "critic_passed": critic_passed,
         "critic_feedback": critic_feedback,
     }
+
+
+async def run_full_casting(pdf_context: str, db) -> list:
+    """
+    Полный кастинг для всего сценария — извлекает всех персонажей.
+    Возвращает список всех найденных персонажей.
+    """
+    import crud
+    from database import async_session
+
+    await _post_discussion("[FULL_CASTING] Начало полного кастинга — извлечение всех персонажей из сценария...", "system", "orchestrator")
+
+    # 1. HR извлекает всех персонажей из всего сценария
+    hr_prompt = (
+        "Извлеки ВСЕХ персонажей из текста сценария. ВАЖНО: создавай карточки ТОЛЬКО для персонажей "
+        "которые реально появляются в тексте. НЕ выдумывай персонажей.\n\n"
+        "Верни СТРОГО JSON массив, НИЧЕГО кроме JSON:\n"
+        "[{\"name\":\"Имя\",\"age\":\"возраст\",\"appearance\":\"внешность\","
+        "\"clothing\":\"одежда\",\"voice\":\"манера речи\",\"role\":\"роль\","
+        "\"kieai_description\":\"English description for AI image generation\"}]\n\n"
+        f"Текст сценария:\n{pdf_context[:15000]}"
+    )
+
+    hr_result, hr_success = await _run_agent_step("hr_agent", hr_prompt, "full_casting_task")
+
+    if not hr_success:
+        await _post_discussion("[FULL_CASTING] HR не смог извлечь персонажей", "system", "orchestrator")
+        return []
+
+    # Извлекаем JSON
+    characters_data = _extract_json_array(hr_result)
+
+    await _post_discussion(
+        f"[FULL_CASTING] HR вернул {len(hr_result)} символов, извлечено {len(characters_data)} персонажей",
+        "system", "orchestrator")
+
+    if not characters_data:
+        await _post_discussion("[FULL_CASTING] Не удалось извлечь JSON из ответа HR", "system", "orchestrator")
+        await _post_discussion(f"[FULL_CASTING] HR output: {hr_result[:500]}", "system", "orchestrator")
+        return []
+
+    # 2. Critic сверяет персонажей с PDF — отклоняет галлюцинации
+    critic_passed = False
+    critic_feedback = ""
+    characters_to_save = characters_data
+
+    await _post_discussion("[FULL_CASTING] Critic сверяет персонажей с PDF сценария...", "system", "orchestrator")
+
+    char_list = "\n".join(
+        f"- {c.get('name', '?')}: {c.get('appearance', '')[:100]}"
+        for c in characters_data
+    )
+
+    # Проверка через Critic
+    passed, feedback = await _run_critic(
+        ("Проверь: эти персонажи реально есть в тексте сценария? Отклони тех кого НЕТ в тексте.\n\n"
+         "Персонажи от HR:\n{chars}\n\n"
+         "Оригинальный текст сценария:\n{pdf}\n\n"
+         "Если персонаж НЕ упоминается в тексте — это ГАЛЛЮЦИНАЦИЯ. Отклоняй безжалостно.\n"
+         "Формат:\nSCORE: <число>\nPASS/FAIL\nFEEDBACK: <текст>").format(
+            chars=char_list, pdf=pdf_context[:4000]),
+        "full_casting_task", "critic")
+
+    if passed:
+        critic_passed = True
+        await _post_discussion(f"[FULL_CASTING] Critic: PASS. Все {len(characters_data)} персонажей подтверждены.", "system", "orchestrator")
+    else:
+        critic_feedback = feedback
+        await _post_discussion(f"[FULL_CASTING] Critic: FAIL. {feedback[:200]}", "system", "orchestrator")
+
+        # Удаляем галлюцинированных персонажей из списка
+        names_to_remove = _extract_names_to_remove(feedback)
+        if names_to_remove:
+            original_count = len(characters_data)
+            characters_to_save = [c for c in characters_data if c.get("name", "") not in names_to_remove]
+            await _post_discussion(
+                f"[FULL_CASTING] Удалено {original_count - len(characters_to_save)} галлюцинированных персонажей: {', '.join(names_to_remove)}",
+                "system", "orchestrator")
+
+            if characters_to_save:
+                critic_passed = True
+                await _post_discussion(f"[FULL_CASTING] Осталось {len(characters_to_save)} подтверждённых персонажей", "system", "orchestrator")
+
+    # 3. Сохраняем персонажей в БД
+    saved_count = 0
+
+    if characters_to_save and db:
+        for char_data in characters_to_save:
+            name = char_data.get("name", "")
+            if not name:
+                # Log warning about empty name
+                await _post_discussion(f"[FULL_CASTING] WARNING: Character with empty name skipped: {char_data}", "system", "orchestrator")
+                continue
+            
+            # Debug logging
+            await _post_discussion(f"[FULL_CASTING] Saving character: name='{name}' (type: {type(name)}, length: {len(name)})", "system", "orchestrator")
+            
+            try:
+                # Create character with all required fields
+                character_data = {
+                    "name": str(name).strip(),  # Ensure it's a string
+                    "description": f"Возраст: {char_data.get('age', '')}. Внешность: {char_data.get('appearance', '')}. Одежда: {char_data.get('clothing', '')}. Голос: {char_data.get('voice', '')}",
+                    "voice_id": char_data.get("voice", ""),
+                    "relations": char_data.get("role", ""),
+                    "created_at": datetime.now().isoformat(),
+                }
+                
+                await _post_discussion(f"[FULL_CASTING] Character data: {character_data}", "system", "orchestrator")
+                
+                char = await crud.create_character(db, 1, character_data)
+                saved_count += 1
+                await _post_discussion(f"[FULL_CASTING] Персонаж сохранён: {name} (ID: {char.id})", "system", "hr_agent")
+            except Exception as e:
+                await _post_discussion(f"[FULL_CASTING] Ошибка сохранения '{name}': {str(e)}", "system", "hr_agent")
+                import traceback
+                await _post_discussion(f"[FULL_CASTING] Traceback: {traceback.format_exc()[:500]}", "system", "hr_agent")
+        await db.commit()
+
+    await _post_discussion(f"[FULL_CASTING] Полный кастинг завершён: {saved_count} персонажей сохранено", "system", "orchestrator")
+
+    return characters_to_save
 
 
 async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_context: str, db=None):
@@ -651,8 +774,19 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
 
     await _post_discussion(f"[CONVEYOR] Запуск конвейера: Сцена {season}x{episode}:{scene_num}", "system", "orchestrator")
 
-    # Этап 0: Кастинг
-    casting_result = await run_casting(pdf_context, task_id, db)
+    # Этап 0: Кастинг — создаём свою сессию если db не передан
+    casting_db = db
+    if casting_db is None:
+        casting_db_session = async_session()
+        casting_db = casting_db_session
+    else:
+        casting_db_session = None
+
+    casting_result = await run_casting(pdf_context, task_id, casting_db)
+
+    if casting_db_session:
+        await casting_db_session.close()
+
     pipeline_result["steps"]["casting"] = casting_result
     
     if casting_result["status"] == "failed":

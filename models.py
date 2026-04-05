@@ -16,6 +16,7 @@ class AgentOut(BaseModel):
     model: str
     status: str
     instructions: str = ""
+    access_level: str = "production"
 
     class Config:
         from_attributes = True

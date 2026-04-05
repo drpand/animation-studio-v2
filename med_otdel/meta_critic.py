@@ -392,3 +392,115 @@ async def create_passport(agent_id: str, name: str, created_by: str = "HR", prom
     }
     _save_passport(agent_id, passport)
     return passport
+
+
+async def approve_and_apply_db(db, approvals: dict, project_description: str = "") -> dict:
+    """
+    Утвердить выбранные промпты и применить их к агентам в БД.
+    approvals = {writer: "candidate_id", director: "candidate_id", ...}
+    
+    Уровень 1 — Meta-Critic:
+    1. Оценивает промпт кандидата
+    2. Если score >= threshold — агент допускается (status: idle)
+    3. Если score < threshold — агент отклонён (status: rejected)
+    4. Создаёт passport в БД
+    """
+    import crud
+    
+    state = _load_state()
+    applied = []
+    errors = []
+    rejected = []
+    
+    # Meta-Critic threshold для допуска (из 40)
+    THRESHOLD = 24  # 60% от максимума
+    
+    constitution = _load_constitution()
+    
+    for role, candidate_id in approvals.items():
+        candidates_file = os.path.join(CANDIDATES_DIR, f"{role}.json")
+        if not os.path.exists(candidates_file):
+            errors.append({"role": role, "error": "Нет файла кандидатов"})
+            continue
+        
+        with open(candidates_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        candidate = None
+        for c in data.get("candidates", []):
+            if c.get("id") == candidate_id:
+                candidate = c
+                break
+        
+        if not candidate:
+            errors.append({"role": role, "error": f"Кандидат {candidate_id} не найден"})
+            continue
+        
+        prompt = candidate.get("prompt", "")
+        
+        # Уровень 1: Meta-Critic оценивает промпт
+        evaluation = await evaluate_prompt(role, prompt, constitution)
+        total_score = evaluation.get("total", 0)
+        
+        if total_score >= THRESHOLD:
+            # Агент допущен — обновляем в БД
+            agent = await crud.get_agent(db, role)
+            if agent:
+                await crud.update_agent(db, role, {
+                    "instructions": prompt,
+                    "status": "idle"
+                })
+                
+                # Создаём паспорт в БД
+                await crud.create_passport(db, {
+                    "agent_id": role,
+                    "name": state.get(role, {}).get("name", role),
+                    "created_by": "HR",
+                    "prompt_source": candidate.get("source_url", candidate.get("source", "")),
+                    "approved_by": "meta_critic",
+                    "meta_critic_score": float(total_score),
+                    "version": 1,
+                    "created_at": datetime.now().isoformat(),
+                })
+                
+                applied.append({
+                    "role": role,
+                    "candidate_id": candidate_id,
+                    "score": total_score,
+                    "status": "approved",
+                    "feedback": evaluation.get("feedback", ""),
+                })
+        else:
+            # Агент отклонён
+            agent = await crud.get_agent(db, role)
+            if agent:
+                await crud.update_agent(db, role, {"status": "rejected"})
+            
+            rejected.append({
+                "role": role,
+                "candidate_id": candidate_id,
+                "score": total_score,
+                "threshold": THRESHOLD,
+                "status": "rejected",
+                "feedback": evaluation.get("feedback", ""),
+            })
+    
+    # Сохраняем состояние инициализации
+    init_state = {
+        "status": "completed",
+        "project_description": project_description,
+        "applied": applied,
+        "rejected": rejected,
+        "errors": errors,
+        "initialized_at": datetime.now().isoformat(),
+    }
+    init_file = os.path.join(PROJECT_ROOT, "memory", "init_state.json")
+    with open(init_file, "w", encoding="utf-8") as f:
+        json.dump(init_state, f, ensure_ascii=False, indent=2)
+    
+    return {
+        "status": "completed",
+        "applied": applied,
+        "rejected": rejected,
+        "errors": errors,
+    }

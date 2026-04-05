@@ -420,3 +420,38 @@ async def update_scene_frame(db: AsyncSession, frame_id: int, data: Dict[str, An
         await db.commit()
         await db.refresh(frame)
     return frame
+
+
+# ============================================
+# Access Level Helpers
+# ============================================
+
+ACCESS_LEVEL_1 = "level_1"       # meta_critic — найм
+ACCESS_LEVEL_2 = "level_2"       # critic, fixer — производство
+ACCESS_LEVEL_3 = "level_3"       # med_otdel — наблюдение
+ACCESS_LEVEL_PRODUCTION = "production"  # writer, director, dop, art, sound, storyboarder, hr
+
+async def get_agents_by_level(db: AsyncSession, level: str) -> List[Agent]:
+    """Получить агентов по уровню доступа."""
+    result = await db.execute(select(Agent).where(Agent.access_level == level))
+    return result.scalars().all()
+
+async def get_production_agents(db: AsyncSession) -> List[Agent]:
+    """Получить только production агентов."""
+    result = await db.execute(select(Agent).where(Agent.access_level == ACCESS_LEVEL_PRODUCTION))
+    return result.scalars().all()
+
+async def get_critic_fixer_agents(db: AsyncSession) -> List[Agent]:
+    """Получить агентов уровня 2 (critic/fixer)."""
+    result = await db.execute(select(Agent).where(Agent.access_level == ACCESS_LEVEL_2))
+    return result.scalars().all()
+
+async def get_agent_access_level(db: AsyncSession, agent_id: str) -> Optional[str]:
+    """Получить уровень доступа агента."""
+    agent = await get_agent(db, agent_id)
+    return agent.access_level if agent else None
+
+async def get_agents_by_status(db: AsyncSession, status: str) -> List[Agent]:
+    """Получить агентов по статусу."""
+    result = await db.execute(select(Agent).where(Agent.status == status))
+    return result.scalars().all()

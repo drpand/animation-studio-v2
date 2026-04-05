@@ -3,12 +3,13 @@ Animation Studio v2 — РОДИНА
 FastAPI сервер, точка входа.
 """
 import os
+import json
 import time
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.security import HTTPBasic
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,12 +47,63 @@ async def lifespan(app: FastAPI):
     info("Initializing database...")
     await init_db()
     info("Database initialized.")
+    
+    # Уровень 3: МЕД-ОТДЕЛ — фоновый мониторинг студии
+    import asyncio
+    from med_otdel.med_core import log_med_action
+    from database import async_session
+    import crud
+    
+    async def med_otdel_monitor():
+        """Фоновая задача МЕД-ОТДЕЛА — мониторинг каждые 30 секунд."""
+        while True:
+            try:
+                async with async_session() as db:
+                    # Проверяем процент агентов в error
+                    all_agents = await crud.get_all_agents(db)
+                    if all_agents:
+                        error_count = sum(1 for a in all_agents if a.status == "error")
+                        error_pct = error_count / len(all_agents)
+                        
+                        if error_pct >= 0.5:
+                            # studio_alert — 50%+ агентов в красном
+                            log_med_action("studio_alert", f"{error_pct*100:.0f}% агентов в error. Студия приостановлена.")
+                            warn(f"STUDIO ALERT: {error_pct*100:.0f}% агентов в error")
+                        
+                        # agent_heal — логируем агентов в error
+                        for agent in all_agents:
+                            if agent.status == "error":
+                                log_med_action("agent_error_detected", f"Агент {agent.agent_id} в error статусе", agent.agent_id)
+                    
+                    # chain_heal — проверяем мед логи на повторяющиеся ошибки
+                    logs = await crud.get_med_logs(db, limit=50)
+                    fail_count = sum(1 for log in logs if "fail" in log.action.lower())
+                    if fail_count > 10:
+                        log_med_action("chain_heal_triggered", f"Обнаружено {fail_count} провалов в последних 50 логах")
+                    
+            except Exception as e:
+                warn(f"МЕД-ОТДЕЛ ошибка мониторинга: {e}")
+            
+            await asyncio.sleep(30)  # Проверка каждые 30 секунд
+    
+    monitor_task = asyncio.create_task(med_otdel_monitor())
+    info("МЕД-ОТДЕЛ мониторинг запущен (каждые 30 сек)")
+    
     yield
+    
     # Shutdown
+    monitor_task.cancel()
+    info("МЕД-ОТДЕЛ мониторинг остановлен.")
     info("Server shutting down.")
 
 
-app = FastAPI(title=f"Animation Studio v2 — {PROJECT_NAME}", lifespan=lifespan)
+class UTF8JSONResponse(JSONResponse):
+    """JSON response с корректным UTF-8 (без escape русских символов)."""
+    def render(self, content) -> bytes:
+        return json.dumps(content, ensure_ascii=False, allow_nan=False).encode("utf-8")
+
+
+app = FastAPI(title=f"Animation Studio v2 — {PROJECT_NAME}", lifespan=lifespan, default_response_class=UTF8JSONResponse)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -90,13 +142,21 @@ app.include_router(project_router, prefix="/api/project", tags=["project"])
 app.include_router(episodes_router, prefix="/api/episodes", tags=["episodes"])
 app.include_router(characters_router, prefix="/api/characters", tags=["characters"])
 
-# Статика
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+# Статика с отключением кэша
+class NoCacheStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+app.mount("/static", NoCacheStaticFiles(directory=STATIC_DIR), name="static")
 
 # Кэш инструментов (изображения, аудио)
 IMAGES_CACHE_DIR = os.path.join(PROJECT_ROOT, "memory", "tools_cache", "images")
 os.makedirs(IMAGES_CACHE_DIR, exist_ok=True)
-app.mount("/tools_cache", StaticFiles(directory=IMAGES_CACHE_DIR), name="tools_cache")
+app.mount("/tools_cache", NoCacheStaticFiles(directory=IMAGES_CACHE_DIR), name="tools_cache")
 
 
 @app.get("/")
@@ -116,7 +176,7 @@ async def index():
 @app.get("/health")
 async def health():
     """Проверка здоровья сервера."""
-    return {"status": "ok", "project": PROJECT_NAME}
+    return UTF8JSONResponse(content={"status": "ok", "project": PROJECT_NAME})
 
 
 @app.get("/init")

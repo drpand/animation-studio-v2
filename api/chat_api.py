@@ -77,7 +77,7 @@ def _build_attachment_context(attachments) -> str:
     return "\n\n".join(texts)
 
 
-def _post_discussion(db: AsyncSession, agent_id: str, agent_name: str, content: str):
+async def _post_discussion(db: AsyncSession, agent_id: str, agent_name: str, content: str):
     """Записать сообщение агента в Discussion канал (через БД)."""
     import crud as crud_module
     entry = {
@@ -87,7 +87,7 @@ def _post_discussion(db: AsyncSession, agent_id: str, agent_name: str, content: 
         "timestamp": datetime.now().isoformat(),
     }
     try:
-        asyncio.create_task(crud_module.add_discussion(db, entry))
+        await crud_module.add_discussion(db, entry)
     except Exception:
         pass
 
@@ -196,7 +196,7 @@ async def chat(agent_id: str, body: ChatMessage, db: AsyncSession = Depends(get_
     await crud.update_agent(db, agent_id, {"status": "idle"})
 
     # Автозапись в Discussion канал
-    _post_discussion(db, agent_id, agent.name, f"Ответил: {reply[:200]}")
+    await _post_discussion(db, agent_id, agent.name, f"Ответил: {reply[:200]}")
 
     return ChatResponse(reply=reply, agent_id=agent_id, status="idle")
 

@@ -192,13 +192,28 @@ async function uploadFile() {
     } catch (e) { alert('Ошибка загрузки: ' + e.message); }
 }
 
-// --- Send Task to Orchestrator ---
+// --- Send Task to Orchestrator (Text or File) ---
 async function sendTask() {
     const input = document.getElementById('producerInput');
+    const fileInput = document.getElementById('scriptFile');
     const task = input.value.trim();
-    if (!task) { alert('Введите задачу'); return; }
+    const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
 
     const statusDiv = document.getElementById('currentTaskStatus');
+    
+    // Если есть файл — загружаем его
+    if (hasFile) {
+        await uploadScript();
+        return;
+    }
+
+    // Если есть текст — отправляем задачу
+    if (!task) { 
+        statusDiv.textContent = '❌ Введите задачу или выберите файл';
+        statusDiv.style.color = 'var(--red)';
+        return; 
+    }
+
     statusDiv.textContent = '⏳ Оркестратор анализирует задачу...';
     statusDiv.style.color = 'var(--yellow)';
 
@@ -227,11 +242,21 @@ async function sendTask() {
 // --- Script Upload for Orchestrator ---
 async function uploadScript() {
     const input = document.getElementById('scriptFile');
+    const nameDisplay = document.getElementById('selectedFileName');
+    
+    if (!input || !input.files || input.files.length === 0) {
+        nameDisplay.textContent = '';
+        return;
+    }
+    
     const file = input.files[0];
-    if (!file) { alert('Выберите файл сценария'); return; }
+    // Show file name immediately
+    nameDisplay.textContent = `📄 ${file.name}`;
+    
+    console.log('Uploading file:', file.name, file.size, 'bytes');
 
     const statusDiv = document.getElementById('uploadStatus');
-    statusDiv.textContent = '⏳ Загрузка сценария...';
+    statusDiv.textContent = `⏳ Загрузка: ${file.name}...`;
     statusDiv.style.color = 'var(--yellow)';
 
     const formData = new FormData();
@@ -239,22 +264,32 @@ async function uploadScript() {
 
     try {
         const res = await fetch(`${API_BASE}/api/orchestrator/upload-script`, {
-            method: 'POST', body: formData
+            method: 'POST',
+            body: formData
         });
+        
+        console.log('Server response status:', res.status);
         const data = await res.json();
-        if (data.ok) {
-            statusDiv.textContent = `✅ Сценарий "${data.filename}" загружен!`;
+        console.log('Server response data:', data);
+
+        if (res.ok && data.ok) {
+            statusDiv.textContent = `✅ Сценарий "${file.name}" успешно загружен! Открываю Оркестратора...`;
             statusDiv.style.color = 'var(--green)';
-            // Auto-open Orchestrator chat
-            openAgentPanel('orchestrator');
+            nameDisplay.textContent = `✅ ${file.name}`;
+            // Автоматически открываем чат с Оркестратором
+            setTimeout(() => openAgentPanel('orchestrator'), 1500);
         } else {
-            statusDiv.textContent = '❌ Ошибка: ' + (data.error || 'Неизвестная ошибка');
-            statusDiv.style.color = 'var(--red)';
+            throw new Error(data.detail || data.error || 'Ошибка сервера');
         }
     } catch (e) {
-        statusDiv.textContent = '❌ Ошибка сети: ' + e.message;
+        console.error('Upload failed:', e);
+        statusDiv.textContent = `❌ Ошибка загрузки: ${e.message}`;
         statusDiv.style.color = 'var(--red)';
+        nameDisplay.textContent = `❌ ${file.name}`;
     }
+    
+    // Очищаем input чтобы можно было загрузить тот же файл снова
+    input.value = '';
 }
 
 // --- Evaluate ---
@@ -488,6 +523,34 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// --- Save Instructions ---
+async function saveInstructions() {
+    if (!currentAgentId) return;
+    const instructions = document.getElementById('panelInstructions').value;
+    const model = document.getElementById('panelModel').value;
+    const btn = document.getElementById('btnSaveInstructions');
+    btn.textContent = '? ࠭...';
+    btn.disabled = true;
+    try {
+        const res = await fetch(`${API_BASE}/api/agents/${currentAgentId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instructions, model })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            btn.textContent = '? ࠭';
+            setTimeout(() => { btn.textContent = '࠭'; btn.disabled = false; }, 1500);
+        } else {
+            btn.textContent = '? 訡';
+            setTimeout(() => { btn.textContent = '࠭'; btn.disabled = false; }, 2000);
+        }
+    } catch (e) {
+        btn.textContent = '? 訡 ';
+        setTimeout(() => { btn.textContent = '࠭'; btn.disabled = false; }, 2000);
+    }
+}
+
 // --- Bind Events ---
 function bindEvents() {
     // Navigation
@@ -505,9 +568,17 @@ function bindEvents() {
     document.getElementById('fileInput').addEventListener('change', uploadFile);
     document.getElementById('btnEvaluate').addEventListener('click', evaluateResult);
 
-    // Script Upload
-    document.getElementById('btnAttachScript').addEventListener('click', () => document.getElementById('scriptFile').click());
-    document.getElementById('scriptFile').addEventListener('change', uploadScript);
+    // Script Upload — only on "Execute" button click (not on file select to avoid double upload)
+    document.getElementById('scriptFile').addEventListener('change', () => {
+        const nameDisplay = document.getElementById('selectedFileName');
+        const file = document.getElementById('scriptFile').files[0];
+        if (file) {
+            nameDisplay.textContent = `📄 ${file.name}`;
+        }
+    });
+    
+    // Execute Task Button
+    document.getElementById('btnSendTask').addEventListener('click', sendTask);
 
     // Modal
     document.getElementById('modalClose').addEventListener('click', closeSceneModal);

@@ -382,6 +382,46 @@ async def scene_pipeline(req: ScenePipelineRequest):
     return {"ok": True, "task_id": task_id, "message": "Конвейер сцены запущен"}
 
 
+@router.post("/full-casting")
+async def full_casting(req: dict):
+    """Извлечь всех персонажей из всего сценария."""
+    from orchestrator.executor import run_full_casting
+    
+    pdf_file = req.get("pdf_file", "")
+    if not pdf_file:
+        raise HTTPException(400, "Не указан файл PDF")
+    
+    # Проверим, существует ли файл
+    import os
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(PROJECT_ROOT, "memory", "scripts", pdf_file)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(404, f"Файл не найден: {pdf_file}")
+    
+    # Прочитаем содержимое PDF
+    from pypdf import PdfReader
+    try:
+        reader = PdfReader(file_path)
+        texts = []
+        for page in reader.pages[:50]:  # Максимум 50 страниц
+            text = page.extract_text() or ""
+            texts.append(text)
+        full_text = "\n\n".join(texts)
+    except Exception as e:
+        raise HTTPException(500, f"Ошибка чтения PDF: {str(e)}")
+    
+    # Запустим полный кастинг
+    try:
+        # Создаем временную сессию БД для сохранения персонажей
+        from database import async_session
+        async with async_session() as db:
+            result = await run_full_casting(full_text, db)
+            return {"ok": True, "characters": result}
+    except Exception as e:
+        raise HTTPException(500, f"Ошибка выполнения полного кастинга: {str(e)}")
+
+
 @router.get("/scene-result/{season}/{episode}/{scene}")
 async def get_scene_result(season: int, episode: int, scene: int, db: AsyncSession = Depends(get_session)):
     """Получить результат конвейера сцены."""

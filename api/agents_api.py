@@ -149,6 +149,7 @@ async def list_agents(db: AsyncSession = Depends(get_session)):
             model=agent.model,
             status=agent.status,
             instructions=instr,
+            access_level=getattr(agent, 'access_level', 'production'),
         ))
     return {"agents": result}
 
@@ -169,6 +170,7 @@ async def get_agent(agent_id: str, db: AsyncSession = Depends(get_session)):
         "role": agent.role,
         "model": agent.model,
         "status": agent.status,
+        "access_level": getattr(agent, 'access_level', 'production'),
         "instructions": instr,
         "attachment_objects": [
             {

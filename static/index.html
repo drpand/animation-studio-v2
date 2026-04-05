@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animation Studio v2 — РОДИНА</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/static/style.css?v=20260405-v12">
+    <link rel="stylesheet" href="/static/style.css?v=20260405-v16">
 </head>
 <body>
     <div id="app">
@@ -38,8 +38,9 @@
                 <div class="console-input-area">
                     <textarea id="producerInput" placeholder="Например: Сделай сцену 1: кабина самолета, ночь, Ева слушает Пёрсела..."></textarea>
                     <div class="console-actions">
+                        <label for="scriptFile" class="btn-icon" title="Прикрепить файл">📎</label>
                         <input type="file" id="scriptFile" class="hidden-file-input" accept=".pdf,.txt,.md">
-                        <button class="btn-icon" id="btnAttachScript" title="Прикрепить файл">📎</button>
+                        <span id="selectedFileName" class="selected-file-name"></span>
                         <button class="btn-send-task" id="btnSendTask">🚀 Выполнить</button>
                     </div>
                     <div class="upload-status" id="uploadStatus"></div>
@@ -177,6 +178,6 @@
         <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="/static/app.js?v=20260405-v12"></script>
+    <script src="/static/app.js?v=20260405-v18"></script>
 </body>
 </html>
