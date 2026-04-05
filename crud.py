@@ -408,6 +408,13 @@ async def get_scene_frames(db: AsyncSession, season: int, episode: int, scene: i
     )
     return result.scalars().all()
 
+async def get_all_scene_frames(db: AsyncSession) -> List[SceneFrame]:
+    """Получить ВСЕ кадры storyboard."""
+    result = await db.execute(
+        select(SceneFrame).order_by(SceneFrame.season_num, SceneFrame.episode_num, SceneFrame.scene_num, SceneFrame.frame_num)
+    )
+    return result.scalars().all()
+
 async def update_scene_frame(db: AsyncSession, frame_id: int, data: Dict[str, Any]) -> Optional[SceneFrame]:
     result = await db.execute(select(SceneFrame).where(SceneFrame.id == frame_id))
     frame = result.scalars().first()

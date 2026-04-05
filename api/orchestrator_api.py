@@ -422,6 +422,19 @@ async def full_casting(req: dict):
         raise HTTPException(500, f"Ошибка выполнения полного кастинга: {str(e)}")
 
 
+@router.get("/storyboard/frames")
+async def get_storyboard_frames(db: AsyncSession = Depends(get_session)):
+    """Получить ВСЕ кадры storyboard для текущего проекта."""
+    frames = await crud.get_all_scene_frames(db)
+    return {"frames": [{
+        "id": f.id, "season_num": f.season_num, "episode_num": f.episode_num,
+        "scene_num": f.scene_num, "frame_num": f.frame_num,
+        "status": f.status, "final_prompt": f.final_prompt or "",
+        "image_url": f.image_url or "", "writer_text": f.writer_text or "",
+        "critic_feedback": f.critic_feedback or "",
+    } for f in frames]}
+
+
 @router.get("/scene-result/{season}/{episode}/{scene}")
 async def get_scene_result(season: int, episode: int, scene: int, db: AsyncSession = Depends(get_session)):
     """Получить результат конвейера сцены."""
@@ -492,3 +505,91 @@ async def patch_scene_frame(season: int, episode: int, scene: int, updates: dict
 async def _is_cancelled(db, task_id):
     task = await crud.get_orchestrator_task(db, task_id)
     return task and (task.cancelled or task.status == "cancelled")
+
+
+@router.post("/panda-pipeline")
+async def panda_pipeline(req: dict):
+    """
+    Специальный endpoint для теста 'Панда Самурай'.
+    1. Writer пишет сценарий с нуля из идеи
+    2. Critic проверяет → Fixer правит
+    3. HR кастинг → Critic сверяет
+    4. DOP + Art + Sound пишут промпты
+    5. Storyboarder собирает 4 кадра
+    6. Kie.ai генерирует изображения
+    """
+    from orchestrator.executor import run_scene_pipeline, run_step_with_critic, _post_discussion
+    from database import async_session
+    import json
+
+    idea = req.get("idea", "")
+    if not idea:
+        raise HTTPException(400, "Нет идеи")
+
+    task_id = "panda_samurai_test"
+
+    async def _run_full_pipeline():
+        # Шаг 1: Writer пишет сценарий с нуля
+        await _post_discussion("[PANDA] Шаг 1: Writer пишет сценарий...", "system", "orchestrator")
+
+        writer_prompt = f"""Напиши сценарий аниме-короткометражки на основе идеи:
+
+{idea}
+
+ТРЕБОВАНИЯ:
+- Длительность: 80 секунд
+- Стиль: 2.5D аниме реализм
+- Жанр: Философия + Триллер
+- Формат: 16:9
+- 4-5 сцен с таймингом
+- Каждая сцена: локация, время, описание действия, диалог (если есть), атмосфера
+
+Формат:
+[СЦЕНА 1] [ЛОКАЦИЯ] [ВРЕМЯ] [ТАЙМИНГ: X сек]
+[Описание действия]
+[Диалог если есть]
+[Атмосфера]
+"""
+
+        writer_result, _ = await run_step_with_critic("writer", writer_prompt, {}, task_id)
+
+        if writer_result["status"] == "failed":
+            await _post_discussion(f"[PANDA] Writer провалился: {writer_result.get('result', '')}", "system", "orchestrator")
+            return
+
+        script_text = writer_result.get("result", "")
+        await _post_discussion(f"[PANDA] Сценарий написан ({len(script_text)} символов)", "system", "orchestrator")
+
+        # Шаг 2: HR кастинг — извлекаем персонажей из написанного сценария
+        await _post_discussion("[PANDA] Шаг 2: HR кастинг персонажей...", "system", "orchestrator")
+
+        async with async_session() as db:
+            from orchestrator.executor import run_casting
+            casting_result = await run_casting(script_text, task_id, db)
+
+        if casting_result["status"] == "failed":
+            await _post_discussion("[PANDA] Кастинг провалился", "system", "orchestrator")
+            return
+
+        await _post_discussion(f"[PANDA] Кастинг завершён: {casting_result.get('saved_count', 0)} персонажей", "system", "orchestrator")
+
+        # Шаг 3: Запускаем production pipeline для сцены 1
+        await _post_discussion("[PANDA] Шаг 3: Запуск production pipeline...", "system", "orchestrator")
+
+        async with async_session() as db:
+            from orchestrator.executor import run_scene_pipeline
+            pipeline_result = await run_scene_pipeline(1, 1, 1, script_text[:6000], db)
+
+        await _post_discussion(f"[PANDA] Pipeline завершён: {pipeline_result.get('status', 'unknown')}", "system", "orchestrator")
+
+        # Шаг 4-6: Генерируем ещё 3 кадра (сцены 2-4)
+        for scene_num in range(2, 5):
+            await _post_discussion(f"[PANDA] Генерация кадра {scene_num}...", "system", "orchestrator")
+            async with async_session() as db:
+                pipeline_result = await run_scene_pipeline(1, 1, scene_num, script_text[:6000], db)
+
+        await _post_discussion("[PANDA] Все 4 кадра сгенерированы!", "system", "orchestrator")
+
+    asyncio.create_task(_run_full_pipeline())
+
+    return {"ok": True, "message": "Панда-конвейер запущен"}

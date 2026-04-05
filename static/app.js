@@ -23,13 +23,15 @@ const STATUS_MAP = {
 // --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
     checkServer();
+    loadActiveProject();
     loadAgents();
     loadStoryboard();
     bindEvents();
     loadAvailablePatterns();
     setInterval(loadAgents, 5000);
     setInterval(loadStoryboard, 10000);
-    
+    setInterval(loadActiveProject, 15000);
+
     // Start with Agents View
     switchView('agentsView');
 });
@@ -54,6 +56,24 @@ async function checkServer() {
         }
     } catch {
         document.querySelector('.status-text').textContent = 'Оффлайн';
+    }
+}
+
+// --- Active Project ---
+async function loadActiveProject() {
+    try {
+        const res = await fetch(`${API_BASE}/api/project/`);
+        if (res.ok) {
+            const data = await res.json();
+            const project = data.active_project;
+            const badge = document.getElementById('projectBadge');
+            if (badge && project) {
+                badge.textContent = project.name ? `Проект: ${project.name}` : 'Проект: Новый';
+                window._activeProject = project;
+            }
+        }
+    } catch (e) {
+        console.error("Failed to load project", e);
     }
 }
 
@@ -383,15 +403,19 @@ async function generateImage() {
 // --- Storyboard ---
 async function loadStoryboard() {
     try {
-        const res = await fetch(`${API_BASE}/api/orchestrator/scene-result/1/1/1`);
+        const res = await fetch(`${API_BASE}/api/orchestrator/storyboard/frames`);
         if (res.ok) {
             const data = await res.json();
-            renderStoryboard([data]);
+            window._storyboardFrames = data.frames || [];
+            renderStoryboard(window._storyboardFrames);
         } else {
+            window._storyboardFrames = [];
             renderStoryboard([]);
         }
     } catch (e) {
         console.error("Failed to load storyboard", e);
+        window._storyboardFrames = [];
+        renderStoryboard([]);
     }
 }
 
@@ -400,31 +424,30 @@ function renderStoryboard(scenes) {
     if (!grid) return;
 
     if (!scenes || scenes.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">Нет сцен. Загрузите сценарий через Оркестратора, чтобы начать.</div>';
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">Нет кадров. Запустите конвейер — студия создаёт раскадровку автоматически.</div>';
         return;
     }
 
-    grid.innerHTML = scenes.map((scene, index) => {
-        const status = scene.status || 'draft';
-        const isLocked = index > 0 && scenes[index-1].status !== 'approved';
-        const hasImage = scene.image_url;
-        
+    grid.innerHTML = scenes.map((frame, index) => {
+        const status = frame.status || 'draft';
+        const hasImage = frame.image_url;
+
         let statusIcon = '🔄';
         if (status === 'approved') statusIcon = '✅';
         else if (status === 'in_review') statusIcon = '👀';
         else if (status === 'revision') statusIcon = '📝';
 
         return `
-            <div class="scene-card ${isLocked ? 'locked' : ''}" onclick="openSceneModal(${index})">
+            <div class="scene-card" onclick="openSceneModal(${index})">
                 <div class="card-header">
-                    <span class="card-title">Сцена ${index + 1}</span>
+                    <span class="card-title">Кадр ${frame.scene_num || index + 1}</span>
                     <span class="card-status">${statusIcon}</span>
                 </div>
                 <div class="card-preview">
-                    ${hasImage ? `<img src="${scene.image_url}" alt="Сцена">` : '<span class="placeholder">Нет изображения</span>'}
+                    ${hasImage ? `<img src="${frame.image_url}" alt="Кадр ${frame.scene_num || index + 1}">` : '<span class="placeholder">Нет изображения</span>'}
                 </div>
                 <div class="card-footer">
-                    <div class="card-desc">${(scene.writer_text || scene.final_prompt || 'Ожидание...').substring(0, 100)}...</div>
+                    <div class="card-desc">${(frame.writer_text || frame.final_prompt || 'Ожидание...').substring(0, 100)}...</div>
                 </div>
             </div>
         `;
@@ -434,16 +457,15 @@ function renderStoryboard(scenes) {
 let currentSceneData = null;
 
 function openSceneModal(index) {
-    fetch(`${API_BASE}/api/orchestrator/scene-result/1/1/1`)
-        .then(r => r.json())
-        .then(data => {
-            currentSceneData = data;
-            document.getElementById('modalSceneTitle').textContent = `Сцена 1`;
-            document.getElementById('modalSceneText').textContent = data.writer_text || data.final_prompt || 'Нет текста';
-            document.getElementById('modalSceneImage').src = data.image_url || '';
-            document.getElementById('modalCriticReport').textContent = data.critic_feedback || 'Нет замечаний';
-            document.getElementById('sceneModal').classList.add('open');
-        });
+    // Получаем данные кадра из уже загруженного списка
+    const frame = (window._storyboardFrames || [])[index];
+    if (!frame) return;
+    currentSceneData = frame;
+    document.getElementById('modalSceneTitle').textContent = `Кадр ${frame.scene_num || index + 1}`;
+    document.getElementById('modalSceneText').textContent = frame.writer_text || frame.final_prompt || 'Нет текста';
+    document.getElementById('modalSceneImage').src = frame.image_url || '';
+    document.getElementById('modalCriticReport').textContent = frame.critic_feedback || 'Нет замечаний';
+    document.getElementById('sceneModal').classList.add('open');
 }
 
 function closeSceneModal() {

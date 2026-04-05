@@ -1,13 +1,16 @@
 {
   "active_project": {
-    "name": "РОДИНА",
-    "file": "Родина 007-15.02.14 (2).pdf",
-    "file_path": "orchestrator_20260404_211601_Родина 007-15.02.14 (2).pdf",
+    "name": "",
+    "file": "",
+    "file_path": "",
     "current_season": 1,
     "current_episode": 1,
-    "total_episodes": 15,
-    "description": "Аниме-сериал для YouTube, серии по 3 минуты. Стиль 2.5D Satoshi Kon. Палитра: Гоа — красная пыль, синее море, фиолетовые ночи. Музыка: лейтмотив Пёрсела.",
-    "updated_at": "2026-04-04T21:16:01.822309"
+    "total_episodes": 0,
+    "description": "",
+    "visual_style": "2.5D аниме, кинематографичный",
+    "color_palette": "",
+    "music_reference": "",
+    "updated_at": ""
   },
   "projects": [],
   "seasons": [],
