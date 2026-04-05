@@ -311,6 +311,8 @@ class SceneFrame(Base):
     final_prompt = Column(Text, default="")
     image_url = Column(String(500), default="")
     critic_feedback = Column(Text, default="")
+    user_status = Column(String(20), default="pending")  # pending, approved, revision
+    user_comment = Column(Text, default="")
     created_at = Column(String(30), default="")
     updated_at = Column(String(30), default="")
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animation Studio v2 — РОДИНА</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/static/style.css?v=20260405-v5">
+    <link rel="stylesheet" href="/static/style.css?v=20260405-v11">
 </head>
 <body>
     <div id="app">
@@ -13,13 +13,15 @@
         <header class="header">
             <div class="header-left">
                 <h1>СТУДИЯ РОДИНА</h1>
+                <span class="project-badge" id="projectBadge">Проект: Новый</span>
             </div>
             <div class="header-nav">
-                <button class="nav-btn" id="charactersOpenBtn" title="Персонажи">👥 Персонажи</button>
-                <button class="nav-btn" id="pipelineOpenBtn" title="Конвейер">🎬 Конвейер</button>
-                <button class="nav-btn" id="discussionOpenBtn" title="Обсуждение">💬 Чат</button>
+                <button class="nav-btn" id="storyboardBtn" title="Сториборд">🎬 Сториборд</button>
+                <button class="nav-btn" id="agentsBtn" title="Агенты">🤖 Агенты</button>
+                <button class="nav-btn" id="charactersBtn" title="Персонажи">👥 Персонажи</button>
             </div>
             <div class="header-right">
+                <button class="nav-btn" id="newProjectBtn" title="Новый проект">📁 Новый проект</button>
                 <div class="server-status" id="serverStatus">
                     <span class="status-dot"></span>
                     <span class="status-text">...</span>
@@ -27,21 +29,29 @@
             </div>
         </header>
 
-        <!-- Офис -->
-        <main class="office" id="office">
-            <div class="onboarding-banner" id="onboardingBanner">
-                <div class="onboarding-content">
-                    <span class="onboarding-icon">👋</span>
-                    <div class="onboarding-text">
-                        <strong>Начните с Orchestrator (🎛️)</strong> — кликните и приложите PDF-сценарий через 📎, затем напишите задачу.
-                    </div>
-                    <button class="onboarding-dismiss" onclick="dismissOnboarding()">✕</button>
-                </div>
+        <!-- Главный экран: Сториборд -->
+        <main class="main-view" id="storyboardView">
+            <!-- Панель загрузки проекта -->
+            <div class="upload-panel" id="uploadPanel">
+                <h2>📂 Загрузить сценарий</h2>
+                <p>Перетащите PDF-файл сценария или нажмите для выбора</p>
+                <input type="file" id="scriptFile" class="hidden-file-input" accept=".pdf,.txt,.md">
+                <button class="btn-upload" id="btnUploadScript">📤 Загрузить сценарий</button>
+                <div class="upload-status" id="uploadStatus"></div>
             </div>
+
+            <!-- Сетка Сториборда -->
+            <div class="storyboard-grid" id="storyboardGrid">
+                <!-- Карточки сцен будут здесь -->
+            </div>
+        </main>
+
+        <!-- Главный экран: Офис Агентов -->
+        <main class="main-view hidden" id="agentsView">
             <div class="office-grid" id="officeGrid"></div>
         </main>
 
-        <!-- Панель агента -->
+        <!-- Панель агента (Чат) -->
         <aside class="agent-panel" id="agentPanel">
             <div class="panel-header">
                 <div class="panel-title">
@@ -51,9 +61,7 @@
                 </div>
                 <button class="panel-close" id="panelClose">&times;</button>
             </div>
-
             <div class="panel-body">
-                <!-- Чат -->
                 <div class="chat-section">
                     <div class="chat-history" id="chatHistory"></div>
                     <div class="attachment-chips" id="attachmentChips"></div>
@@ -65,10 +73,7 @@
                     </div>
                     <button class="btn-evaluate" id="btnEvaluate">🔍 Оценить</button>
                 </div>
-
-                <!-- Сворачиваемые секции -->
                 <div class="panel-sections">
-                    <!-- Настройки -->
                     <details class="collapsible-section" open>
                         <summary>⚙️ Настройки</summary>
                         <div class="collapsible-content">
@@ -89,8 +94,6 @@
                             <button class="btn-save" id="btnSaveInstructions">Сохранить</button>
                         </div>
                     </details>
-
-                    <!-- Kie.ai (Art Director) -->
                     <details class="collapsible-section" id="toolKieaiSection">
                         <summary>🎨 Генерация изображения</summary>
                         <div class="collapsible-content">
@@ -113,114 +116,53 @@
             </div>
         </aside>
 
-        <!-- Панель Конвейера -->
-        <aside class="pipeline-panel" id="pipelinePanel">
-            <div class="pipeline-header">
-                <h3>🎬 Конвейер Сцены</h3>
-                <button class="pipeline-close" id="pipelineClose">&times;</button>
-            </div>
-            <div class="pipeline-body">
-                <!-- Форма запуска -->
-                <div class="pipeline-form">
-                    <label>Сезон / Эпизод / Сцена</label>
-                    <div class="pipeline-inputs">
-                        <input type="number" id="pipeSeason" value="1" min="1" class="pipe-num">
-                        <input type="number" id="pipeEpisode" value="1" min="1" class="pipe-num">
-                        <input type="number" id="pipeScene" value="1" min="1" class="pipe-num">
-                    </div>
-                    <label>Описание сцены</label>
-                    <textarea id="pipeDesc" rows="3" placeholder="Кабина самолёта, ночь. Ева слушает Пёрсела..."></textarea>
-                    <button class="btn-pipeline" id="btnStartPipeline">🚀 Запустить конвейер</button>
-                </div>
-
-                <!-- Статусы цехов -->
-                <div class="pipeline-stages" id="pipelineStages">
-                    <div class="stage-item" data-stage="writer">
-                        <span class="stage-icon">✍️</span>
-                        <span class="stage-name">Writer</span>
-                        <span class="stage-status" id="stage-writer">⏳ Ожидание</span>
-                    </div>
-                    <div class="stage-item" data-stage="director">
-                        <span class="stage-icon">🎬</span>
-                        <span class="stage-name">Director</span>
-                        <span class="stage-status" id="stage-director">⏳ Ожидание</span>
-                    </div>
-                    <div class="stage-item" data-stage="hr">
-                        <span class="stage-icon">👤</span>
-                        <span class="stage-name">HR Кастинг</span>
-                        <span class="stage-status" id="stage-hr">⏳ Ожидание</span>
-                    </div>
-                    <div class="stage-item" data-stage="dop">
-                        <span class="stage-icon">📷</span>
-                        <span class="stage-name">DOP</span>
-                        <span class="stage-status" id="stage-dop">⏳ Ожидание</span>
-                    </div>
-                    <div class="stage-item" data-stage="art">
-                        <span class="stage-icon">🎨</span>
-                        <span class="stage-name">Art Director</span>
-                        <span class="stage-status" id="stage-art">⏳ Ожидание</span>
-                    </div>
-                    <div class="stage-item" data-stage="sound">
-                        <span class="stage-icon">🎵</span>
-                        <span class="stage-name">Sound Director</span>
-                        <span class="stage-status" id="stage-sound">⏳ Ожидание</span>
-                    </div>
-                    <div class="stage-item" data-stage="storyboard">
-                        <span class="stage-icon">📋</span>
-                        <span class="stage-name">Storyboarder</span>
-                        <span class="stage-status" id="stage-storyboard">⏳ Ожидание</span>
-                    </div>
-                    <div class="stage-item" data-stage="image">
-                        <span class="stage-icon">🖼️</span>
-                        <span class="stage-name">Kie.ai Генерация</span>
-                        <span class="stage-status" id="stage-image">⏳ Ожидание</span>
-                    </div>
-                </div>
-
-                <!-- Результат -->
-                <div class="pipeline-result" id="pipelineResult">
-                    <h4>Финальный промпт</h4>
-                    <div class="result-prompt" id="resultPrompt"></div>
-                    <h4>Изображение</h4>
-                    <div class="result-image" id="resultImage"></div>
-                </div>
-
-                <!-- Таймлайн -->
-                <div id="timelineContainer"></div>
-            </div>
-        </aside>
-
-        <!-- Панель Обсуждения -->
-        <aside class="discussion-panel" id="discussionPanel">
-            <div class="discussion-header">
-                <h3>💬 Обсуждение</h3>
-                <button class="discussion-close" id="discussionClose">&times;</button>
-            </div>
-            <div class="discussion-body">
-                <div class="discussion-messages" id="discussionMessages"></div>
-                <div class="discussion-input-row">
-                    <textarea id="discussionInput" placeholder="Сообщение..." rows="2"></textarea>
-                    <button class="btn-send" id="discussionSend">&#9654;</button>
-                </div>
-            </div>
-        </aside>
-
         <!-- Панель Персонажей -->
-        <aside class="characters-panel" id="charactersPanel">
-            <div class="characters-header">
+        <aside class="side-panel" id="charactersPanel">
+            <div class="panel-header">
                 <h3>👥 Персонажи</h3>
-                <button class="characters-close" id="charactersClose">&times;</button>
+                <button class="panel-close" id="charactersClose">&times;</button>
             </div>
-            <div class="characters-body">
+            <div class="panel-body">
                 <div class="characters-list" id="charactersList"></div>
                 <button class="btn-char-add" id="btnAddCharacter">+ Добавить персонажа</button>
             </div>
         </aside>
 
+        <!-- Панель Деталей Сцены (Модальное окно) -->
+        <div class="modal-overlay" id="sceneModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalSceneTitle">Сцена 1</h2>
+                    <button class="panel-close" id="modalClose">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="scene-details">
+                        <div class="detail-section">
+                            <h3>📝 Текст сцены</h3>
+                            <pre id="modalSceneText"></pre>
+                        </div>
+                        <div class="detail-section">
+                            <h3>🎨 Визуал</h3>
+                            <img id="modalSceneImage" src="" alt="Сцена">
+                        </div>
+                        <div class="detail-section">
+                            <h3>🔍 Отчет Критика</h3>
+                            <p id="modalCriticReport"></p>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <textarea id="revisionComment" placeholder="Комментарий к правке (необязательно)..."></textarea>
+                        <button class="btn-approve" id="btnApproveScene">✅ Утвердить</button>
+                        <button class="btn-revise" id="btnReviseScene">🔄 На доработку</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Overlay -->
         <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="/static/app.js?v=20260405-v10"></script>
+    <script src="/static/app.js?v=20260405-v11"></script>
 </body>
 </html>

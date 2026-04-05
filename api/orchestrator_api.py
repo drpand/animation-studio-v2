@@ -267,8 +267,31 @@ async def get_scene_result(season: int, episode: int, scene: int, db: AsyncSessi
             "art_prompt": frame.art_prompt or "",
             "sound_prompt": frame.sound_prompt or "",
             "critic_feedback": frame.critic_feedback or "",
+            "user_status": frame.user_status or "pending",
+            "user_comment": frame.user_comment or "",
         }
     return {"status": "not_found"}
+
+
+@router.post("/scene-action/{season}/{episode}/{scene}")
+async def scene_action(season: int, episode: int, scene: int, action: dict, db: AsyncSession = Depends(get_session)):
+    """Утвердить сцену или отправить на доработку."""
+    frames = await crud.get_scene_frames(db, season, episode, scene)
+    if frames:
+        frame = frames[0]
+        action_type = action.get("action")
+        comment = action.get("comment", "")
+        
+        if action_type == "approve":
+            frame.user_status = "approved"
+            frame.user_comment = comment
+        elif action_type == "revise":
+            frame.user_status = "revision"
+            frame.user_comment = comment
+        
+        await db.commit()
+        return {"ok": True, "status": frame.user_status}
+    return {"ok": False, "error": "Scene not found"}
 
 
 async def _is_cancelled(db, task_id):
