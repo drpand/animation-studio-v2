@@ -479,6 +479,67 @@ async def scene_action(season: int, episode: int, scene: int, action: dict, db: 
     return {"ok": False, "error": "Scene not found"}
 
 
+@router.post("/revise-frame/{frame_id}")
+async def revise_frame(frame_id: int, action: dict, db: AsyncSession = Depends(get_session)):
+    """
+    Доработка кадра: пользователь пишет что изменить → Art Director переписывает промпт → Kie.ai генерирует.
+    action: {"comment": "что изменить", "edited_prompt": "отредактированный промпт (опционально)"}
+    """
+    import crud
+    frames = await crud.get_all_scene_frames(db)
+    frame = next((f for f in frames if f.id == frame_id), None)
+    if not frame:
+        return {"ok": False, "error": "Кадр не найден"}
+
+    user_comment = action.get("comment", "")
+    edited_prompt = action.get("edited_prompt", "")
+
+    # Если пользователь сам отредактировал промпт — используем его
+    if edited_prompt.strip():
+        new_prompt = edited_prompt.strip()
+    else:
+        # Иначе просим Art Director переписать промпт с учётом комментария
+        from med_otdel.agent_memory import call_llm
+        current_prompt = frame.final_prompt or ""
+        system = "Ты арт-директор 2.5D аниме-студии. Перепиши промпт для Kie.ai Z-Image с учётом правок."
+        user = f"""Оригинальный промпт:
+{current_prompt[:2000]}
+
+Правка от пользователя: {user_comment}
+
+Перепиши промпт чтобы учесть правку. Сохрани стиль 2.5D аниме, кинематографичность.
+Верни ТОЛЬКО новый промпт, без пояснений."""
+
+        try:
+            new_prompt, _ = await call_llm(system_prompt=system, user_prompt=user)
+            new_prompt = new_prompt.strip()[:800]
+        except Exception as e:
+            new_prompt = current_prompt  # fallback
+
+    # Генерация через Kie.ai
+    from tools.kieai_tool import generate_image
+    result = await generate_image(prompt=new_prompt[:4000], width=1024, height=576)
+
+    if result.status != "success":
+        return {"ok": False, "error": f"Kie.ai ошибка: {result.error}"}
+
+    # Обновляем кадр
+    frame.final_prompt = new_prompt[:8000]
+    frame.image_url = result.result_url
+    frame.user_status = "in_review"
+    frame.user_comment = user_comment
+    frame.status = "approved"
+
+    await db.commit()
+
+    return {
+        "ok": True,
+        "image_url": result.result_url,
+        "new_prompt": new_prompt[:500],
+        "message": "Кадр перегенерирован"
+    }
+
+
 @router.patch("/scene-frame/{season}/{episode}/{scene}")
 async def patch_scene_frame(season: int, episode: int, scene: int, updates: dict, db: AsyncSession = Depends(get_session)):
     """Обновить поля кадра сцены (location, prompt, image_url и т.д.)."""

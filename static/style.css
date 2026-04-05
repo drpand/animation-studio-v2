@@ -265,6 +265,9 @@ body {
 .modal-actions textarea { flex: 1; padding: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); font-size: 13px; font-family: inherit; resize: none; }
 .btn-approve { padding: 10px 20px; background: var(--green); color: #000; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; }
 .btn-revise { padding: 10px 20px; background: var(--yellow); color: #000; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-regenerate { padding: 10px 20px; background: #8b5cf6; color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; }
+.btn-regenerate:hover { background: #7c3aed; }
+.btn-regenerate:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* --- Overlay --- */
 .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 150; pointer-events: none; }

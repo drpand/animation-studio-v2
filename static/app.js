@@ -457,14 +457,32 @@ function renderStoryboard(scenes) {
 let currentSceneData = null;
 
 function openSceneModal(index) {
-    // Получаем данные кадра из уже загруженного списка
     const frame = (window._storyboardFrames || [])[index];
     if (!frame) return;
     currentSceneData = frame;
+
     document.getElementById('modalSceneTitle').textContent = `Кадр ${frame.scene_num || index + 1}`;
     document.getElementById('modalSceneText').textContent = frame.writer_text || frame.final_prompt || 'Нет текста';
     document.getElementById('modalSceneImage').src = frame.image_url || '';
     document.getElementById('modalCriticReport').textContent = frame.critic_feedback || 'Нет замечаний';
+
+    // Показываем промпт для редактирования
+    const promptSection = document.getElementById('promptEditSection');
+    const promptEditor = document.getElementById('modalPromptEditor');
+    const btnRegenerate = document.getElementById('btnRegenerate');
+    if (frame.final_prompt) {
+        promptSection.style.display = 'block';
+        promptEditor.value = frame.final_prompt;
+        btnRegenerate.style.display = 'inline-block';
+    } else {
+        promptSection.style.display = 'none';
+        btnRegenerate.style.display = 'none';
+    }
+
+    // Сбрасываем статус
+    document.getElementById('reviseStatus').style.display = 'none';
+    document.getElementById('revisionComment').value = '';
+
     document.getElementById('sceneModal').classList.add('open');
 }
 
@@ -476,12 +494,12 @@ function closeSceneModal() {
 async function approveScene() {
     if (!currentSceneData) return;
     try {
-        await fetch(`${API_BASE}/api/orchestrator/scene-action/1/1/1`, {
+        const frame = currentSceneData;
+        await fetch(`${API_BASE}/api/orchestrator/scene-action/${frame.season_num}/${frame.episode_num}/${frame.scene_num}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'approve', comment: '' })
         });
-        alert('Сцена утверждена! Запуск следующей сцены...');
         closeSceneModal();
         loadStoryboard();
     } catch (e) { alert('Ошибка: ' + e.message); }
@@ -489,17 +507,118 @@ async function approveScene() {
 
 async function reviseScene() {
     if (!currentSceneData) return;
-    const comment = document.getElementById('revisionComment').value;
+    const comment = document.getElementById('revisionComment').value.trim();
+    if (!comment) {
+        alert('Напиши что изменить в кадре');
+        return;
+    }
+
+    const statusDiv = document.getElementById('reviseStatus');
+    const btnRevise = document.getElementById('btnReviseScene');
+    const btnApprove = document.getElementById('btnApproveScene');
+    const btnRegenerate = document.getElementById('btnRegenerate');
+
+    // Блокируем кнопки
+    btnRevise.disabled = true;
+    btnRevise.textContent = '⏳ Перегенерация...';
+    btnApprove.disabled = true;
+    btnRegenerate.disabled = true;
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '⏳ Art Director переписывает промпт → Kie.ai генерирует (~60 сек)...';
+    statusDiv.style.color = 'var(--yellow)';
+
     try {
-        await fetch(`${API_BASE}/api/orchestrator/scene-action/1/1/1`, {
+        const frame = currentSceneData;
+        // Большой таймаут 120 сек
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+        const res = await fetch(`${API_BASE}/api/orchestrator/revise-frame/${frame.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'revise', comment })
+            body: JSON.stringify({ comment: comment, edited_prompt: '' }),
+            signal: controller.signal
         });
-        alert('Отправлено на доработку!');
-        closeSceneModal();
-        loadStoryboard();
-    } catch (e) { alert('Ошибка: ' + e.message); }
+        clearTimeout(timeoutId);
+
+        const data = await res.json();
+
+        if (data.ok) {
+            statusDiv.innerHTML = '✅ Кадр перегенерирован! Новое изображение загружено.';
+            statusDiv.style.color = 'var(--green)';
+            // Обновляем изображение с cache-buster
+            document.getElementById('modalSceneImage').src = data.image_url + '?t=' + Date.now();
+            // Обновляем промпт редактор
+            document.getElementById('modalPromptEditor').value = data.new_prompt || '';
+            // Обновляем локальные данные
+            frame.image_url = data.image_url;
+            frame.final_prompt = data.new_prompt || frame.final_prompt;
+            frame.user_status = 'in_review';
+        } else {
+            statusDiv.innerHTML = '❌ Ошибка: ' + (data.error || 'Неизвестная ошибка');
+            statusDiv.style.color = 'var(--red)';
+        }
+    } catch (e) {
+        if (e.name === 'AbortError') {
+            statusDiv.innerHTML = '⏱️ Таймаут. Проверь Storyboard — изображение может быть готово.';
+            statusDiv.style.color = 'var(--yellow)';
+        } else {
+            statusDiv.innerHTML = '❌ Ошибка сети: ' + e.message;
+            statusDiv.style.color = 'var(--red)';
+        }
+    }
+
+    // Разблокируем кнопки
+    btnRevise.disabled = false;
+    btnRevise.textContent = '🔄 На доработку (Art Director)';
+    btnApprove.disabled = false;
+    btnRegenerate.disabled = false;
+}
+
+// Перегенерация с отредактированным промптом
+async function regenerateFrame() {
+    if (!currentSceneData) return;
+    const newPrompt = document.getElementById('modalPromptEditor').value.trim();
+    if (!newPrompt) {
+        alert('Промпт пустой');
+        return;
+    }
+
+    const statusDiv = document.getElementById('reviseStatus');
+    const btnRegenerate = document.getElementById('btnRegenerate');
+
+    btnRegenerate.disabled = true;
+    btnRegenerate.textContent = '⏳ Генерация...';
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '⏳ Kie.ai генерирует изображение...';
+    statusDiv.style.color = 'var(--yellow)';
+
+    try {
+        const frame = currentSceneData;
+        const res = await fetch(`${API_BASE}/api/orchestrator/revise-frame/${frame.id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comment: 'Ручная правка промпта', edited_prompt: newPrompt })
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+            document.getElementById('modalSceneImage').src = data.image_url + '?t=' + Date.now();
+            statusDiv.innerHTML = '✅ Перегенерировано!';
+            statusDiv.style.color = 'var(--green)';
+            frame.image_url = data.image_url;
+            frame.final_prompt = newPrompt;
+        } else {
+            statusDiv.innerHTML = '❌ Ошибка: ' + (data.error || 'Неизвестная ошибка');
+            statusDiv.style.color = 'var(--red)';
+        }
+    } catch (e) {
+        statusDiv.innerHTML = '❌ Ошибка сети: ' + e.message;
+        statusDiv.style.color = 'var(--red)';
+    }
+
+    btnRegenerate.disabled = false;
+    btnRegenerate.textContent = '🎨 Перегенерировать с новым промптом';
 }
 
 // --- Characters ---

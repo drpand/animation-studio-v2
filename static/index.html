@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animation Studio v2 — РОДИНА</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/static/style.css?v=20260405-v16">
+    <link rel="stylesheet" href="/static/style.css?v=20260406-v17">
 </head>
 <body>
     <div id="app">
@@ -147,28 +147,34 @@
         <div class="modal-overlay" id="sceneModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2 id="modalSceneTitle">Сцена 1</h2>
+                    <h2 id="modalSceneTitle">Кадр 1</h2>
                     <button class="panel-close" id="modalClose">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="scene-details">
                         <div class="detail-section">
-                            <h3>📝 Текст сцены</h3>
+                            <h3>📝 Описание</h3>
                             <pre id="modalSceneText"></pre>
                         </div>
                         <div class="detail-section">
                             <h3>🎨 Визуал</h3>
-                            <img id="modalSceneImage" src="" alt="Сцена">
+                            <img id="modalSceneImage" src="" alt="Кадр">
                         </div>
                         <div class="detail-section">
                             <h3>🔍 Отчет Критика</h3>
                             <p id="modalCriticReport"></p>
                         </div>
+                        <div class="detail-section" id="promptEditSection" style="display:none;">
+                            <h3>✏️ Промпт (редактируй перед перегенерацией)</h3>
+                            <textarea id="modalPromptEditor" rows="4" style="width:100%;font-family:monospace;font-size:12px;background:var(--bg-secondary);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical;"></textarea>
+                        </div>
                     </div>
                     <div class="modal-actions">
-                        <textarea id="revisionComment" placeholder="Комментарий к правке (необязательно)..."></textarea>
+                        <textarea id="revisionComment" placeholder="Что изменить? Например: добавь лепестки сакуры, падающие с неба..." rows="2"></textarea>
+                        <div id="reviseStatus" style="font-size:13px;margin:8px 0;display:none;"></div>
+                        <button class="btn-regenerate" id="btnRegenerate" onclick="regenerateFrame()" style="display:none;">🎨 Перегенерировать с новым промптом</button>
                         <button class="btn-approve" id="btnApproveScene">✅ Утвердить</button>
-                        <button class="btn-revise" id="btnReviseScene">🔄 На доработку</button>
+                        <button class="btn-revise" id="btnReviseScene">🔄 На доработку (Art Director)</button>
                     </div>
                 </div>
             </div>
@@ -178,6 +184,6 @@
         <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="/static/app.js?v=20260405-v18"></script>
+    <script src="/static/app.js?v=20260406-v19"></script>
 </body>
 </html>
