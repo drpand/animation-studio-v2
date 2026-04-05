@@ -440,17 +440,21 @@ def _extract_json_array(text: str) -> list:
 
 
 def _build_kieai_prompt(parts: dict) -> str:
-    """Собрать финальный промпт из JSON частей цехов для Z-Image Turbo."""
-    return (
-        f"[{parts.get('shot', 'Medium shot, cinematic angle')}] "
-        f"[{parts.get('character', '')}] "
-        f"[{parts.get('location', '')}] "
-        f"[{parts.get('lighting', '')}] "
-        f"[{parts.get('mood', '')}] "
-        f"[{parts.get('style', '2.5D anime, Satoshi Kon aesthetic, cinematic')}] "
-        f"[{parts.get('palette', 'red dust, deep blue sea, violet nights, Goa')}] "
-        f"[{parts.get('constraints', 'no watermark, no text, no logos, no extra limbs, correct anatomy, sharp focus')}]"
+    """Собрать финальный промпт из JSON частей цехов для Z-Image Turbo.
+    Kie.ai Z-Image имеет лимит ~800 символов — собираем компактно."""
+    prompt = ", ".join(
+        part for part in [
+            parts.get('shot', 'Medium shot, cinematic angle'),
+            parts.get('character', ''),
+            parts.get('location', ''),
+            parts.get('lighting', ''),
+            parts.get('mood', ''),
+            parts.get('style', '2.5D anime, Satoshi Kon aesthetic, cinematic'),
+            parts.get('palette', ''),
+            parts.get('constraints', 'no watermark, no text, no logos, correct anatomy, sharp focus'),
+        ] if part
     )
+    return prompt[:800]
 
 async def run_step_with_critic(agent_id: str, task: str, context: dict, task_id: str = "pipeline") -> dict:
     """
