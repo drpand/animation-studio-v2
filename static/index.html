@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animation Studio v2 — РОДИНА</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/static/style.css?v=20260405-v11">
+    <link rel="stylesheet" href="/static/style.css?v=20260405-v12">
 </head>
 <body>
     <div id="app">
@@ -16,12 +16,12 @@
                 <span class="project-badge" id="projectBadge">Проект: Новый</span>
             </div>
             <div class="header-nav">
+                <button class="nav-btn active" id="dashboardBtn" title="Пульт">🎛️ Пульт</button>
                 <button class="nav-btn" id="storyboardBtn" title="Сториборд">🎬 Сториборд</button>
                 <button class="nav-btn" id="agentsBtn" title="Агенты">🤖 Агенты</button>
                 <button class="nav-btn" id="charactersBtn" title="Персонажи">👥 Персонажи</button>
             </div>
             <div class="header-right">
-                <button class="nav-btn" id="newProjectBtn" title="Новый проект">📁 Новый проект</button>
                 <div class="server-status" id="serverStatus">
                     <span class="status-dot"></span>
                     <span class="status-text">...</span>
@@ -29,18 +29,32 @@
             </div>
         </header>
 
-        <!-- Главный экран: Сториборд -->
-        <main class="main-view" id="storyboardView">
-            <!-- Панель загрузки проекта -->
-            <div class="upload-panel" id="uploadPanel">
-                <h2>📂 Загрузить сценарий</h2>
-                <p>Перетащите PDF-файл сценария или нажмите для выбора</p>
-                <input type="file" id="scriptFile" class="hidden-file-input" accept=".pdf,.txt,.md">
-                <button class="btn-upload" id="btnUploadScript">📤 Загрузить сценарий</button>
-                <div class="upload-status" id="uploadStatus"></div>
+        <!-- Главный экран: Пульт Продюсера -->
+        <main class="main-view" id="dashboardView">
+            <div class="producer-console">
+                <h2>🎛️ Пульт Продюсера</h2>
+                <p>Опишите задачу или загрузите сценарий</p>
+                
+                <div class="console-input-area">
+                    <textarea id="producerInput" placeholder="Например: Сделай сцену 1: кабина самолета, ночь, Ева слушает Пёрсела..."></textarea>
+                    <div class="console-actions">
+                        <input type="file" id="scriptFile" class="hidden-file-input" accept=".pdf,.txt,.md">
+                        <button class="btn-icon" id="btnAttachScript" title="Прикрепить файл">📎</button>
+                        <button class="btn-send-task" id="btnSendTask">🚀 Выполнить</button>
+                    </div>
+                    <div class="upload-status" id="uploadStatus"></div>
+                </div>
             </div>
 
-            <!-- Сетка Сториборда -->
+            <!-- Быстрый статус -->
+            <div class="status-panel">
+                <h3>📊 Текущий статус</h3>
+                <div id="currentTaskStatus">Ожидание задачи...</div>
+            </div>
+        </main>
+
+        <!-- Главный экран: Сториборд -->
+        <main class="main-view hidden" id="storyboardView">
             <div class="storyboard-grid" id="storyboardGrid">
                 <!-- Карточки сцен будут здесь -->
             </div>
@@ -163,6 +177,6 @@
         <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="/static/app.js?v=20260405-v11"></script>
+    <script src="/static/app.js?v=20260405-v12"></script>
 </body>
 </html>

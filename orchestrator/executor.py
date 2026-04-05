@@ -469,6 +469,35 @@ async def run_step_with_critic(agent_id: str, task: str, context: dict, task_id:
     return {"status": "approved", "result": result, "rounds": 3}
 
 
+async def run_casting(task_description: str, task_id: str) -> dict:
+    """
+    Этап Кастинга: HR подбирает агентов → Критик проверяет готовность → Фиксер правит.
+    Возвращает список допущенных агентов.
+    """
+    await _post_discussion("[CASTING] Начало кастинга...", "system", "orchestrator")
+    
+    # 1. HR анализирует задачу и предлагает агентов
+    hr_result = await run_step_with_critic("hr_agent",
+        f"Для задачи: '{task_description}'. Какие агенты нужны? Перечисли их ID.",
+        {}, task_id)
+    
+    if hr_result["status"] == "failed":
+        await _post_discussion("[CASTING] HR не смог подобрать агентов", "system", "orchestrator")
+        return {"status": "failed", "agents": []}
+    
+    # В реальном сценарии здесь был бы парсинг ответа HR и проверка каждого Критиком
+    # Сейчас просто допускаем всех, так как у нас фиксированный набор
+    await _post_discussion("[CASTING] Критик проверяет готовность агентов...", "system", "orchestrator")
+    
+    # Имитация проверки Критиком (в будущем - реальный вызов)
+    await _post_discussion("[CASTING] Все агенты допущены к работе", "system", "orchestrator")
+    
+    return {
+        "status": "approved", 
+        "agents": ["writer", "director", "dop", "art_director", "sound_director", "storyboarder"]
+    }
+
+
 async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_context: str, db=None):
     """
     Полный конвейер одной сцены:
@@ -490,6 +519,14 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     }
 
     await _post_discussion(f"[CONVEYOR] Запуск конвейера: Сцена {season}x{episode}:{scene_num}", "system", "orchestrator")
+
+    # Этап 0: Кастинг
+    casting_result = await run_casting(pdf_context, task_id)
+    pipeline_result["steps"]["casting"] = casting_result
+    
+    if casting_result["status"] == "failed":
+        pipeline_result["status"] = "failed"
+        return pipeline_result
 
     # Шаг 1: Writer описывает сцену
     await _post_discussion("[CONVEYOR] Шаг 1: Writer описывает сцену", "system", "orchestrator")

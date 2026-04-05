@@ -1,6 +1,6 @@
 /* ============================================
    Animation Studio v2 — РОДИНА
-   Logic v11: Producer Dashboard & Storyboard
+   Logic v12: Orchestrator First & Script Upload Fix
    ============================================ */
 
 const API_BASE = '';
@@ -29,6 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAvailablePatterns();
     setInterval(loadAgents, 5000);
     setInterval(loadStoryboard, 10000);
+    
+    // Start with Agents View
+    switchView('agentsView');
 });
 
 // --- Navigation ---
@@ -36,6 +39,7 @@ function switchView(viewId) {
     document.querySelectorAll('.main-view').forEach(v => v.classList.add('hidden'));
     document.getElementById(viewId).classList.remove('hidden');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    if (viewId === 'dashboardView') document.getElementById('dashboardBtn').classList.add('active');
     if (viewId === 'storyboardView') document.getElementById('storyboardBtn').classList.add('active');
     if (viewId === 'agentsView') document.getElementById('agentsBtn').classList.add('active');
 }
@@ -72,8 +76,9 @@ function renderOffice() {
     }
     grid.innerHTML = agents.map(agent => {
         const icon = agent.icon || AGENT_ICONS[agent.agent_id] || '🤖';
+        const isOrchestrator = agent.agent_id === 'orchestrator';
         return `
-            <div class="agent-desk" onclick="openAgentPanel('${agent.agent_id}')">
+            <div class="agent-desk ${isOrchestrator ? 'orchestrator-desk' : ''}" onclick="openAgentPanel('${agent.agent_id}')">
                 <span class="desk-icon">${icon}</span>
                 <div class="desk-name">${agent.name}</div>
                 <div class="desk-role">${agent.role}</div>
@@ -187,6 +192,71 @@ async function uploadFile() {
     } catch (e) { alert('Ошибка загрузки: ' + e.message); }
 }
 
+// --- Send Task to Orchestrator ---
+async function sendTask() {
+    const input = document.getElementById('producerInput');
+    const task = input.value.trim();
+    if (!task) { alert('Введите задачу'); return; }
+
+    const statusDiv = document.getElementById('currentTaskStatus');
+    statusDiv.textContent = '⏳ Оркестратор анализирует задачу...';
+    statusDiv.style.color = 'var(--yellow)';
+
+    try {
+        const res = await fetch(`${API_BASE}/api/orchestrator/task`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: task })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            statusDiv.textContent = '✅ Задача принята!';
+            statusDiv.style.color = 'var(--green)';
+            input.value = '';
+            setTimeout(() => switchView('storyboardView'), 1000);
+        } else {
+            statusDiv.textContent = '❌ Ошибка: ' + (data.error || 'Неизвестная ошибка');
+            statusDiv.style.color = 'var(--red)';
+        }
+    } catch (e) {
+        statusDiv.textContent = '❌ Ошибка сети: ' + e.message;
+        statusDiv.style.color = 'var(--red)';
+    }
+}
+
+// --- Script Upload for Orchestrator ---
+async function uploadScript() {
+    const input = document.getElementById('scriptFile');
+    const file = input.files[0];
+    if (!file) { alert('Выберите файл сценария'); return; }
+
+    const statusDiv = document.getElementById('uploadStatus');
+    statusDiv.textContent = '⏳ Загрузка сценария...';
+    statusDiv.style.color = 'var(--yellow)';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res = await fetch(`${API_BASE}/api/orchestrator/upload-script`, {
+            method: 'POST', body: formData
+        });
+        const data = await res.json();
+        if (data.ok) {
+            statusDiv.textContent = `✅ Сценарий "${data.filename}" загружен!`;
+            statusDiv.style.color = 'var(--green)';
+            // Auto-open Orchestrator chat
+            openAgentPanel('orchestrator');
+        } else {
+            statusDiv.textContent = '❌ Ошибка: ' + (data.error || 'Неизвестная ошибка');
+            statusDiv.style.color = 'var(--red)';
+        }
+    } catch (e) {
+        statusDiv.textContent = '❌ Ошибка сети: ' + e.message;
+        statusDiv.style.color = 'var(--red)';
+    }
+}
+
 // --- Evaluate ---
 async function evaluateResult() {
     if (!currentAgentId) return;
@@ -278,7 +348,6 @@ async function generateImage() {
 // --- Storyboard ---
 async function loadStoryboard() {
     try {
-        // Fetch scene frames
         const res = await fetch(`${API_BASE}/api/orchestrator/scene-result/1/1/1`);
         if (res.ok) {
             const data = await res.json();
@@ -296,7 +365,7 @@ function renderStoryboard(scenes) {
     if (!grid) return;
 
     if (!scenes || scenes.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">Нет сцен. Загрузите сценарий, чтобы начать.</div>';
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">Нет сцен. Загрузите сценарий через Оркестратора, чтобы начать.</div>';
         return;
     }
 
@@ -330,8 +399,6 @@ function renderStoryboard(scenes) {
 let currentSceneData = null;
 
 function openSceneModal(index) {
-    // For now, we only have one scene in the test data
-    // In a real app, we'd fetch the specific scene data
     fetch(`${API_BASE}/api/orchestrator/scene-result/1/1/1`)
         .then(r => r.json())
         .then(data => {
@@ -424,6 +491,7 @@ function escapeHtml(text) {
 // --- Bind Events ---
 function bindEvents() {
     // Navigation
+    document.getElementById('dashboardBtn').addEventListener('click', () => switchView('dashboardView'));
     document.getElementById('storyboardBtn').addEventListener('click', () => switchView('storyboardView'));
     document.getElementById('agentsBtn').addEventListener('click', () => switchView('agentsView'));
     document.getElementById('charactersBtn').addEventListener('click', toggleCharactersPanel);
@@ -436,6 +504,10 @@ function bindEvents() {
     document.getElementById('btnAttach').addEventListener('click', () => document.getElementById('fileInput').click());
     document.getElementById('fileInput').addEventListener('change', uploadFile);
     document.getElementById('btnEvaluate').addEventListener('click', evaluateResult);
+
+    // Script Upload
+    document.getElementById('btnAttachScript').addEventListener('click', () => document.getElementById('scriptFile').click());
+    document.getElementById('scriptFile').addEventListener('change', uploadScript);
 
     // Modal
     document.getElementById('modalClose').addEventListener('click', closeSceneModal);

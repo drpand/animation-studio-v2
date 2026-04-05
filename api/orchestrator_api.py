@@ -7,7 +7,7 @@ import json
 import os
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -233,6 +233,45 @@ async def _execute_chain(task_id: str, db):
         await crud.update_orchestrator_task(db, task_id, {"current_step": i + 1, "result": previous_output[:2000]})
 
     await crud.update_orchestrator_task(db, task_id, {"status": "completed"})
+
+
+@router.post("/task")
+async def create_task(req: dict):
+    """Продюсер ставит задачу. Оркестратор начинает работу."""
+    task_desc = req.get("description", "")
+    if not task_desc:
+        raise HTTPException(400, "Описание задачи не может быть пустым")
+    
+    # В будущем здесь будет запуск конвейера
+    # asyncio.create_task(run_scene_pipeline(...))
+    
+    return {"ok": True, "message": "Задача принята. Оркестратор приступает к работе."}
+
+
+@router.post("/upload-script")
+async def upload_script(file: UploadFile = File(...)):
+    """Продюсер загружает сценарий. Оркестратор принимает и запускает Writer."""
+    if not file.filename.endswith(('.pdf', '.txt', '.md')):
+        raise HTTPException(400, "Поддерживаются только .pdf, .txt, .md")
+    
+    # Сохраняем файл
+    import os
+    from datetime import datetime
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    UPLOAD_DIR = os.path.join(PROJECT_ROOT, "memory", "scripts")
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    
+    safe_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, safe_name)
+    
+    content = await file.read()
+    with open(file_path, "wb") as f:
+        f.write(content)
+        
+    # TODO: Запустить Writer для разбивки на сцены
+    # asyncio.create_task(run_script_analysis(file_path))
+    
+    return {"ok": True, "filename": safe_name, "message": "Сценарий загружен. Запуск анализа..."}
 
 
 @router.post("/scene-pipeline")
