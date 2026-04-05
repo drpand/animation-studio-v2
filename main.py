@@ -33,6 +33,7 @@ from api.orchestrator_api import router as orchestrator_router
 from api.project_api import router as project_router
 from api.episodes_api import router as episodes_router
 from api.characters_api import router as characters_router
+from api.cv_check_api import router as cv_check_router
 
 # Абсолютные пути
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -141,6 +142,7 @@ app.include_router(orchestrator_router, prefix="/api/orchestrator", tags=["orche
 app.include_router(project_router, prefix="/api/project", tags=["project"])
 app.include_router(episodes_router, prefix="/api/episodes", tags=["episodes"])
 app.include_router(characters_router, prefix="/api/characters", tags=["characters"])
+app.include_router(cv_check_router, prefix="/api/tools", tags=["cv-check"])
 
 # Статика с отключением кэша
 class NoCacheStaticFiles(StaticFiles):

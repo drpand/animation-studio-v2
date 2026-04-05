@@ -479,6 +479,40 @@ function openSceneModal(index) {
         btnRegenerate.style.display = 'none';
     }
 
+    // CV секция — показываем если есть изображение
+    const cvSection = document.getElementById('cvCheckSection');
+    const cvStatus = document.getElementById('cvStatus');
+    const cvResult = document.getElementById('cvResult');
+    if (frame.image_url) {
+        cvSection.style.display = 'block';
+        if (frame.cv_score > 0) {
+            // Уже есть CV проверка — показываем результат
+            cvStatus.style.display = 'block';
+            const scoreColor = frame.cv_score >= 8 ? 'var(--green)' : frame.cv_score >= 6 ? 'var(--yellow)' : 'var(--red)';
+            const scoreIcon = frame.cv_score >= 8 ? '✅' : frame.cv_score >= 6 ? '⚠️' : '❌';
+            cvStatus.innerHTML = `${scoreIcon} CV Оценка: <strong style="color:${scoreColor}">${frame.cv_score}/10</strong>`;
+            cvStatus.style.color = scoreColor;
+
+            try {
+                const details = JSON.parse(frame.cv_details || '{}');
+                cvResult.innerHTML = `
+                    <div style="margin-top:8px;">
+                        <p><strong>🤖 Описание:</strong> ${escapeHtml(frame.cv_description)}</p>
+                        ${details.matched?.length > 0 ? `<p><strong style="color:var(--green)">✅ Совпало:</strong> ${details.matched.map(escapeHtml).join(', ')}</p>` : ''}
+                        ${details.missing?.length > 0 ? `<p><strong style="color:var(--red)">❌ Отсутствует:</strong> ${details.missing.map(escapeHtml).join(', ')}</p>` : ''}
+                    </div>
+                `;
+            } catch {
+                cvResult.innerHTML = `<p>${escapeHtml(frame.cv_description)}</p>`;
+            }
+        } else {
+            cvStatus.style.display = 'none';
+            cvResult.innerHTML = '';
+        }
+    } else {
+        cvSection.style.display = 'none';
+    }
+
     // Сбрасываем статус
     document.getElementById('reviseStatus').style.display = 'none';
     document.getElementById('revisionComment').value = '';
@@ -730,4 +764,152 @@ function bindEvents() {
     document.getElementById('chatInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
+
+    // New Project
+    document.getElementById('btnNewProject').addEventListener('click', openNewProjectModal);
+}
+
+// ============================================
+// NEW PROJECT
+// ============================================
+
+function openNewProjectModal() {
+    document.getElementById('newProjectModal').classList.add('open');
+    document.getElementById('newProjectStatus').style.display = 'none';
+    document.getElementById('btnCreateProject').disabled = false;
+    document.getElementById('btnCreateProject').textContent = '🚀 Создать проект';
+}
+
+function closeNewProjectModal() {
+    document.getElementById('newProjectModal').classList.remove('open');
+}
+
+async function createNewProject() {
+    const name = document.getElementById('newProjectName').value.trim();
+    if (!name) {
+        alert('Введи название проекта');
+        return;
+    }
+
+    const statusDiv = document.getElementById('newProjectStatus');
+    const btn = document.getElementById('btnCreateProject');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Создание...';
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '⏳ Создаю проект и очищаю старый контент...';
+    statusDiv.style.color = 'var(--yellow)';
+
+    try {
+        // 1. Создаём проект
+        const res = await fetch(`${API_BASE}/api/project/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                description: document.getElementById('newProjectDesc').value.trim(),
+                genre: document.getElementById('newProjectGenre').value.trim(),
+                visual_style: document.getElementById('newProjectStyle').value.trim(),
+                color_palette: document.getElementById('newProjectPalette').value.trim(),
+                music_reference: document.getElementById('newProjectMusic').value.trim(),
+                duration_seconds: parseInt(document.getElementById('newProjectDuration').value) || 80,
+                total_episodes: 1,
+            })
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+            statusDiv.innerHTML = '⏳ Очищаю старый контент...';
+
+            // 2. Сбрасываем контент
+            await fetch(`${API_BASE}/api/project/reset`, { method: 'POST' });
+
+            statusDiv.innerHTML = '✅ Проект создан!';
+            statusDiv.style.color = 'var(--green)';
+
+            // Обновляем UI
+            document.getElementById('projectBadge').textContent = `Проект: ${name}`;
+
+            // Очищаем поля
+            document.getElementById('newProjectName').value = '';
+            document.getElementById('newProjectDesc').value = '';
+            document.getElementById('newProjectGenre').value = '';
+            document.getElementById('newProjectPalette').value = '';
+            document.getElementById('newProjectMusic').value = '';
+
+            // Перезагружаем storyboard и агентов
+            loadStoryboard();
+            loadAgents();
+
+            setTimeout(() => closeNewProjectModal(), 1500);
+        } else {
+            statusDiv.innerHTML = '❌ Ошибка: ' + (data.detail || 'Неизвестная ошибка');
+            statusDiv.style.color = 'var(--red)';
+        }
+    } catch (e) {
+        statusDiv.innerHTML = '❌ Ошибка сети: ' + e.message;
+        statusDiv.style.color = 'var(--red)';
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🚀 Создать проект';
+}
+
+// ============================================
+// CV CHECK
+// ============================================
+
+async function cvCheckFrame(frameId) {
+    const cvSection = document.getElementById('cvCheckSection');
+    const cvStatus = document.getElementById('cvStatus');
+    const cvResult = document.getElementById('cvResult');
+
+    cvSection.style.display = 'block';
+    cvStatus.style.display = 'block';
+    cvStatus.innerHTML = '⏳ OpenRouter анализирует изображение...';
+    cvStatus.style.color = 'var(--yellow)';
+    cvResult.innerHTML = '';
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+        const res = await fetch(`${API_BASE}/api/tools/cv-check`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ frame_id: frameId, model: 'openai/gpt-4o' }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        const data = await res.json();
+
+        if (data.ok) {
+            const scoreColor = data.score >= 8 ? 'var(--green)' : data.score >= 6 ? 'var(--yellow)' : 'var(--red)';
+            const scoreIcon = data.score >= 8 ? '✅' : data.score >= 6 ? '⚠️' : '❌';
+
+            cvStatus.innerHTML = `${scoreIcon} CV Оценка: <strong style="color:${scoreColor}">${data.score}/10</strong>`;
+            cvStatus.style.color = scoreColor;
+
+            cvResult.innerHTML = `
+                <div style="margin-top:12px;">
+                    <p><strong>🤖 Что видит модель:</strong> ${escapeHtml(data.description)}</p>
+                    <p><strong>Вердикт:</strong> ${escapeHtml(data.verdict)}</p>
+                    ${data.matched.length > 0 ? `<p><strong style="color:var(--green)">✅ Совпало:</strong> ${data.matched.map(escapeHtml).join(', ')}</p>` : ''}
+                    ${data.missing.length > 0 ? `<p><strong style="color:var(--red)">❌ Отсутствует:</strong> ${data.missing.map(escapeHtml).join(', ')}</p>` : ''}
+                    <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">Модель: ${escapeHtml(data.model || 'N/A')}</p>
+                </div>
+            `;
+        } else {
+            cvStatus.innerHTML = '❌ Ошибка: ' + (data.error || 'Неизвестная ошибка');
+            cvStatus.style.color = 'var(--red)';
+        }
+    } catch (e) {
+        if (e.name === 'AbortError') {
+            cvStatus.innerHTML = '⏱️ Таймаут. Попробуй снова.';
+        } else {
+            cvStatus.innerHTML = '❌ Ошибка: ' + e.message;
+        }
+        cvStatus.style.color = 'var(--red)';
+    }
 }

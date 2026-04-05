@@ -94,6 +94,33 @@ async def get_active_project(db: AsyncSession) -> Optional[Project]:
     result = await db.execute(select(Project).where(Project.is_active == True))
     return result.scalars().first()
 
+async def create_project(db: AsyncSession, data: Dict[str, Any]) -> Project:
+    """Создать новый проект и сделать его активным."""
+    # Деактивируем текущий активный проект
+    await db.execute(update(Project).where(Project.is_active == True).values(is_active=False))
+    project = Project(**data, is_active=True)
+    db.add(project)
+    await db.commit()
+    await db.refresh(project)
+    return project
+
+async def list_projects(db: AsyncSession) -> List[Project]:
+    """Список всех проектов."""
+    result = await db.execute(select(Project).order_by(Project.id.desc()))
+    return result.scalars().all()
+
+async def reset_project_content(db: AsyncSession):
+    """Очистить весь контент проекта: кадры, персонажи, обсуждения, задачи."""
+    from database import SceneFrame, Character, Message, OrchestratorTask, OrchestratorStep, Event, Discussion
+    await db.execute(delete(OrchestratorStep))
+    await db.execute(delete(OrchestratorTask))
+    await db.execute(delete(SceneFrame))
+    await db.execute(delete(Character))
+    await db.execute(delete(Message))
+    await db.execute(delete(Event))
+    await db.execute(delete(Discussion))
+    await db.commit()
+
 async def update_project(db: AsyncSession, project_id: int, data: Dict[str, Any]) -> Optional[Project]:
     result = await db.execute(select(Project).where(Project.id == project_id))
     project = result.scalars().first()

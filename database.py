@@ -314,6 +314,9 @@ class SceneFrame(Base):
     critic_feedback = Column(Text, default="")
     user_status = Column(String(20), default="pending")  # pending, approved, revision
     user_comment = Column(Text, default="")
+    cv_score = Column(Integer, default=0)  # 0-10 оценка CV проверки
+    cv_description = Column(Text, default="")  # что видит CV модель
+    cv_details = Column(Text, default="")  # JSON: что совпало/не совпало
     created_at = Column(String(30), default="")
     updated_at = Column(String(30), default="")
 

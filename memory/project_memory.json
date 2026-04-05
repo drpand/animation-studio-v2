@@ -1,16 +1,16 @@
 {
   "active_project": {
-    "name": "",
+    "name": "Тест",
+    "description": "",
     "file": "",
     "file_path": "",
     "current_season": 1,
     "current_episode": 1,
-    "total_episodes": 0,
-    "description": "",
-    "visual_style": "2.5D аниме, кинематографичный",
+    "total_episodes": 1,
+    "visual_style": "",
     "color_palette": "",
     "music_reference": "",
-    "updated_at": ""
+    "updated_at": "2026-04-06T03:55:01.384369"
   },
   "projects": [],
   "seasons": [],
