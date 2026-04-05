@@ -426,6 +426,29 @@ async def scene_action(season: int, episode: int, scene: int, action: dict, db: 
     return {"ok": False, "error": "Scene not found"}
 
 
+@router.patch("/scene-frame/{season}/{episode}/{scene}")
+async def patch_scene_frame(season: int, episode: int, scene: int, updates: dict, db: AsyncSession = Depends(get_session)):
+    """Обновить поля кадра сцены (location, prompt, image_url и т.д.)."""
+    frames = await crud.get_scene_frames(db, season, episode, scene)
+    if not frames:
+        return {"ok": False, "error": "Scene not found"}
+    
+    frame = frames[0]
+    allowed_fields = {
+        "writer_text", "director_notes", "characters_json",
+        "dop_prompt", "art_prompt", "sound_prompt",
+        "final_prompt", "image_url", "critic_feedback",
+        "status", "user_status", "user_comment",
+    }
+    
+    for field, value in updates.items():
+        if field in allowed_fields and hasattr(frame, field):
+            setattr(frame, field, value)
+    
+    await db.commit()
+    return {"ok": True, "message": f"Frame {season}x{episode}:{scene} updated"}
+
+
 async def _is_cancelled(db, task_id):
     task = await crud.get_orchestrator_task(db, task_id)
     return task and (task.cancelled or task.status == "cancelled")
