@@ -725,7 +725,7 @@ async def _run_fixer(original_text: str, critic_feedback: str, task_id: str) -> 
     try:
         result, _ = await asyncio.wait_for(
             call_llm(system_prompt=system, user_prompt=user),
-            timeout=90
+            timeout=120
         )
         await _post_discussion(
             f"[FIXER] Исправил результат. {len(result)} символов",

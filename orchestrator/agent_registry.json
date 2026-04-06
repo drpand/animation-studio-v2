@@ -6,7 +6,7 @@
     "input_type": "text",
     "output_type": "text",
     "model": "deepseek/deepseek-v3.2",
-    "timeout": 90
+    "timeout": 150
   },
   {
     "id": "director",
@@ -15,7 +15,7 @@
     "input_type": "text",
     "output_type": "text",
     "model": "deepseek/deepseek-v3.2",
-    "timeout": 90
+    "timeout": 150
   },
   {
     "id": "storyboarder",
@@ -24,7 +24,7 @@
     "input_type": "text",
     "output_type": "text",
     "model": "deepseek/deepseek-v3.2",
-    "timeout": 90
+    "timeout": 150
   },
   {
     "id": "dop",
@@ -33,7 +33,7 @@
     "input_type": "text",
     "output_type": "text",
     "model": "deepseek/deepseek-v3.2",
-    "timeout": 90
+    "timeout": 150
   },
   {
     "id": "art_director",
@@ -42,7 +42,7 @@
     "input_type": "text",
     "output_type": "text",
     "model": "deepseek/deepseek-v3.2",
-    "timeout": 90
+    "timeout": 150
   },
   {
     "id": "sound_director",
@@ -51,7 +51,7 @@
     "input_type": "text",
     "output_type": "text",
     "model": "deepseek/deepseek-v3.2",
-    "timeout": 90
+    "timeout": 150
   },
   {
     "id": "critic",
@@ -60,7 +60,7 @@
     "input_type": "text",
     "output_type": "evaluation",
     "model": "deepseek/deepseek-v3.2",
-    "timeout": 60
+    "timeout": 120
   },
   {
     "id": "fixer",
@@ -69,6 +69,6 @@
     "input_type": "text",
     "output_type": "text",
     "model": "deepseek/deepseek-v3.2",
-    "timeout": 90
+    "timeout": 150
   }
 ]
