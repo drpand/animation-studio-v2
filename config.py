@@ -1,5 +1,6 @@
-# Animation Studio v2 — РОДИНА
+# Animation Studio v2
 import os
+import json
 from dotenv import load_dotenv
 
 # Загружаем .env СРАЗУ — чтобы все модули видели переменные
@@ -14,10 +15,23 @@ DATABASE_URL = f"sqlite+aiosqlite:///{PROJECT_ROOT_CONFIG}/memory/studio.db"
 
 # Auth
 AUTH_USERNAME = os.getenv("AUTH_USERNAME", "admin")
-AUTH_PASSWORD = os.getenv("AUTH_PASSWORD", "rodina2026")
+AUTH_PASSWORD = os.getenv("AUTH_PASSWORD", "admin2026")
 
-# Project
-PROJECT_NAME = "РОДИНА"
+# Project - загружается динамически из активного проекта
+def get_project_name():
+    """Получить имя активного проекта из project_memory.json"""
+    project_file = os.path.join(PROJECT_ROOT_CONFIG, "memory", "project_memory.json")
+    try:
+        if os.path.exists(project_file):
+            with open(project_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                active_project = data.get("active_project", {})
+                return active_project.get("name", "Animation Studio")
+    except Exception:
+        pass
+    return "Animation Studio"
+
+PROJECT_NAME = get_project_name()
 PORT = 7860
 
 # ComfyUI
