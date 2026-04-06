@@ -492,7 +492,7 @@ async def _run_agent_step(agent_id: str, input_text: str, task_id: str) -> tuple
         system_prompt = ""
         if constitution:
             system_prompt += f"[КОНСТИТУЦИЯ СТУДИИ]\n{constitution}\n\n"
-        system_prompt += f"[РОЛЬ]\nТы {agent_id} аниме-студии РОДИНА.\n\n[ЗАДАЧА]\n{input_text}"
+        system_prompt += f"[РОЛЬ]\nТы {agent_id} анимационной студии. Работай по правилам Конституции и контексту активного проекта {PROJECT_NAME}.\n\n[ЗАДАЧА]\n{input_text}"
 
         async def _call_openrouter():
             import httpx
@@ -599,7 +599,7 @@ async def _run_fixer(original_text: str, critic_feedback: str, task_id: str) -> 
     if tracker.is_cancelled(task_id):
         return original_text
 
-    system = "Ты фиксер аниме-студии РОДИНА. Исправляй результаты по замечаниям критика."
+    system = f"Ты фиксер анимационной студии {PROJECT_NAME}. Исправляй результаты по замечаниям критика, сохраняя требования активного проекта."
     user = f"""Исправь результат по замечаниям критика.
 
 Оригинал:

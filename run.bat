@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo   ANIMATION STUDIO v2 - РОДИНА
+echo   ANIMATION STUDIO v2
 echo ========================================
 echo.
 

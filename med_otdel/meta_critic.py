@@ -36,9 +36,9 @@ EVALUATION_CRITERIA = {
         "description": "Реальные результаты из сообщества (GitHub, Civitai, Medium)",
         "max_score": 10,
     },
-    "rodina_adaptation": {
-        "label": "Адаптация под РОДИНА",
-        "description": "Учитывает Гоа, Пёрсел, персонажей, контекст проекта",
+    "project_adaptation": {
+        "label": "Адаптация под активный проект",
+        "description": "Учитывает контекст, сеттинг, персонажей и требования активного проекта",
         "max_score": 10,
     },
 }
@@ -94,7 +94,7 @@ async def evaluate_prompt(role: str, prompt_text: str, constitution: str = "") -
     )
 
     system = (
-        "Ты Meta-Critic аниме-студии РОДИНА. Оцениваешь системные промпты для AI-агентов. "
+        "Ты Meta-Critic анимационной студии. Оцениваешь системные промпты для AI-агентов. "
         "Будь строгим и объективным. Оценивай каждый критерий от 0 до 10."
     )
 
@@ -110,7 +110,7 @@ async def evaluate_prompt(role: str, prompt_text: str, constitution: str = "") -
 {criteria_desc}
 
 ОТВЕЧАЙ ТОЛЬКО В JSON ФОРМАТЕ БЕЗ MARKDOWN И ПОЯСНЕНИЙ:
-{{"constitution_match": <число>, "role_clarity": <число>, "source_credibility": <число>, "rodina_adaptation": <число>, "comment": "<одно предложение на русском>"}}"""
+{{"constitution_match": <число>, "role_clarity": <число>, "source_credibility": <число>, "project_adaptation": <число>, "comment": "<одно предложение на русском>"}}"""
 
     response, _ = await call_llm(system_prompt=system, user_prompt=user)
 
@@ -130,7 +130,7 @@ async def evaluate_prompt(role: str, prompt_text: str, constitution: str = "") -
         scores["constitution_match"] = min(int(data.get("constitution_match", 0)), 10)
         scores["role_clarity"] = min(int(data.get("role_clarity", 0)), 10)
         scores["source_credibility"] = min(int(data.get("source_credibility", 0)), 10)
-        scores["rodina_adaptation"] = min(int(data.get("rodina_adaptation", 0)), 10)
+        scores["project_adaptation"] = min(int(data.get("project_adaptation", data.get("rodina_adaptation", 0))), 10)
         feedback = data.get("comment", "")
     except (json.JSONDecodeError, ValueError, KeyError):
         pass
@@ -151,10 +151,10 @@ async def evaluate_prompt(role: str, prompt_text: str, constitution: str = "") -
                 nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
                 if nums:
                     scores["source_credibility"] = min(nums[0], 10)
-            elif any(s.startswith(k) for k in ["RODINA_ADAPTATION:", "RODINA ADAPTATION:", "АДАПТАЦИЯ:", "РОДИНА:"]):
+            elif any(s.startswith(k) for k in ["PROJECT_ADAPTATION:", "PROJECT ADAPTATION:", "RODINA_ADAPTATION:", "RODINA ADAPTATION:", "АДАПТАЦИЯ:", "РОДИНА:"]):
                 nums = [int(c) for c in s.replace(":", " ").split() if c.isdigit()]
                 if nums:
-                    scores["rodina_adaptation"] = min(nums[0], 10)
+                    scores["project_adaptation"] = min(nums[0], 10)
             elif any(s.startswith(k) for k in ["FEEDBACK:", "ОБРАТНАЯ СВЯЗЬ:", "КОММЕНТАРИЙ:", "COMMENT:"]):
                 colon_idx = line.find(":")
                 if colon_idx >= 0:
@@ -176,7 +176,7 @@ async def evaluate_prompt(role: str, prompt_text: str, constitution: str = "") -
             scores["constitution_match"] = nums[0]
             scores["role_clarity"] = nums[1]
             scores["source_credibility"] = nums[2]
-            scores["rodina_adaptation"] = nums[3]
+            scores["project_adaptation"] = nums[3]
             feedback = response.strip()[:300]
 
     if not scores:
@@ -189,7 +189,8 @@ async def evaluate_prompt(role: str, prompt_text: str, constitution: str = "") -
         "constitution_match": scores.get("constitution_match", 0),
         "role_clarity": scores.get("role_clarity", 0),
         "source_credibility": scores.get("source_credibility", 0),
-        "rodina_adaptation": scores.get("rodina_adaptation", 0),
+        "project_adaptation": scores.get("project_adaptation", 0),
+        "rodina_adaptation": scores.get("project_adaptation", 0),
         "total": total,
         "max_total": max_total,
         "feedback": feedback,

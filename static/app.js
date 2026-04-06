@@ -1,5 +1,5 @@
 /* ============================================
-   Animation Studio v2 — РОДИНА
+   Animation Studio v2
    Logic v12: Orchestrator First & Script Upload Fix
    ============================================ */
 

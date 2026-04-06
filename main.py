@@ -1,5 +1,5 @@
 """
-Animation Studio v2 — РОДИНА
+Animation Studio v2
 FastAPI сервер, точка входа.
 """
 import os

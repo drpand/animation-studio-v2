@@ -59,7 +59,7 @@ async def migrate():
         if project_data:
             ap = project_data.get("active_project", {})
             project = Project(
-                name=ap.get("name", "РОДИНА"),
+                name=ap.get("name", "Animation Studio"),
                 description=ap.get("description", ""),
                 file=ap.get("file", ""),
                 file_path=ap.get("file_path", ""),
