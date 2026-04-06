@@ -1,12 +1,12 @@
 """
 CV Check API — проверка сгенерированного изображения через OpenRouter Vision.
-Сравнивает изображение с описанием сцены через компьютерное зрение.
-Префикс роутов задаётся в main.py: /api/tools
 """
 import os
 import json
 import base64
 import httpx
+import sys
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_session
 import crud
 from config import OPENROUTER_API_KEY, PROJECT_ROOT_CONFIG
+from utils.logger import info, error
 
 router = APIRouter()
 
@@ -78,61 +79,65 @@ async def cv_check(req: CVCheckRequest, db: AsyncSession = Depends(get_session))
     if not writer_text:
         return {"ok": False, "error": "Нет описания сцены для сравнения"}
 
-    # Конвертируем изображение в base64
+    # Очищаем writer_text от Unicode спецсимволов
+    writer_text = writer_text.replace("\u2014", "-").replace("\u2013", "-").replace("\u2018", "'").replace("\u2019", "'").replace("\u201c", '"').replace("\u201d", '"')
+
+    # Конвертируем изображение в base64 data URL для OpenRouter
     image_b64 = await _image_to_base64(frame.image_url)
     if not image_b64:
         return {"ok": False, "error": "Не удалось загрузить изображение"}
 
-    # Промпт для CV проверки
-    system_prompt = """Ты эксперт по компьютерному зрению и аниме-производству.
-Твоя задача — описать что ты видишь на изображении и сравнить с описанием сцены.
+    image_data_url = f"data:image/png;base64,{image_b64}"
 
-Верни СТРОГО JSON:
+    # Промпт для CV проверки
+    system_prompt = """You are a computer vision expert and anime production specialist.
+Describe what you see in the image and compare it with the scene description.
+
+Return STRICTLY JSON:
 {
-  "description": "Подробное описание что ты видишь на изображении (2-3 предложения)",
+  "description": "Detailed description of what you see (2-3 sentences)",
   "score": 8,
-  "matched": ["элемент1", "элемент2"],
-  "missing": ["элемент3", "элемент4"],
-  "verdict": "Изображение соответствует описанию сцены" или "Изображение НЕ соответствует описанию"
+  "matched": ["element1", "element2"],
+  "missing": ["element3", "element4"],
+  "verdict": "Image matches scene description" or "Image does not match"
 }"""
 
-    user_prompt = f"""Опиши что ты видишь на этом изображении и сравни с описанием сцены.
+    user_prompt = f"""Describe what you see in this image and compare with the scene description.
 
-Описание сцены:
+Scene description:
 {writer_text[:2000]}
 
-Оцени соответствие по шкале 0-10.
-Укажи какие элементы совпали и какие отсутствуют."""
+Rate match from 0-10.
+List matched and missing elements."""
 
     # Отправляем в OpenRouter
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
+        info(f"[CV] Sending to OpenRouter, model={req.model}, image_b64_len={len(image_b64)}")
+
+        request_body = json.dumps({
+            "model": req.model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_prompt},
+                        {"type": "image_url", "image_url": {"url": image_data_url}}
+                    ]
+                }
+            ],
+            "max_tokens": 1000,
+        }, ensure_ascii=True)
+
+        async with httpx.AsyncClient(timeout=180) as client:
             resp = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={
                     "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                     "Content-Type": "application/json",
                     "HTTP-Referer": "http://localhost:7860",
-                    "X-Title": "Animation Studio v2 — CV Check",
+                    "X-Title": "Animation Studio v2 - CV Check",
                 },
-                json={
-                    "model": req.model,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": user_prompt},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/png;base64,{image_b64}"
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    "max_tokens": 1000,
-                }
+                content=request_body.encode("utf-8"),
             )
 
             if resp.status_code != 200:
@@ -142,6 +147,7 @@ async def cv_check(req: CVCheckRequest, db: AsyncSession = Depends(get_session))
 
             data = resp.json()
             content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            print(f"[CV] Got response, content len={len(content)}", file=sys.stderr)
 
         # Извлекаем JSON из ответа
         cv_result = _extract_json(content)
@@ -154,11 +160,19 @@ async def cv_check(req: CVCheckRequest, db: AsyncSession = Depends(get_session))
                 "verdict": "Не удалось распознать ответ",
             }
 
+        print(f"[CV] Parsed: score={cv_result.get('score')}, desc_len={len(str(cv_result.get('description','')))}", file=sys.stderr)
+
         score = cv_result.get("score", 5)
-        description = cv_result.get("description", "")
-        matched = cv_result.get("matched", [])
-        missing = cv_result.get("missing", [])
-        verdict = cv_result.get("verdict", "")
+        # Полная ASCII очистка — заменяем все non-ASCII
+        def _to_ascii(s):
+            if not s:
+                return ""
+            return str(s).encode("ascii", errors="replace").decode("ascii")
+
+        description = _to_ascii(cv_result.get("description", ""))
+        matched = [_to_ascii(m) for m in cv_result.get("matched", [])]
+        missing = [_to_ascii(m) for m in cv_result.get("missing", [])]
+        verdict = _to_ascii(cv_result.get("verdict", ""))
 
         # Сохраняем результат в кадр
         frame.cv_score = score
@@ -170,22 +184,29 @@ async def cv_check(req: CVCheckRequest, db: AsyncSession = Depends(get_session))
             "model": req.model,
         }, ensure_ascii=False)
 
+        print(f"[CV] Before commit: desc={description[:100]!r}", file=sys.stderr)
+
         await db.commit()
-
-        return {
-            "ok": True,
-            "score": score,
-            "description": description,
-            "matched": matched,
-            "missing": missing,
-            "verdict": verdict,
-            "model": req.model,
-        }
-
-    except httpx.TimeoutException:
-        return {"ok": False, "error": "Таймаут запроса к OpenRouter"}
+        print(f"[CV] Commit successful", file=sys.stderr)
     except Exception as e:
-        return {"ok": False, "error": f"Ошибка CV проверки: {str(e)[:200]}"}
+        import traceback
+        tb = traceback.format_exc()
+        # Логируем полную ошибку
+        error_str = str(e).encode("ascii", errors="replace").decode("ascii")
+        info(f"CV CHECK ERROR: {error_str}")
+        info(tb)
+        # Попробуем определить где именно ошибка
+        return {"ok": False, "error": f"CV error: {error_str}"}
+
+    return {
+        "ok": True,
+        "score": score,
+        "description": description,
+        "matched": matched,
+        "missing": missing,
+        "verdict": verdict,
+        "model": req.model,
+    }
 
 
 def _extract_json(text: str) -> dict:
