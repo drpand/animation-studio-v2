@@ -1611,8 +1611,27 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     art_json = _extract_json(art_res.get("result", "") if isinstance(art_res, dict) else "")
     sound_json = _extract_json(sound_res.get("result", "") if isinstance(sound_res, dict) else "")
 
-    # Объединяем JSON части
+    # Извлекаем персонажей из HR результата
+    hr_characters = _extract_json_array(hr_result.get("result", "") if isinstance(hr_result, dict) else "")
+    
+    # Формируем описание персонажей для промпта
+    character_description = ""
+    if hr_characters:
+        # Берем первого персонажа (главного)
+        main_char = hr_characters[0]
+        char_parts = []
+        if main_char.get("name"):
+            char_parts.append(main_char["name"])
+        if main_char.get("appearance"):
+            char_parts.append(main_char["appearance"])
+        if main_char.get("clothing"):
+            char_parts.append(f"одежда: {main_char['clothing']}")
+        character_description = ", ".join(char_parts) if char_parts else "adult human protagonist"
+    
+    # Объединяем JSON части, добавляя персонажей
     combined_parts = {**dop_json, **art_json, **sound_json}
+    if character_description:
+        combined_parts["character"] = character_description
 
     pipeline_result["steps"]["dop"] = dop_res if not isinstance(dop_res, Exception) else {"status": "failed"}
     pipeline_result["steps"]["art_director"] = art_res if not isinstance(art_res, Exception) else {"status": "failed"}
