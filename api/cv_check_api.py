@@ -269,7 +269,7 @@ What specific changes should be made to the image generation prompt to improve a
 Be specific about composition, elements, colors, lighting.
 Return ONLY the critique, no JSON."""
 
-    return await _call_llm(system, user)
+    return await _call_llm(system, user, model="google/gemini-3-flash-preview")
 
 
 async def _run_fixer_rewrite(original_prompt: str, writer_text: str, critic_feedback: str, cv_description: str) -> str:
@@ -283,7 +283,7 @@ Original prompt:
 Scene description (for context):
 {writer_text[:1000]}
 
-Critic feedback on what's wrong:
+Critic feedback on what is wrong:
 {critic_feedback[:1000]}
 
 What CV model actually saw:
@@ -293,7 +293,7 @@ Write a NEW prompt optimized for anime image generation.
 Focus on: correct composition, all required elements present, proper lighting and mood.
 Return ONLY the new prompt text, no explanations, no JSON."""
 
-    return await _call_llm(system, user)
+    return await _call_llm(system, user, model="google/gemini-3-flash-preview")
 
 
 @router.post("/cv-auto-fix/{frame_id}")
@@ -364,7 +364,18 @@ async def cv_auto_fix(frame_id: int, db: AsyncSession = Depends(get_session)):
         new_prompt = await _run_fixer_rewrite(
             frame.final_prompt or "", writer_text, critic_feedback, cv_description
         )
+        # Очищаем от markdown и пустых строк
+        new_prompt = new_prompt.strip()
+        # Убираем markdown code blocks
+        if new_prompt.startswith("```"):
+            lines = new_prompt.split("\n")
+            new_prompt = "\n".join(lines[1:-1]) if len(lines) > 2 else new_prompt
         new_prompt = new_prompt.strip()[:800]
+
+        if not new_prompt or len(new_prompt) < 20:
+            info(f"[AUTO-FIX] Fixer returned empty/short prompt ({len(new_prompt)} chars), using original")
+            new_prompt = frame.final_prompt or ""
+
         info(f"[AUTO-FIX] New prompt: {new_prompt[:200]}...")
 
         # Шаг 4: Kie.ai генерирует
