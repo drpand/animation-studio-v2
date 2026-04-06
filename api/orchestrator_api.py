@@ -273,7 +273,8 @@ async def create_task(req: dict):
     frames_match = re.search(r'(\d+)\s*кадр[аов]?', task_desc, re.IGNORECASE)
     num_frames = int(frames_match.group(1)) if frames_match else 1
     
-    print(f"[PRODUCER] Парсинг: найдено {num_frames} кадров из описания: {task_desc[:100]}")
+    from utils.logger import info
+    info(f"[PRODUCER] Парсинг: найдено {num_frames} кадров из описания: {task_desc[:100]}")
 
     task_id = f"producer_{uuid.uuid4().hex[:8]}"
     scene_id = f"{season}_{episode}_{scene}"
@@ -309,14 +310,15 @@ async def create_task(req: dict):
             _producer_tasks[task_id]["current_step"] = "Запуск конвейера..."
             _producer_tasks[task_id]["progress"] = 5
             
-            print(f"[PRODUCER] Запуск цикла генерации {num_frames} кадров")
+            from utils.logger import info, error
+            info(f"[PRODUCER] Запуск цикла генерации {num_frames} кадров")
 
             # Генерируем N кадров (каждый кадр = отдельная сцена)
             for frame_idx in range(num_frames):
                 current_scene = scene + frame_idx
                 frame_progress_base = int((frame_idx / num_frames) * 90)
                 
-                print(f"[PRODUCER] Генерация кадра {frame_idx + 1}/{num_frames}, сцена {current_scene}")
+                info(f"[PRODUCER] Генерация кадра {frame_idx + 1}/{num_frames}, сцена {current_scene}")
                 
                 await _progress(f"Кадр {frame_idx + 1}/{num_frames}: Кастинг...", frame_progress_base + 5)
                 
@@ -331,14 +333,22 @@ async def create_task(req: dict):
                         )
                     )
                 
+                info(f"[PRODUCER] Кадр {frame_idx + 1} завершён, статус: {result.get('status')}")
+                
                 if result.get("status") == "failed":
+                    error(f"[PRODUCER] Кадр {frame_idx + 1} провалился")
                     raise Exception(f"Кадр {frame_idx + 1} провалился")
 
+            info(f"[PRODUCER] Все {num_frames} кадров сгенерированы успешно")
             _producer_tasks[task_id]["status"] = "completed"
             _producer_tasks[task_id]["progress"] = 100
             _producer_tasks[task_id]["current_step"] = "Готово!"
             _producer_tasks[task_id]["result"] = f"completed_{num_frames}_frames"
         except Exception as e:
+            from utils.logger import error
+            error(f"[PRODUCER] Ошибка в цикле генерации: {str(e)}")
+            import traceback
+            error(f"[PRODUCER] Traceback: {traceback.format_exc()}")
             _producer_tasks[task_id]["status"] = "failed"
             _producer_tasks[task_id]["error"] = str(e)[:500]
             _producer_tasks[task_id]["current_step"] = f"Ошибка: {str(e)[:200]}"

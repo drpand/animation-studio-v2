@@ -1,378 +1,6 @@
 {
   "messages": [
     {
-      "agent_id": "dop",
-      "content": "[CONVEYOR] dop: APPROVED (round 1)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T22:39:10.176959"
-    },
-    {
-      "agent_id": "art_director",
-      "content": "[ART_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
-      "msg_type": "agent",
-      "timestamp": "2026-04-05T22:39:10.186224"
-    },
-    {
-      "agent_id": "art_director",
-      "content": "[ART_DIRECTOR] Завершил работу. Результат: 545 символов",
-      "msg_type": "agent",
-      "timestamp": "2026-04-05T22:39:14.228094"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-05T22:39:20.885640"
-    },
-    {
-      "agent_id": "art_director",
-      "content": "[CONVEYOR] art_director: APPROVED (round 1)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T22:39:20.896428"
-    },
-    {
-      "agent_id": "sound_director",
-      "content": "[SOUND_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
-      "msg_type": "agent",
-      "timestamp": "2026-04-05T22:39:20.905509"
-    },
-    {
-      "agent_id": "sound_director",
-      "content": "[SOUND_DIRECTOR] Завершил работу. Результат: 492 символов",
-      "msg_type": "agent",
-      "timestamp": "2026-04-05T22:39:25.253112"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-05T22:39:30.047342"
-    },
-    {
-      "agent_id": "sound_director",
-      "content": "[CONVEYOR] sound_director: APPROVED (round 1)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T22:39:30.059880"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Шаг 5: Storyboarder собирает промпт",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T22:39:30.069244"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Шаг 6: Генерация изображений (Z-Image Turbo)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T22:39:30.079042"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: FAIL. Агент полностью провалил задачу, предоставив только текстовое описание (промпт) вместо финального визуального результата.",
-      "msg_type": "critic",
-      "timestamp": "2026-04-05T22:43:36.630805"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Шаг 7: Финальная сборка сцены",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T22:43:36.633910"
-    },
-    {
-      "agent_id": "storyboarder",
-      "content": "[STORYBOARDER] Начало работы. Модель: google/gemini-3-flash-preview",
-      "msg_type": "agent",
-      "timestamp": "2026-04-05T22:43:36.643677"
-    },
-    {
-      "agent_id": "storyboarder",
-      "content": "[STORYBOARDER] Завершил работу. Результат: 2200 символов",
-      "msg_type": "agent",
-      "timestamp": "2026-04-05T22:43:45.392951"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-05T22:43:50.368629"
-    },
-    {
-      "agent_id": "storyboarder",
-      "content": "[CONVEYOR] storyboarder: APPROVED (round 1)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T22:43:50.380825"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Результаты сцены 1x1:1 сохранены в БД",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T22:43:50.400120"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Сцена 1x1:1 завершена!",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T22:43:50.411408"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Начало полного кастинга — извлечение всех персонажей из сценария...",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:23.234848"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[HR_AGENT] Начало работы. Модель: google/gemini-3-flash-preview",
-      "msg_type": "agent",
-      "timestamp": "2026-04-05T23:30:23.238140"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[HR_AGENT] Завершил работу. Результат: 6215 символов",
-      "msg_type": "agent",
-      "timestamp": "2026-04-05T23:30:38.850718"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] HR вернул 6215 символов, извлечено 14 персонажей",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:38.862200"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Critic сверяет персонажей с PDF сценария...",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:38.874147"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: FAIL. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-05T23:30:44.104379"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Critic: FAIL. ",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.114606"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Ева' (type: <class 'str'>, length: 3)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.125317"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Ева', 'description': 'Возраст: 18. Внешность: Длинноногая девочка, длинные прямые волосы, огромные синие глаза, лицо отражает летящие облака, позже — разбитая губа.. Одежда: Синяя униформа английского колледжа, герб на нагрудном кармане, наушники айпода, розовый мобильный телефон, рюкзачок GUCCI.. Голос: Дерзкая, спокойная, переходит на крик или шепот, использует английские фразы.', 'voice_id': 'Дерзкая, спокойная, переходит на крик или шепот, использует английские фразы.', 'relations': 'Дочь Гарри, главная героиня.', 'created_at': '2026-04-05T23:30:44.134980'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.135023"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Ева (ID: 2)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.183412"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Гарри (Игорь Михайлович)' (type: <class 'str'>, length: 24)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.193075"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Гарри (Игорь Михайлович)', 'description': 'Возраст: 50. Внешность: Мужчина с жёсткими чертами лица, лицо красное от выпитого коньяка, на руке золотые часы «Ролекс».. Одежда: Дорогой деловой костюм, на брючном ремне медицинский монитор.. Голос: Властный, часто говорит сквозь зубы, срывается на крик, командующий.', 'voice_id': 'Властный, часто говорит сквозь зубы, срывается на крик, командующий.', 'relations': 'Отец Евы, богатый бизнесмен, босс Дмитрия.', 'created_at': '2026-04-05T23:30:44.202717'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.202754"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Гарри (Игорь Михайлович) (ID: 3)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.214509"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Дмитрий (Митя)' (type: <class 'str'>, length: 14)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.224452"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Дмитрий (Митя)', 'description': 'Возраст: 40. Внешность: Холёный мужчина.. Одежда: Идеально выглаженная рубашка, строгие брюки.. Голос: Деловой, исполнительный, подобострастный перед боссом.', 'voice_id': 'Деловой, исполнительный, подобострастный перед боссом.', 'relations': 'Помощник Гарри.', 'created_at': '2026-04-05T23:30:44.234150'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.234185"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Дмитрий (Митя) (ID: 4)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.247017"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Лена' (type: <class 'str'>, length: 4)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.256190"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Лена', 'description': 'Возраст: не указан. Внешность: Стройные ноги.. Одежда: Форма стюардессы.. Голос: Профессиональный, громче обычного при объявлении инструкций.', 'voice_id': 'Профессиональный, громче обычного при объявлении инструкций.', 'relations': 'Стюардесса частного самолета.', 'created_at': '2026-04-05T23:30:44.267275'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.267313"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Лена (ID: 5)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.281277"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Виктор' (type: <class 'str'>, length: 6)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.291707"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Виктор', 'description': 'Возраст: не указан. Внешность: Мужчина, лётчик-испытатель.. Одежда: Форма пилота.. Голос: Лаконичный, дисциплинированный, ироничный.', 'voice_id': 'Лаконичный, дисциплинированный, ироничный.', 'relations': 'Первый пилот самолета.', 'created_at': '2026-04-05T23:30:44.301348'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.301376"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Виктор (ID: 6)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.315210"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Второй пилот' (type: <class 'str'>, length: 12)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.326690"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Второй пилот', 'description': 'Возраст: не указан. Внешность: Мужчина.. Одежда: Форма пилота.. Голос: Встревоженный, позже — облегченный.', 'voice_id': 'Встревоженный, позже — облегченный.', 'relations': 'Второй пилот самолета.', 'created_at': '2026-04-05T23:30:44.336278'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.336302"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Второй пилот (ID: 7)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.351188"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Тимур' (type: <class 'str'>, length: 5)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.361091"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Тимур', 'description': 'Возраст: не указан. Внешность: Татуированный мужчина.. Одежда: Одежда для йоги/медитации.. Голос: Спокойный, философский, наставнический.', 'voice_id': 'Спокойный, философский, наставнический.', 'relations': 'Инструктор по йоге, гуру.', 'created_at': '2026-04-05T23:30:44.371823'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.371863"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Тимур (ID: 8)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.388236"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Макар' (type: <class 'str'>, length: 5)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.400636"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Макар', 'description': 'Возраст: не указан. Внешность: Мужчина, нервный, лицо подёргивается.. Одежда: Одежда для пляжа/медитации.. Голос: Раздраженный, истеричный, скептический, использует мат.', 'voice_id': 'Раздраженный, истеричный, скептический, использует мат.', 'relations': 'Турист, ученик Тимура.', 'created_at': '2026-04-05T23:30:44.410975'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.410998"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Макар (ID: 9)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.425304"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Толян' (type: <class 'str'>, length: 5)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.437912"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Толян', 'description': 'Возраст: не указан. Внешность: Медитирующий мужчина с застывшим выражением «духовности».. Одежда: Минималистичная одежда для йоги.. Голос: Безмолвный (глаз не открывает).', 'voice_id': 'Безмолвный (глаз не открывает).', 'relations': 'Ученик Тимура, объект насмешек Макара.', 'created_at': '2026-04-05T23:30:44.451221'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.451249"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Толян (ID: 10)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.466932"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Мускулистый мужчина' (type: <class 'str'>, length: 19)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.476722"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Мускулистый мужчина', 'description': 'Возраст: не указан. Внешность: Крепкое телосложение, стриптизёр.. Одежда: Минималистичная одежда для медитации.. Голос: Грубоватый, простой.', 'voice_id': 'Грубоватый, простой.', 'relations': 'Ученик Тимура.', 'created_at': '2026-04-05T23:30:44.486267'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.486292"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Мускулистый мужчина (ID: 11)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.500044"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Немец' (type: <class 'str'>, length: 5)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.510178"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Немец', 'description': 'Возраст: не указан. Внешность: Мужчина, иностранец.. Одежда: Широкие плавки с пальмами по колено.. Голос: Медленный, говорит на ломаном английском.', 'voice_id': 'Медленный, говорит на ломаном английском.', 'relations': 'Случайный встречный на пляже.', 'created_at': '2026-04-05T23:30:44.523439'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.523474"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Немец (ID: 12)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.538967"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Saving character: name='Дипак' (type: <class 'str'>, length: 5)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.548538"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[FULL_CASTING] Character data: {'name': 'Дипак', 'description': 'Возраст: пожилой. Внешность: Индус, спокойные глаза.. Одежда: Полицейская форма.. Голос: Скверное произношение английского, невозмутимый.', 'voice_id': 'Скверное произношение английского, невозмутимый.', 'relations': 'Начальник полицейского участка.', 'created_at': '2026-04-05T23:30:44.557297'}",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.557328"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[FULL_CASTING] Персонаж сохранён: Дипак (ID: 13)",
-      "msg_type": "system",
-      "timestamp": "2026-04-05T23:30:44.576275"
-    },
-    {
       "agent_id": "orchestrator",
       "content": "[FULL_CASTING] Saving character: name='Монсерат' (type: <class 'str'>, length: 8)",
       "msg_type": "system",
@@ -1199,6 +827,378 @@
       "content": "[CONVEYOR] Сцена 1x1:1 завершена!",
       "msg_type": "system",
       "timestamp": "2026-04-06T16:12:44.531157"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Запуск конвейера: Сцена 1x1:1",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:06.674330"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] Начало кастинга — извлечение персонажей из сценария...",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:06.679098"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:20:06.693416"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Завершил работу. Результат: 632 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:20:10.741456"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] HR вернул 632 chars, извлечено 1 персонажей",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:10.751495"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] Персонаж: Панда-самурай",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:10.765709"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] Critic сверяет персонажей с PDF сценария...",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:10.780223"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. Агент справился с основной задачей — идентификацией ключевого объекта. Персонаж «Панда-самурай» явно указан в тексте сценария, поэтому галлюцинации здесь нет. Однако я снижаю балл за избыточное «додум",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:20:14.434656"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] Critic: PASS. Все 1 персонажей подтверждены.",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:14.445621"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CASTING] Персонаж сохранён: Панда-самурай",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:14.462431"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CONVEYOR] Создан паттерн character_consistency для Art Director",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:14.475543"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] Кастинг завершён: 1 персонажей сохранено",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:14.484270"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 1: Writer описывает сцену",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:14.495135"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[WRITER] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:20:14.507909"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[WRITER] Завершил работу. Результат: 2536 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:20:24.270201"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:20:30.869934"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 2876 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:20:41.371488"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:20:46.804816"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[CONVEYOR] writer: APPROVED (round 2)",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:46.819342"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 2: Director — режиссёрское решение",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:20:46.833707"
+    },
+    {
+      "agent_id": "director",
+      "content": "[DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:20:46.847049"
+    },
+    {
+      "agent_id": "director",
+      "content": "[DIRECTOR] Завершил работу. Результат: 2422 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:20:55.469428"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:21:00.300514"
+    },
+    {
+      "agent_id": "director",
+      "content": "[CONVEYOR] director: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:21:00.314370"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 3: HR — кастинг персонажей",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:21:00.328520"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:21:00.340664"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Завершил работу. Результат: 703 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:21:04.610709"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. Агент справился с созданием атмосферного образа, но допустил критическую ошибку в контексте производственных задач студии «РОДИНА».",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:21:09.751821"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 1906 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:21:18.329000"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:21:24.338544"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CONVEYOR] hr_agent: APPROVED (round 2)",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:21:24.349450"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CONVEYOR] Создан паттерн character_consistency для Art Director",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:21:24.370969"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 4: Параллельная работа цехов (JSON)",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:21:24.385860"
+    },
+    {
+      "agent_id": "dop",
+      "content": "[DOP] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:21:24.402398"
+    },
+    {
+      "agent_id": "dop",
+      "content": "[DOP] Завершил работу. Результат: 1126 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:21:29.774786"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:21:34.808612"
+    },
+    {
+      "agent_id": "dop",
+      "content": "[CONVEYOR] dop: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:21:34.827371"
+    },
+    {
+      "agent_id": "art_director",
+      "content": "[ART_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:21:34.848910"
+    },
+    {
+      "agent_id": "art_director",
+      "content": "[ART_DIRECTOR] Завершил работу. Результат: 812 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:21:39.055567"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:21:44.318495"
+    },
+    {
+      "agent_id": "art_director",
+      "content": "[CONVEYOR] art_director: APPROVED (round 1)",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:21:44.331349"
+    },
+    {
+      "agent_id": "sound_director",
+      "content": "[SOUND_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:21:44.343881"
+    },
+    {
+      "agent_id": "sound_director",
+      "content": "[SOUND_DIRECTOR] Завершил работу. Результат: 468 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:21:48.095905"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. Агент снова ударился в избыточный техницизм и словесную эквилибристику вместо того, чтобы работать на результат. Мы здесь не аудиофильский справочник пишем, а создаем аниме нового поколения.",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:21:56.654962"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 595 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:22:00.617722"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:22:05.608198"
+    },
+    {
+      "agent_id": "sound_director",
+      "content": "[CONVEYOR] sound_director: APPROVED (round 2)",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:22:05.619836"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 5: Storyboarder собирает промпт",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:22:05.635441"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 6: Генерация изображений (Z-Image Turbo)",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:22:05.649797"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:23:19.014557"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 6.6: Проверка консистентности персонажей...",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:23:19.029030"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONSISTENCY] Проверено 0 персонажей, score=5/10, проблем=0",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:23:24.240186"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] ✅ Консистентность персонажей: 5/10",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:23:24.251638"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 7: Финальная сборка сцены",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:23:24.265475"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[STORYBOARDER] Начало работы. Модель: google/gemini-3-flash-preview",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:23:24.282335"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[STORYBOARDER] Завершил работу. Результат: 2142 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:23:32.316666"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: FAIL. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:23:38.221993"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Исправил результат. 2996 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-06T16:23:47.860654"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. ",
+      "msg_type": "critic",
+      "timestamp": "2026-04-06T16:23:53.200057"
+    },
+    {
+      "agent_id": "storyboarder",
+      "content": "[CONVEYOR] storyboarder: APPROVED (round 2)",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:23:53.214268"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Результаты сцены 1x1:1 сохранены в БД",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:23:53.236758"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Сцена 1x1:1 завершена!",
+      "msg_type": "system",
+      "timestamp": "2026-04-06T16:23:53.258016"
     }
   ]
 }

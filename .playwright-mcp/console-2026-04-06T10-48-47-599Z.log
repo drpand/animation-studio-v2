@@ -1,0 +1,114 @@
+[  567356ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  567357ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  572371ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  572371ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  572371ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/orchestrator/storyboard/frames:0
+[  572372ms] [ERROR] Failed to load storyboard TypeError: Failed to fetch
+    at loadStoryboard (http://localhost:7860/static/app.js?v=20260406-v21:467:27) @ http://localhost:7860/static/app.js?v=20260406-v21:476
+[  572372ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/project/:0
+[  572372ms] [ERROR] Failed to load project TypeError: Failed to fetch
+    at loadActiveProject (http://localhost:7860/static/app.js?v=20260406-v21:65:27) @ http://localhost:7860/static/app.js?v=20260406-v21:75
+[  577379ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  577379ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  582364ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  582364ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  582364ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/orchestrator/storyboard/frames:0
+[  582364ms] [ERROR] Failed to load storyboard TypeError: Failed to fetch
+    at loadStoryboard (http://localhost:7860/static/app.js?v=20260406-v21:467:27) @ http://localhost:7860/static/app.js?v=20260406-v21:476
+[  587373ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  587373ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  587373ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/project/:0
+[  587373ms] [ERROR] Failed to load project TypeError: Failed to fetch
+    at loadActiveProject (http://localhost:7860/static/app.js?v=20260406-v21:65:27) @ http://localhost:7860/static/app.js?v=20260406-v21:75
+[  592387ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  592387ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  592387ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/orchestrator/storyboard/frames:0
+[  592387ms] [ERROR] Failed to load storyboard TypeError: Failed to fetch
+    at loadStoryboard (http://localhost:7860/static/app.js?v=20260406-v21:467:27) @ http://localhost:7860/static/app.js?v=20260406-v21:476
+[  597344ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  597344ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  602366ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  602366ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  602366ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/orchestrator/storyboard/frames:0
+[  602366ms] [ERROR] Failed to load storyboard TypeError: Failed to fetch
+    at loadStoryboard (http://localhost:7860/static/app.js?v=20260406-v21:467:27) @ http://localhost:7860/static/app.js?v=20260406-v21:476
+[  602366ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/project/:0
+[  602366ms] [ERROR] Failed to load project TypeError: Failed to fetch
+    at loadActiveProject (http://localhost:7860/static/app.js?v=20260406-v21:65:27) @ http://localhost:7860/static/app.js?v=20260406-v21:75
+[  607372ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  607372ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  612385ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  612386ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  612386ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/orchestrator/storyboard/frames:0
+[  612386ms] [ERROR] Failed to load storyboard TypeError: Failed to fetch
+    at loadStoryboard (http://localhost:7860/static/app.js?v=20260406-v21:467:27) @ http://localhost:7860/static/app.js?v=20260406-v21:476
+[  617355ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  617355ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  617355ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/project/:0
+[  617355ms] [ERROR] Failed to load project TypeError: Failed to fetch
+    at loadActiveProject (http://localhost:7860/static/app.js?v=20260406-v21:65:27) @ http://localhost:7860/static/app.js?v=20260406-v21:75
+[  622362ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  622362ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  622362ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/orchestrator/storyboard/frames:0
+[  622362ms] [ERROR] Failed to load storyboard TypeError: Failed to fetch
+    at loadStoryboard (http://localhost:7860/static/app.js?v=20260406-v21:467:27) @ http://localhost:7860/static/app.js?v=20260406-v21:476
+[  627369ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  627369ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  632372ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  632372ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  632372ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/orchestrator/storyboard/frames:0
+[  632372ms] [ERROR] Failed to load storyboard TypeError: Failed to fetch
+    at loadStoryboard (http://localhost:7860/static/app.js?v=20260406-v21:467:27) @ http://localhost:7860/static/app.js?v=20260406-v21:476
+[  632372ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/project/:0
+[  632372ms] [ERROR] Failed to load project TypeError: Failed to fetch
+    at loadActiveProject (http://localhost:7860/static/app.js?v=20260406-v21:65:27) @ http://localhost:7860/static/app.js?v=20260406-v21:75
+[  637355ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  637355ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  657370ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  657370ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  662358ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  662358ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  662358ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/orchestrator/storyboard/frames:0
+[  662358ms] [ERROR] Failed to load storyboard TypeError: Failed to fetch
+    at loadStoryboard (http://localhost:7860/static/app.js?v=20260406-v21:467:27) @ http://localhost:7860/static/app.js?v=20260406-v21:476
+[  662358ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/project/:0
+[  662358ms] [ERROR] Failed to load project TypeError: Failed to fetch
+    at loadActiveProject (http://localhost:7860/static/app.js?v=20260406-v21:65:27) @ http://localhost:7860/static/app.js?v=20260406-v21:75
+[  667375ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  667375ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  672359ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  672359ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  672360ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/orchestrator/storyboard/frames:0
+[  672360ms] [ERROR] Failed to load storyboard TypeError: Failed to fetch
+    at loadStoryboard (http://localhost:7860/static/app.js?v=20260406-v21:467:27) @ http://localhost:7860/static/app.js?v=20260406-v21:476
+[  677381ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  677381ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  677381ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/project/:0
+[  677381ms] [ERROR] Failed to load project TypeError: Failed to fetch
+    at loadActiveProject (http://localhost:7860/static/app.js?v=20260406-v21:65:27) @ http://localhost:7860/static/app.js?v=20260406-v21:75
+[  682361ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/agents/:0
+[  682361ms] [ERROR] TypeError: Failed to fetch
+    at loadAgents (http://localhost:7860/static/app.js?v=20260406-v21:83:27) @ http://localhost:7860/static/app.js?v=20260406-v21:86
+[  682362ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:7860/api/orchestrator/storyboard/frames:0
+[  682362ms] [ERROR] Failed to load storyboard TypeError: Failed to fetch
+    at loadStoryboard (http://localhost:7860/static/app.js?v=20260406-v21:467:27) @ http://localhost:7860/static/app.js?v=20260406-v21:476
