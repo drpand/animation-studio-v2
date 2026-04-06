@@ -427,12 +427,24 @@ async def _run_cv_check(frame, writer_text: str, model: str) -> dict:
     image_data_url = f"data:image/png;base64,{image_b64}"
     writer_text_clean = writer_text.replace("\u2014", "-").replace("\u2013", "-").replace("\u2018", "'").replace("\u2019", "'")
 
-    system_prompt = """You are a computer vision expert. Describe what you see and compare with scene description.
-Return STRICTLY JSON: {"description": "...", "score": 0-10, "matched": [...], "missing": [...]}"""
+    system_prompt = """You are an expert anime art critic. Analyze images for anime production.
 
-    user_prompt = f"""Describe this image and compare with scene description.
-Scene: {writer_text_clean[:1500]}
-Rate match 0-10. List matched and missing elements."""
+This is ANIME ART (2.5D), not photography. Stylization is expected.
+Do NOT penalize: artistic silhouettes, symbolic reflections, exaggerated colors, non-photorealistic rendering.
+
+Analyze the image against the scene description. Check if KEY ELEMENTS are VISIBLE (even if stylized).
+
+Respond ONLY with valid JSON:
+{"description":"what you see in English","score":7,"matched":["element1"],"missing":[],"mood":"good"}
+
+Score: 8-10 if key elements visible and mood matches. 6-7 if mostly there. 4-5 if missing key things."""
+
+    user_prompt = f"""Check if this anime image matches the scene description.
+
+Scene: {writer_text_clean[:1000]}
+
+Are the key visual elements present? Is the mood/atmosphere right?
+Return JSON only."""
 
     body = json.dumps({
         "model": model,
@@ -440,7 +452,8 @@ Rate match 0-10. List matched and missing elements."""
             {"type": "text", "text": user_prompt},
             {"type": "image_url", "image_url": {"url": image_data_url}}
         ]}],
-        "max_tokens": 1000,
+        "max_tokens": 500,
+        "temperature": 0.1,
     }, ensure_ascii=True)
 
     async with httpx.AsyncClient(timeout=180) as client:
@@ -456,18 +469,62 @@ Rate match 0-10. List matched and missing elements."""
         )
         data = resp.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        info(f"[CV] Raw response: {content[:300]}")
 
     cv_result = _extract_json(content)
     if not cv_result:
-        cv_result = {"score": 5, "description": content[:500], "matched": [], "missing": []}
+        cv_result = {"score": 5, "description": content[:500], "matched": [], "missing": [], "mood": "unknown"}
 
     def _to_ascii(s):
         if not s: return ""
         return str(s).encode("ascii", errors="replace").decode("ascii")
 
+    # Handle Gemini nested structure (flexible parsing)
+    score = cv_result.get("score", 5)
+    description = cv_result.get("description", "")
+    matched = cv_result.get("matched", [])
+    missing = cv_result.get("missing", [])
+    mood = cv_result.get("mood", cv_result.get("mood_match", "unknown"))
+
+    # Try nested structures Gemini actually returns (very flexible)
+    analysis = cv_result.get("match_analysis", cv_result.get("analysis", {}))
+    if analysis:
+        # Try different element field names Gemini uses
+        elements = analysis.get("key_visual_elements",
+                  analysis.get("key_elements_present",
+                  analysis.get("elements", {})))
+        for k, v in elements.items():
+            key_clean = str(k).replace("_", " ")
+            v_lower = str(v).lower() if v else ""
+            if v is True or v_lower.startswith("captured") or v_lower.startswith("present"):
+                matched.append(key_clean)
+            elif v is False or v_lower.startswith("missing") or v_lower.startswith("absent"):
+                missing.append(key_clean)
+        mood_info = analysis.get("mood_atmosphere", {})
+        mood_val = mood_info.get("matches_description", mood_info.get("match", mood_info.get("overall", "unknown")))
+        if mood_val is True: mood = "good"
+        elif mood_val is False: mood = "poor"
+        elif isinstance(mood_val, str):
+            mood = "good" if mood_val.lower().startswith("match") else ("partial" if "partial" in mood_val.lower() else "poor")
+        if not description:
+            desc_fallback = analysis.get("summary", analysis.get("overall_assessment", ""))
+            if not desc_fallback:
+                # Build description from elements
+                desc_fallback = f"Elements found: {', '.join(matched) if matched else 'none'}. Missing: {', '.join(missing) if missing else 'none'}"
+            description = desc_fallback
+        # Compute score if not provided
+        if "score" not in cv_result:
+            present = sum(1 for v in elements.values() if v is True or (isinstance(v, str) and v.lower().startswith("captured")))
+            total = len(elements)
+            if total > 0:
+                score = min(10, max(1, int((present / total) * 10)))
+    elif not description:
+        description = f"CV analysis: {content[:300]}"
+
     return {
-        "score": cv_result.get("score", 5),
-        "description": _to_ascii(cv_result.get("description", "")),
-        "matched": [_to_ascii(m) for m in cv_result.get("matched", [])],
-        "missing": [_to_ascii(m) for m in cv_result.get("missing", [])],
+        "score": score,
+        "description": _to_ascii(description),
+        "matched": [_to_ascii(m) for m in matched],
+        "missing": [_to_ascii(m) for m in missing],
+        "mood_match": _to_ascii(mood),
     }
