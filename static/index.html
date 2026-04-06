@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animation Studio v2 — РОДИНА</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/static/style.css?v=20260406-v18">
+    <link rel="stylesheet" href="/static/style.css?v=20260406-v19">
 </head>
 <body>
     <div id="app">
@@ -171,7 +171,10 @@
                         </div>
                         <div class="detail-section" id="cvCheckSection" style="display:none;">
                             <h3>🤖 CV Проверка</h3>
-                            <button class="btn-cv-check" id="btnCvCheck" onclick="cvCheckFrame(currentSceneData?.id)" style="padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:var(--radius);font-size:13px;cursor:pointer;margin-bottom:10px;">🔍 Проверить соответствие</button>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                                <button class="btn-cv-check" id="btnCvCheck" onclick="cvCheckFrame(currentSceneData?.id)" style="padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:var(--radius);font-size:13px;cursor:pointer;">🔍 Проверить</button>
+                                <button class="btn-auto-fix" id="btnAutoFix" onclick="autoFixFrame(currentSceneData?.id)" style="padding:8px 16px;background:#f59e0b;color:#000;border:none;border-radius:var(--radius);font-size:13px;cursor:pointer;">🔧 Авто-исправление (Critic+Fixer)</button>
+                            </div>
                             <div id="cvStatus" style="font-size:13px;margin:8px 0;display:none;"></div>
                             <div id="cvResult" style="font-size:13px;"></div>
                         </div>
@@ -237,6 +240,6 @@
         <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="/static/app.js?v=20260406-v20"></script>
+    <script src="/static/app.js?v=20260406-v21"></script>
 </body>
 </html>

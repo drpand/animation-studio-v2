@@ -913,3 +913,79 @@ async function cvCheckFrame(frameId) {
         cvStatus.style.color = 'var(--red)';
     }
 }
+
+// ============================================
+// AUTO-FIX: CV → Critic → Fixer → Kie.ai цикл
+// ============================================
+
+async function autoFixFrame(frameId) {
+    if (!frameId) return;
+
+    const cvSection = document.getElementById('cvCheckSection');
+    const cvStatus = document.getElementById('cvStatus');
+    const cvResult = document.getElementById('cvResult');
+    const btnAutoFix = document.getElementById('btnAutoFix');
+    const btnCvCheck = document.getElementById('btnCvCheck');
+
+    cvSection.style.display = 'block';
+    btnAutoFix.disabled = true;
+    btnAutoFix.textContent = '⏳ Авто-испление...';
+    btnCvCheck.disabled = true;
+    cvStatus.style.display = 'block';
+    cvStatus.innerHTML = '⏳ Запуск CV → Critic → Fixer цикла (макс 3 попытки, ~2-3 мин)...';
+    cvStatus.style.color = 'var(--yellow)';
+    cvResult.innerHTML = '';
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 мин
+
+        const res = await fetch(`${API_BASE}/api/tools/cv-auto-fix/${frameId}`, {
+            method: 'POST',
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        const data = await res.json();
+
+        if (data.ok) {
+            const score = data.final_score || 0;
+            const scoreColor = score >= 8 ? 'var(--green)' : score >= 6 ? 'var(--yellow)' : 'var(--red)';
+            const scoreIcon = score >= 8 ? '✅' : score >= 6 ? '⚠️' : '❌';
+
+            cvStatus.innerHTML = `${scoreIcon} Авто-исправление завершено за ${data.attempts} попыток. Итог: <strong style="color:${scoreColor}">${score}/10</strong>`;
+            cvStatus.style.color = scoreColor;
+
+            // История попыток
+            let historyHtml = '<div style="margin-top:12px;"><strong>История:</strong><ul style="margin:8px 0;padding-left:20px;">';
+            (data.history || []).forEach(h => {
+                const hColor = h.cv_score >= 8 ? 'var(--green)' : h.cv_score >= 6 ? 'var(--yellow)' : 'var(--red)';
+                historyHtml += `<li>Попытка ${h.attempt}: <strong style="color:${hColor}">${h.cv_score}/10</strong> ${h.missing?.length > 0 ? '| Пропущено: ' + h.missing.map(escapeHtml).join(', ') : ''}</li>`;
+            });
+            historyHtml += '</ul></div>';
+            cvResult.innerHTML = historyHtml;
+
+            // Обновляем изображение
+            if (currentSceneData) {
+                document.getElementById('modalSceneImage').src = currentSceneData.image_url + '?t=' + Date.now();
+            }
+
+            // Обновляем storyboard
+            loadStoryboard();
+        } else {
+            cvStatus.innerHTML = '❌ Ошибка: ' + (data.error || 'Неизвестная ошибка');
+            cvStatus.style.color = 'var(--red)';
+        }
+    } catch (e) {
+        if (e.name === 'AbortError') {
+            cvStatus.innerHTML = '⏱️ Таймаут (5 мин). Проверь Storyboard — возможно изображение готово.';
+        } else {
+            cvStatus.innerHTML = '❌ Ошибка: ' + e.message;
+        }
+        cvStatus.style.color = 'var(--red)';
+    }
+
+    btnAutoFix.disabled = false;
+    btnAutoFix.textContent = '🔧 Авто-исправление (Critic+Fixer)';
+    btnCvCheck.disabled = false;
+}
