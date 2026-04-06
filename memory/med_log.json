@@ -1,16 +1,106 @@
 {
   "entries": [
     {
-      "timestamp": "2026-04-05T03:26:35.089836",
-      "action": "evaluation_pass",
-      "details": "Агент writer прошёл оценку (score: 5)",
-      "agent_id": "writer"
+      "timestamp": "2026-04-06T20:39:25.727389",
+      "action": "pipeline_completed",
+      "details": "Scene pipeline completed: 1x1:1",
+      "agent_id": "orchestrator"
     },
     {
-      "timestamp": "2026-04-05T04:08:38.451267",
-      "action": "evaluation_pass",
-      "details": "Агент writer прошёл оценку (score: 5)",
-      "agent_id": "writer"
+      "timestamp": "2026-04-06T20:57:13.845140",
+      "action": "pipeline_completed",
+      "details": "Scene pipeline completed: 1x2:2",
+      "agent_id": "orchestrator"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:13.237246",
+      "action": "tool_failure",
+      "details": "Kie.ai failed for scene_1_3_1: Генерация не удалась: Не удалось подключиться к Kie.ai: [Errno 11002] getaddrinfo failed",
+      "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:17.824684",
+      "action": "evaluation_fail",
+      "details": "Агент art_director провалил оценку: Результат абсолютно неприемлем. Работа не выполнена, а вместо визуального контента представлен технический отчет об ошибке соединения. Ошибка `[Errno 11002] getaddrinfo failed` указывает на проблемы с",
+      "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:17.845142",
+      "action": "fixer_attempt",
+      "details": "Попытка исправления 1/3 для art_director",
+      "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:26.546069",
+      "action": "fixer_fail",
+      "details": "Fixer не справился (попытка 1/3): Это не «исправленный результат», а пустая обертка. Как критик, я оцениваю финальный визуал, а не технический лог о «восстановлении соединения».",
+      "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:26.566165",
+      "action": "fixer_attempt",
+      "details": "Попытка исправления 2/3 для art_director",
+      "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:37.076000",
+      "action": "fixer_fail",
+      "details": "Fixer не справился (попытка 2/3): ",
+      "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:37.100919",
+      "action": "fixer_attempt",
+      "details": "Попытка исправления 3/3 для art_director",
+      "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:48.618182",
+      "action": "fixer_success",
+      "details": "Fixer исправил результат для art_director (попытка 3)",
+      "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:48.657426",
+      "action": "agent_heal_triggered",
+      "details": "Агент art_director: 2 провалов подряд → эволюция",
+      "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:48.684024",
+      "action": "evolution_error",
+      "details": "Ошибка эволюции art_director: 'NoneType' object is not subscriptable",
+      "agent_id": "art_director"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:48.749205",
+      "action": "chain_heal_triggered",
+      "details": "Цепочка storyboarder→critic: 2 провалов",
+      "agent_id": "storyboarder,critic"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:48.787988",
+      "action": "chain_healed",
+      "details": "Цепочка storyboarder→critic исправлена: обновлён промпт critic",
+      "agent_id": "storyboarder,critic"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:48.808085",
+      "action": "chain_heal_triggered",
+      "details": "Цепочка hr_agent→critic: 2 провалов",
+      "agent_id": "hr_agent,critic"
+    },
+    {
+      "timestamp": "2026-04-06T21:17:48.847456",
+      "action": "chain_healed",
+      "details": "Цепочка hr_agent→critic исправлена: обновлён промпт critic",
+      "agent_id": "hr_agent,critic"
+    },
+    {
+      "timestamp": "2026-04-06T21:18:14.977042",
+      "action": "pipeline_completed",
+      "details": "Scene pipeline completed: 1x3:1",
+      "agent_id": "orchestrator"
     }
   ]
 }

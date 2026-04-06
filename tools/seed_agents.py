@@ -7,7 +7,7 @@ with open('agents/instructions.json', 'r', encoding='utf-8') as f:
 
 # Agent definitions with correct roles
 agents = [
-    ('orchestrator', 'Orchestrator', 'Дирижёр — управляет всеми агентами, строит цепочки задач', 'qwen/qwen3.5-9b'),
+    ('orchestrator', 'Orchestrator', 'Дирижёр — управляет всеми агентами, строит цепочки задач', 'deepseek/deepseek-v3.2'),
     ('director', 'Director', 'Режиссёр — принимает творческие решения по проекту', 'deepseek/deepseek-v3.2'),
     ('writer', 'Writer', 'Сценарист — адаптирует сцены сценария в промпты', 'deepseek/deepseek-v3.2'),
     ('critic', 'Critic', 'Критик — оценивает результат, даёт обратную связь', 'deepseek/deepseek-v3.2'),

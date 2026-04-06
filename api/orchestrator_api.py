@@ -243,6 +243,7 @@ _producer_tasks: dict = {}
 async def create_task(req: dict):
     """Продюсер ставит задачу. Оркестратор запускает полный конвейер."""
     from orchestrator.executor import run_scene_pipeline
+    from med_otdel.med_core import write_event, log_med_action
     from database import async_session
     import uuid
 
@@ -317,26 +318,62 @@ async def create_task(req: dict):
             for frame_idx in range(num_frames):
                 current_scene = scene + frame_idx
                 frame_progress_base = int((frame_idx / num_frames) * 90)
+                frame_task_id = f"{task_id}_frame_{frame_idx + 1}"
                 
                 info(f"[PRODUCER] Генерация кадра {frame_idx + 1}/{num_frames}, сцена {current_scene}")
                 
                 await _progress(f"Кадр {frame_idx + 1}/{num_frames}: Кастинг...", frame_progress_base + 5)
+
+                async def _frame_progress(step: str, prog: int):
+                    await _progress(
+                        f"Кадр {frame_idx + 1}/{num_frames}: {step}",
+                        frame_progress_base + int(prog * 0.9)
+                    )
                 
                 async with async_session() as db:
                     result = await run_scene_pipeline(
                         season, episode, current_scene, 
                         f"{task_desc}\n\nКадр {frame_idx + 1} из {num_frames}",
                         db, 
-                        progress_callback=lambda step, prog: _progress(
-                            f"Кадр {frame_idx + 1}/{num_frames}: {step}", 
-                            frame_progress_base + int(prog * 0.9)
-                        )
+                        progress_callback=_frame_progress
                     )
                 
                 info(f"[PRODUCER] Кадр {frame_idx + 1} завершён, статус: {result.get('status')}")
+                try:
+                    write_event(
+                        agent_id="orchestrator",
+                        event_type="frame_pipeline",
+                        result=f"frame={frame_idx + 1}/{num_frames}; scene={current_scene}; status={result.get('status')}",
+                        status="success" if result.get("status") == "completed" else "fail",
+                        task_id=frame_task_id,
+                    )
+                except Exception:
+                    pass
                 
                 if result.get("status") == "failed":
-                    error(f"[PRODUCER] Кадр {frame_idx + 1} провалился")
+                    failure_reason = ""
+                    try:
+                        # Пытаемся извлечь первопричину из шагов конвейера
+                        steps = result.get("steps", {}) if isinstance(result, dict) else {}
+                        if isinstance(steps, dict):
+                            for step_name, step_data in steps.items():
+                                if isinstance(step_data, dict) and step_data.get("status") == "failed":
+                                    failure_reason = str(step_data.get("result") or step_data.get("error") or "")
+                                    if failure_reason:
+                                        failure_reason = f"step={step_name}: {failure_reason[:300]}"
+                                        break
+                        if not failure_reason and isinstance(result, dict):
+                            failure_reason = str(result.get("error") or result.get("result") or "")[:300]
+                    except Exception:
+                        failure_reason = ""
+
+                    error(f"[PRODUCER] Кадр {frame_idx + 1} провалился. reason={failure_reason}")
+                    try:
+                        log_med_action("frame_failed", f"{task_id} frame={frame_idx + 1}/{num_frames} reason={failure_reason[:200]}", "orchestrator")
+                    except Exception:
+                        pass
+                    if failure_reason:
+                        raise Exception(f"Кадр {frame_idx + 1} провалился ({failure_reason})")
                     raise Exception(f"Кадр {frame_idx + 1} провалился")
 
             info(f"[PRODUCER] Все {num_frames} кадров сгенерированы успешно")
@@ -558,13 +595,46 @@ async def get_storyboard_frames(db: AsyncSession = Depends(get_session)):
         "scene_num": f.scene_num, "frame_num": f.frame_num,
         "status": f.status, "final_prompt": f.final_prompt or "",
         "image_url": f.image_url or "", "writer_text": f.writer_text or "",
+        "director_notes": f.director_notes or "",
+        "characters_json": f.characters_json or "",
+        "dop_prompt": f.dop_prompt or "",
+        "art_prompt": f.art_prompt or "",
+        "sound_prompt": f.sound_prompt or "",
+        "prompt_parts_json": f.prompt_parts_json or "",
+        "prompt_parts": _extract_prompt_parts(f.prompt_parts_json or ""),
         "critic_feedback": f.critic_feedback or "",
         "cv_score": f.cv_score or 0,
         "cv_description": f.cv_description or "",
         "cv_details": f.cv_details or "",
         "consistency_score": f.consistency_score or 0,
         "consistency_issues": f.consistency_issues or "",
+        # Editable hints for UI (stored in user_comment as JSON envelope when available)
+        "edit_hints": _extract_edit_hints(f.user_comment or ""),
     } for f in frames]}
+
+
+def _extract_edit_hints(user_comment: str) -> dict:
+    """Достаёт из user_comment JSON-хинты редактирования карточки кадра."""
+    if not user_comment:
+        return {}
+    try:
+        obj = json.loads(user_comment)
+        if isinstance(obj, dict) and obj.get("type") == "frame_edit_hints":
+            return obj.get("hints", {}) if isinstance(obj.get("hints", {}), dict) else {}
+    except Exception:
+        pass
+    return {}
+
+
+def _extract_prompt_parts(prompt_parts_json: str) -> dict:
+    """Безопасно парсит prompt_parts_json в dict."""
+    if not prompt_parts_json:
+        return {}
+    try:
+        obj = json.loads(prompt_parts_json)
+        return obj if isinstance(obj, dict) else {}
+    except Exception:
+        return {}
 
 
 @router.get("/scene-result/{season}/{episode}/{scene}")
@@ -683,6 +753,7 @@ async def patch_scene_frame(season: int, episode: int, scene: int, updates: dict
     allowed_fields = {
         "writer_text", "director_notes", "characters_json",
         "dop_prompt", "art_prompt", "sound_prompt",
+        "prompt_parts_json",
         "final_prompt", "image_url", "critic_feedback",
         "status", "user_status", "user_comment",
     }

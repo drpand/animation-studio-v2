@@ -37,3 +37,9 @@ logs/*.log
 # Temp files
 *.txt.bak
 *.tmp
+
+# Local automation artifacts
+.playwright-mcp/
+storyboard-current-state.png
+check_db.py
+test_parse.py

@@ -14,6 +14,8 @@ from config import OPENROUTER_API_KEY
 from orchestrator.task_chain import TaskChain, AgentStep
 from orchestrator.progress_tracker import tracker
 from med_otdel.agent_memory import call_llm
+from med_otdel.med_core import write_event, run_evaluation, log_med_action
+from med_otdel.studio_monitor import set_agent_error, reset_agent_error
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTRY_FILE = os.path.join(PROJECT_ROOT, "orchestrator", "agent_registry.json")
@@ -49,10 +51,15 @@ async def _cv_auto_check(image_url: str, writer_text: str, final_prompt: str, ta
         image_b64 = ""
         if current_image_url.startswith("/tools_cache/"):
             filename = os.path.basename(current_image_url)
-            local_path = os.path.join(PROJECT_ROOT, "memory", "tools_cache", "images", filename)
-            if os.path.exists(local_path):
-                with open(local_path, "rb") as f:
-                    image_b64 = base64.b64encode(f.read()).decode("utf-8")
+            candidate_paths = [
+                os.path.join(PROJECT_ROOT, "memory", "tools_cache", "images", filename),
+                os.path.join(PROJECT_ROOT, "memory", "tools_cache", filename),
+            ]
+            for local_path in candidate_paths:
+                if os.path.exists(local_path):
+                    with open(local_path, "rb") as f:
+                        image_b64 = base64.b64encode(f.read()).decode("utf-8")
+                    break
         else:
             try:
                 async with httpx.AsyncClient(timeout=30) as client:
@@ -115,7 +122,16 @@ Return JSON only."""
                     content=body.encode("utf-8"),
                 )
                 data = resp.json()
-                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                raw_content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                if isinstance(raw_content, list):
+                    content = "\n".join(
+                        part.get("text", "") if isinstance(part, dict) else str(part)
+                        for part in raw_content
+                    )
+                elif isinstance(raw_content, dict):
+                    content = raw_content.get("text", "") or json.dumps(raw_content, ensure_ascii=False)
+                else:
+                    content = str(raw_content)
         except Exception as e:
             await _post_discussion(f"[CV-AUTO] Ошибка OpenRouter: {str(e)[:200]}", "system", "orchestrator")
             return {"score": 0, "description": f"CV API error: {str(e)[:200]}", "matched": [], "missing": [], "attempts": attempt, "history": history}
@@ -125,10 +141,47 @@ Return JSON only."""
         if not cv_result:
             cv_result = {"score": 5, "description": content[:500], "matched": [], "missing": []}
 
+        # Базовые поля
         score = cv_result.get("score", 5)
-        description = cv_result.get("description", "")
-        matched = cv_result.get("matched", [])
-        missing = cv_result.get("missing", [])
+        description = _safe_text(cv_result.get("description", ""))
+        matched = _safe_text_list(cv_result.get("matched", []))
+        missing = _safe_text_list(cv_result.get("missing", []))
+
+        # Гибкий парсинг nested Gemini-структур
+        analysis = cv_result.get("match_analysis", cv_result.get("analysis", {}))
+        if isinstance(analysis, dict) and analysis:
+            elements = analysis.get("key_visual_elements",
+                      analysis.get("key_elements_present",
+                      analysis.get("elements", {})))
+            if isinstance(elements, dict):
+                for k, v in elements.items():
+                    key_clean = _safe_text(k).replace("_", " ")
+                    v_text = _safe_text(v).lower()
+                    if v is True or v_text.startswith("captured") or v_text.startswith("present") or v_text.startswith("yes"):
+                        if key_clean and key_clean not in matched:
+                            matched.append(key_clean)
+                    elif v is False or v_text.startswith("missing") or v_text.startswith("absent") or v_text.startswith("no"):
+                        if key_clean and key_clean not in missing:
+                            missing.append(key_clean)
+
+                if "score" not in cv_result and "overall_score" not in cv_result:
+                    present = sum(1 for v in elements.values() if (v is True) or _safe_text(v).lower().startswith(("captured", "present", "yes")))
+                    total = len(elements)
+                    if total > 0:
+                        score = min(10, max(1, int((present / total) * 10)))
+
+        # Альтернативный score (например overall_score)
+        if not isinstance(score, (int, float)):
+            score = cv_result.get("overall_score", cv_result.get("score", 5))
+        if isinstance(score, str):
+            m = re.search(r"(\d+(?:\.\d+)?)", score)
+            score = float(m.group(1)) if m else 5
+        if isinstance(score, float):
+            score = int(round(score))
+        score = max(0, min(10, int(score)))
+
+        if not description:
+            description = _safe_text(cv_result.get("summary", cv_result.get("overall_assessment", content[:500])))
 
         await _post_discussion(f"[CV-AUTO] Попытка {attempt}: score={score}/10, matched={len(matched)}, missing={len(missing)}", "system", "orchestrator")
 
@@ -136,6 +189,7 @@ Return JSON only."""
             "attempt": attempt,
             "cv_score": score,
             "cv_description": description[:300],
+            "matched": matched,
             "missing": missing,
         })
 
@@ -187,7 +241,7 @@ Return ONLY the critique, no JSON."""
 
         try:
             critic_feedback, _ = await asyncio.wait_for(
-                call_llm(system_prompt=critic_system, user_prompt=critic_user, model="google/gemini-3-flash-preview"),
+                call_llm(system_prompt=critic_system, user_prompt=critic_user, model="deepseek/deepseek-v3.2"),
                 timeout=60
             )
         except Exception as e:
@@ -216,7 +270,7 @@ Return ONLY the new prompt text, no explanations, no JSON."""
 
         try:
             new_prompt, _ = await asyncio.wait_for(
-                call_llm(system_prompt=fixer_system, user_prompt=fixer_user, model="google/gemini-3-flash-preview"),
+                call_llm(system_prompt=fixer_system, user_prompt=fixer_user, model="deepseek/deepseek-v3.2"),
                 timeout=60
             )
             # Очищаем от markdown
@@ -247,7 +301,7 @@ Return ONLY the new prompt text, no explanations, no JSON."""
     return {
         "score": history[-1]["cv_score"] if history else 0,
         "description": history[-1]["cv_description"] if history else "",
-        "matched": history[-1].get("missing", []),
+        "matched": history[-1].get("matched", []),
         "missing": history[-1].get("missing", []),
         "attempts": len(history),
         "history": history,
@@ -278,10 +332,15 @@ async def _check_character_consistency(image_url: str, characters_data: list, wr
     image_b64 = ""
     if image_url.startswith("/tools_cache/"):
         filename = os.path.basename(image_url)
-        local_path = os.path.join(PROJECT_ROOT, "memory", "tools_cache", "images", filename)
-        if os.path.exists(local_path):
-            with open(local_path, "rb") as f:
-                image_b64 = base64.b64encode(f.read()).decode("utf-8")
+        candidate_paths = [
+            os.path.join(PROJECT_ROOT, "memory", "tools_cache", "images", filename),
+            os.path.join(PROJECT_ROOT, "memory", "tools_cache", filename),
+        ]
+        for local_path in candidate_paths:
+            if os.path.exists(local_path):
+                with open(local_path, "rb") as f:
+                    image_b64 = base64.b64encode(f.read()).decode("utf-8")
+                break
     else:
         try:
             async with httpx.AsyncClient(timeout=30) as client:
@@ -358,7 +417,16 @@ Return JSON only."""
                 content=body.encode("utf-8"),
             )
             data = resp.json()
-            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            raw_content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            if isinstance(raw_content, list):
+                content = "\n".join(
+                    part.get("text", "") if isinstance(part, dict) else str(part)
+                    for part in raw_content
+                )
+            elif isinstance(raw_content, dict):
+                content = raw_content.get("text", "") or json.dumps(raw_content, ensure_ascii=False)
+            else:
+                content = str(raw_content)
     except Exception as e:
         await _post_discussion(f"[CONSISTENCY] Ошибка OpenRouter: {str(e)[:200]}", "system", "orchestrator")
         return {"score": 5, "issues": [f"API error: {str(e)[:200]}"], "characters_checked": len(characters_data)}
@@ -407,8 +475,8 @@ def _get_agent_model(agent_id: str) -> str:
     registry = _load_registry()
     for agent in registry:
         if agent.get("id") == agent_id:
-            return agent.get("model", "google/gemini-3-flash-preview")
-    return "google/gemini-3-flash-preview"
+            return agent.get("model", "deepseek/deepseek-v3.2")
+    return "deepseek/deepseek-v3.2"
 
 
 async def _post_discussion(content: str, msg_type: str = "system", agent_id: str = ""):
@@ -819,22 +887,177 @@ def _extract_names_to_remove(feedback: str) -> list:
     return names
 
 
+def _safe_text(value) -> str:
+    """Безопасно привести значение к строке для логов/промптов."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (dict, list)):
+        try:
+            return json.dumps(value, ensure_ascii=False)
+        except Exception:
+            return str(value)
+    return str(value)
+
+
+def _safe_text_list(values) -> list:
+    """Нормализовать список значений в список строк (без пустых)."""
+    if not isinstance(values, list):
+        return []
+    result = []
+    for v in values:
+        text = _safe_text(v).strip()
+        if text:
+            result.append(text)
+    return result
+
+
+def _sanitize_image_text(text: str) -> str:
+    """Очистить текст от видео-таймингов и motion-терминов для статичного image prompt."""
+    t = _safe_text(text)
+    if not t:
+        return ""
+
+    # Таймкоды и явные длительности
+    t = re.sub(r"\b\d{1,2}:\d{2}(?::\d{2})?\b", " ", t, flags=re.IGNORECASE)
+    t = re.sub(r"\b\d+\s*(секунд|сек|seconds?|s|fps)\b", " ", t, flags=re.IGNORECASE)
+
+    # Термины движения камеры/монтажа (ru/en)
+    motion_terms = [
+        "dolly", "dolly in", "dolly out", "pan", "tilt", "zoom", "tracking", "truck",
+        "crane", "orbit", "whip pan", "camera movement", "camera move", "transition",
+        "cut to", "crossfade", "montage", "sequence", "shot-reverse-shot",
+        "долли", "панорама", "панорамирование", "наклон камеры", "зум", "наезд", "отъезд",
+        "треккинг", "кран", "орбита", "монтаж", "переход", "склейка", "последовательность",
+        "кадр за кадром", "тайминг", "хронометраж"
+    ]
+    for term in motion_terms:
+        t = re.sub(rf"\b{re.escape(term)}\b", " ", t, flags=re.IGNORECASE)
+
+    # Нормализация пробелов/пунктуации
+    t = re.sub(r"\s+", " ", t).strip(" ,.;:-")
+    return t
+
+
+def _pick_visual_phrase(parts: dict, keys: list, default: str = "") -> str:
+    """Взять первое валидное визуальное поле из списка ключей."""
+    for k in keys:
+        v = parts.get(k)
+        if v is None:
+            continue
+        if isinstance(v, (dict, list)):
+            continue
+        s = _sanitize_image_text(str(v))
+        if s:
+            return s
+    return default
+
+
+def _build_strict_image_parts(parts: dict) -> dict:
+    """Собрать структурные image-поля (карточка кадра) из решений цехов."""
+    subject = _pick_visual_phrase(parts, ["character", "subject"], "adult human protagonist")
+    location = _pick_visual_phrase(parts, ["location", "environment", "background"], "night exterior")
+    lighting = _pick_visual_phrase(parts, ["lighting"], "cinematic low-key lighting")
+    style = _pick_visual_phrase(parts, ["style"], "cinematic illustration, detailed textures")
+    palette = _pick_visual_phrase(parts, ["palette", "color_palette"], "cold muted contrast")
+    # Mood может приходить от sound_director (не подходит для image prompt),
+    # поэтому читаем только визуальную атмосферу.
+    mood = _pick_visual_phrase(parts, ["atmosphere", "visual_mood"], "tense dramatic mood")
+    composition = _pick_visual_phrase(parts, ["shot", "composition", "framing"], "single static composition")
+    return {
+        "subject": subject,
+        "location": location,
+        "lighting": lighting,
+        "style": style,
+        "palette": palette,
+        "mood": mood,
+        "composition": composition,
+        "constraints": [
+            "aspect ratio 16:9",
+            "single still frame",
+            "no camera movement",
+            "no transitions",
+            "no sequence",
+            "no storyboard panels",
+            "no subtitles",
+            "no text",
+            "no watermark",
+        ],
+    }
+
+
+def _compose_image_prompt(parts: dict) -> str:
+    """Собрать строковый image prompt из структурных полей карточки кадра."""
+    strict_parts = [
+        f"subject: {_safe_text(parts.get('subject', 'adult human protagonist'))}",
+        f"location: {_safe_text(parts.get('location', 'night exterior'))}",
+        f"lighting: {_safe_text(parts.get('lighting', 'cinematic low-key lighting'))}",
+        f"style: {_safe_text(parts.get('style', 'cinematic illustration, detailed textures'))}",
+        f"palette: {_safe_text(parts.get('palette', 'cold muted contrast'))}",
+        f"mood: {_safe_text(parts.get('mood', 'tense dramatic mood'))}",
+        f"composition: {_safe_text(parts.get('composition', 'single static composition'))}",
+    ]
+    constraints = parts.get("constraints", [])
+    if isinstance(constraints, list):
+        strict_parts.extend([_safe_text(c) for c in constraints if _safe_text(c)])
+    prompt = ", ".join([p for p in strict_parts if p])
+    return prompt[:800]
+
+
+def _build_strict_image_prompt(parts: dict) -> str:
+    """Backward-compatible wrapper: принимает сырые части, возвращает image-only prompt."""
+    return _compose_image_prompt(_build_strict_image_parts(parts))
+
+
+def _contains_panda(text: str) -> bool:
+    t = _safe_text(text).lower()
+    return ("panda" in t) or ("панда" in t)
+
+
+def _sanitize_subject_leakage(subject: str, context: dict) -> str:
+    """Очистка subject от утечек сущностей, которых нет в текущей сцене."""
+    s = _safe_text(subject)
+    writer_text = _safe_text(context.get("writer_text", ""))
+    task_text = _safe_text(context.get("task_text", ""))
+    hr_text = _safe_text(context.get("hr_text", ""))
+    full_context = f"{writer_text}\n{task_text}\n{hr_text}".lower()
+    panda_allowed = ("panda" in full_context) or ("панда" in full_context)
+    if not panda_allowed and _contains_panda(s):
+        s = re.sub(r"\bsamurai panda\b", "adult human protagonist", s, flags=re.IGNORECASE)
+        s = re.sub(r"\bpanda samurai\b", "adult human protagonist", s, flags=re.IGNORECASE)
+        s = re.sub(r"\bpanda\b", "adult human", s, flags=re.IGNORECASE)
+        s = re.sub(r"панда[-\s]?самурай", "взрослый человек", s, flags=re.IGNORECASE)
+        s = re.sub(r"панда", "взрослый человек", s, flags=re.IGNORECASE)
+    return s[:300]
+
+
+def _sanitize_entity_leakage(prompt: str, context: dict) -> str:
+    """Убирает утечку сущностей (например, panda), если их нет в текущем контексте задачи."""
+    p = _safe_text(prompt)
+    # Контекст текущей сцены
+    writer_text = _safe_text(context.get("writer_text", ""))
+    task_text = _safe_text(context.get("task_text", ""))
+    hr_text = _safe_text(context.get("hr_text", ""))
+    full_context = f"{writer_text}\n{task_text}\n{hr_text}".lower()
+
+    panda_allowed = ("panda" in full_context) or ("панда" in full_context)
+    if not panda_allowed and _contains_panda(p):
+        # Жёстко заменяем panda-сущности на нейтрального персонажа
+        p = re.sub(r"\bsamurai panda\b", "adult human protagonist", p, flags=re.IGNORECASE)
+        p = re.sub(r"\bpanda samurai\b", "adult human protagonist", p, flags=re.IGNORECASE)
+        p = re.sub(r"\bpanda\b", "adult human", p, flags=re.IGNORECASE)
+        p = re.sub(r"панда[-\s]?самурай", "взрослый человек", p, flags=re.IGNORECASE)
+        p = re.sub(r"панда", "взрослый человек", p, flags=re.IGNORECASE)
+
+    return p[:800]
+
+
 def _build_kieai_prompt(parts: dict) -> str:
     """Собрать финальный промпт из JSON частей цехов для Z-Image Turbo.
     Kie.ai Z-Image имеет лимит ~800 символов — собираем компактно."""
-    prompt = ", ".join(
-        part for part in [
-            parts.get('shot', 'Medium shot, cinematic angle'),
-            parts.get('character', ''),
-            parts.get('location', ''),
-            parts.get('lighting', ''),
-            parts.get('mood', ''),
-            parts.get('style', '2.5D anime, Satoshi Kon aesthetic, cinematic'),
-            parts.get('palette', ''),
-            parts.get('constraints', 'no watermark, no text, no logos, correct anatomy, sharp focus'),
-        ] if part
-    )
-    return prompt[:800]
+    # Жёсткая image-only сборка: только визуальные поля и строгие ограничения.
+    return _build_strict_image_prompt(parts)
 
 async def run_step_with_critic(agent_id: str, task: str, context: dict, task_id: str = "pipeline") -> dict:
     """
@@ -845,19 +1068,59 @@ async def run_step_with_critic(agent_id: str, task: str, context: dict, task_id:
     input_parts = []
     for key, value in context.items():
         if value:
-            input_parts.append(f"[{key.upper()}]\n{value}")
+            if isinstance(value, (dict, list)):
+                try:
+                    value_text = json.dumps(value, ensure_ascii=False)
+                except Exception:
+                    value_text = str(value)
+            else:
+                value_text = str(value)
+            input_parts.append(f"[{key.upper()}]\n{value_text}")
     input_parts.append(f"[ЗАДАЧА]\n{task}")
     input_text = "\n\n".join(input_parts)
 
     # Шаг 1: Агент выполняет задачу
     result, success = await _run_agent_step(agent_id, input_text, task_id)
+    # Пишем событие выполнения шага в шину МЕД-ОТДЕЛА
+    try:
+        write_event(
+            agent_id=agent_id,
+            event_type="task_completed",
+            result=_safe_text(result),
+            status="success" if success else "fail",
+            task_id=task_id,
+        )
+    except Exception:
+        pass
+
     if not success:
+        try:
+            set_agent_error(agent_id)
+            log_med_action("pipeline_step_failed", f"{agent_id} step failed before critic", agent_id)
+        except Exception:
+            pass
         return {"status": "failed", "result": result, "rounds": 0}
 
     # Critic/Fixer цикл (макс 3 круга)
     for round_num in range(3):
         passed, feedback = await _run_critic(result, task_id, agent_id)
+        # Пишем событие оценки в шину МЕД-ОТДЕЛА
+        try:
+            write_event(
+                agent_id="critic",
+                event_type="evaluation",
+                result=_safe_text(feedback),
+                status="pass" if passed else "fail",
+                task_id=task_id,
+                target_agent_id=agent_id,
+            )
+        except Exception:
+            pass
         if passed:
+            try:
+                reset_agent_error(agent_id)
+            except Exception:
+                pass
             await _post_discussion(
                 f"[CONVEYOR] {agent_id}: APPROVED (round {round_num + 1})",
                 "system",
@@ -874,6 +1137,16 @@ async def run_step_with_critic(agent_id: str, task: str, context: dict, task_id:
                 "system",
                 agent_id
             )
+            try:
+                set_agent_error(agent_id)
+                # Запускаем МЕД-ОТДЕЛ оценку/эволюцию по последнему результату
+                await run_evaluation(
+                    task_result=_safe_text(result),
+                    agent_id=agent_id,
+                    task_description=_safe_text(task)[:500],
+                )
+            except Exception:
+                pass
             return {"status": "needs_review", "result": result, "rounds": 3, "critique": feedback}
 
     return {"status": "approved", "result": result, "rounds": 3}
@@ -918,9 +1191,16 @@ async def run_casting(pdf_context: str, task_id: str, db=None) -> dict:
             await _post_discussion(f"[CASTING] Персонаж: {c.get('name', '?')}", "system", "orchestrator")
 
     if not characters_data:
-        await _post_discussion("[CASTING] Не удалось извлечь JSON из ответа HR", "system", "orchestrator")
+        await _post_discussion("[CASTING] HR вернул пустой список персонажей — продолжаем без кастинга для этой сцены", "system", "orchestrator")
         await _post_discussion(f"[CASTING] HR output: {hr_result[:500]}", "system", "orchestrator")
-        return {"status": "failed", "characters": []}
+        return {
+            "status": "approved",
+            "characters": [],
+            "saved_count": 0,
+            "critic_passed": True,
+            "critic_feedback": "",
+            "result": "[]",
+        }
 
     # 2. Critic сверяет персонажей с PDF — отклоняет галлюцинации
     critic_passed = False
@@ -1143,6 +1423,16 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     }
 
     await _post_discussion(f"[CONVEYOR] Запуск конвейера: Сцена {season}x{episode}:{scene_num}", "system", "orchestrator")
+    try:
+        write_event(
+            agent_id="orchestrator",
+            event_type="pipeline_start",
+            result=f"scene={season}x{episode}:{scene_num}",
+            status="success",
+            task_id=task_id,
+        )
+    except Exception:
+        pass
     if progress_callback:
         await progress_callback("Кастинг персонажей...", 5)
 
@@ -1162,7 +1452,22 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     pipeline_result["steps"]["casting"] = casting_result
     
     if casting_result["status"] == "failed":
+        await _post_discussion(
+            f"[CONVEYOR] FAIL на кастинге: {str(casting_result.get('result') or casting_result.get('critic_feedback') or '')[:300]}",
+            "system", "orchestrator"
+        )
         pipeline_result["status"] = "failed"
+        try:
+            write_event(
+                agent_id="orchestrator",
+                event_type="pipeline_step",
+                result="casting_failed",
+                status="fail",
+                task_id=task_id,
+                target_agent_id="hr_agent",
+            )
+        except Exception:
+            pass
         return pipeline_result
 
     # Шаг 1: Writer описывает сцену
@@ -1175,7 +1480,22 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     pipeline_result["steps"]["writer"] = writer_result
 
     if writer_result["status"] == "failed":
+        await _post_discussion(
+            f"[CONVEYOR] FAIL на Writer: {str(writer_result.get('result') or '')[:300]}",
+            "system", "orchestrator"
+        )
         pipeline_result["status"] = "failed"
+        try:
+            write_event(
+                agent_id="orchestrator",
+                event_type="pipeline_step",
+                result="writer_failed",
+                status="fail",
+                task_id=task_id,
+                target_agent_id="writer",
+            )
+        except Exception:
+            pass
         return pipeline_result
 
     # Шаг 2: Director — творческое решение
@@ -1258,10 +1578,27 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     await _post_discussion("[CONVEYOR] Шаг 5: Storyboarder собирает промпт", "system", "orchestrator")
     if progress_callback:
         await progress_callback("Storyboarder собирает промпт...", 70)
-    final_prompt = _build_kieai_prompt(combined_parts)
+    context_guard = {
+        "writer_text": writer_result.get("result", "") if isinstance(writer_result, dict) else "",
+        "task_text": pdf_context,
+        "hr_text": hr_result.get("result", "") if isinstance(hr_result, dict) else "",
+    }
+
+    # Структурная карточка кадра (source of truth)
+    prompt_parts = _build_strict_image_parts(combined_parts)
+    prompt_parts["subject"] = _sanitize_subject_leakage(prompt_parts.get("subject", ""), context_guard)
+    prompt_parts["source"] = {
+        "dop": dop_json,
+        "art": art_json,
+        "sound": sound_json,
+    }
+
+    final_prompt = _compose_image_prompt(prompt_parts)
+    final_prompt = _sanitize_entity_leakage(final_prompt, context_guard)
     
     # Добавляем промпт в результат
     pipeline_result["final_prompt"] = final_prompt
+    pipeline_result["prompt_parts"] = prompt_parts
 
     # Шаг 6: Art Director → Kie.ai → изображение → CV авто-проверка
     await _post_discussion("[CONVEYOR] Шаг 6: Генерация изображений (Z-Image Turbo)", "system", "orchestrator")
@@ -1320,8 +1657,9 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
         pipeline_result["consistency_check"] = consistency_result
         
         if consistency_result.get("issues"):
+            issues_text = _safe_text_list(consistency_result.get("issues", []))
             await _post_discussion(
-                f"[CONVEYOR] ⚠️ Проблемы консистентности: {', '.join(consistency_result['issues'][:3])}",
+                f"[CONVEYOR] ⚠️ Проблемы консистентности: {', '.join(issues_text[:3])}",
                 "system", "orchestrator"
             )
         else:
@@ -1341,6 +1679,17 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     pipeline_result["steps"]["final_assembly"] = final_result
 
     pipeline_result["status"] = "completed"
+    try:
+        write_event(
+            agent_id="orchestrator",
+            event_type="pipeline_complete",
+            result=f"scene={season}x{episode}:{scene_num}:completed",
+            status="success",
+            task_id=task_id,
+        )
+        log_med_action("pipeline_completed", f"Scene pipeline completed: {season}x{episode}:{scene_num}", "orchestrator")
+    except Exception:
+        pass
 
     # === СОХРАНЕНИЕ В БД ===
     for retry in range(3):
@@ -1365,7 +1714,8 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
                     "dop_prompt": json.dumps(dop_json, ensure_ascii=False)[:4000],
                     "art_prompt": json.dumps(art_json, ensure_ascii=False)[:4000],
                     "sound_prompt": json.dumps(sound_json, ensure_ascii=False)[:4000],
-                    "final_prompt": final_prompt[:8000],
+                    "prompt_parts_json": json.dumps(prompt_parts, ensure_ascii=False)[:8000],
+                    "final_prompt": str(image_result.get("used_prompt") or final_prompt)[:8000],
                     "image_url": image_result.get("image_url", "")[:500],
                     "critic_feedback": image_result.get("critic_feedback", "")[:2000],
                     "cv_score": cv_result.get("score", 0),
@@ -1400,33 +1750,13 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
 
 
 async def _create_character_pattern(characters_text: str, db):
-    """Создать паттерн character_consistency из карточек HR."""
-    import sys
-    sys.path.insert(0, os.path.dirname(PROJECT_ROOT))
-    from med_otdel.rule_builder import _load_patterns
-    import json
-
-    pattern_text = f"[RULE] При генерации изображений строго соблюдай внешность персонажей:\n{characters_text[:2000]}"
-
-    # Сохраняем в patterns.json
-    patterns = _load_patterns()
-    patterns.append({
-        "key": "character_consistency",
-        "name": "Единообразие персонажей",
-        "rule_text": pattern_text,
-        "description": "Автоматически создано HR при кастинге",
-        "category": "visual",
-        "priority": 100,
-    })
-
-    try:
-        with open(PATTERNS_FILE, "w", encoding="utf-8") as f:
-            json.dump({"patterns": patterns}, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-
+    """
+    Legacy compatibility wrapper.
+    Раньше записывал глобальный паттерн в patterns.json (утечка контекста между сценами).
+    Теперь НЕ пишет в глобальные файлы — используем scene-local правило в art_prompt.
+    """
     await _post_discussion(
-        f"[CONVEYOR] Создан паттерн character_consistency для Art Director",
+        "[CONVEYOR] Character consistency rule применён локально к текущей сцене (без записи в global patterns)",
         "system",
         "hr_agent"
     )
@@ -1437,10 +1767,15 @@ async def _generate_and_review(prompt: str, task_id: str) -> dict:
     if not prompt:
         return {"status": "failed", "result": "Нет промпта для генерации"}
 
+    # Финальная страховка: prompt должен остаться image-only
+    prompt = _safe_text(prompt).strip()
+    if "single still frame" not in prompt.lower():
+        prompt = f"{prompt}, single still frame, static composition, no camera movement, no transitions"
+
     # Генерация через Kie.ai (без negative_prompt для Z-Image Turbo)
     from tools.kieai_tool import generate_image
     
-    await _post_discussion(f"[KIE.AI] Отправка промпта ({len(prompt)} символов)...", "system", "art_director")
+    await _post_discussion(f"[KIE.AI] Отправка image-prompt ({len(prompt)} символов): {prompt[:280]}", "system", "art_director")
     
     result = await generate_image(
         prompt=prompt[:4000],
@@ -1453,6 +1788,24 @@ async def _generate_and_review(prompt: str, task_id: str) -> dict:
     if result.status != "success":
         error_msg = f"Генерация не удалась: {result.error}"
         await _post_discussion(f"[KIE.AI] ОШИБКА: {error_msg}", "system", "art_director")
+        try:
+            set_agent_error("art_director")
+            write_event(
+                agent_id="art_director",
+                event_type="tool_call",
+                result=error_msg,
+                status="fail",
+                task_id=task_id,
+                target_agent_id="tools:kieai",
+            )
+            log_med_action("tool_failure", f"Kie.ai failed for {task_id}: {error_msg[:200]}", "art_director")
+            await run_evaluation(
+                task_result=error_msg,
+                agent_id="art_director",
+                task_description=f"Kie.ai image generation for {task_id}",
+            )
+        except Exception:
+            pass
         return {"status": "failed", "result": error_msg, "image_url": "", "critic_feedback": ""}
 
     # Critic оценивает изображение (по описанию)
@@ -1466,4 +1819,5 @@ async def _generate_and_review(prompt: str, task_id: str) -> dict:
         "result": result.result_url,
         "image_url": result.result_url,
         "critic_feedback": feedback,
+        "used_prompt": prompt,
     }

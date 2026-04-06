@@ -5,7 +5,7 @@
     "capabilities": ["сценарий", "текст", "диалоги", "адаптация", "разбивка на серии", "сюжет"],
     "input_type": "text",
     "output_type": "text",
-    "model": "google/gemini-3-flash-preview",
+    "model": "deepseek/deepseek-v3.2",
     "timeout": 90
   },
   {
@@ -14,7 +14,7 @@
     "capabilities": ["режиссура", "визуальный стиль", "раскадровка", "эмоции", "сцены"],
     "input_type": "text",
     "output_type": "text",
-    "model": "google/gemini-3-flash-preview",
+    "model": "deepseek/deepseek-v3.2",
     "timeout": 90
   },
   {
@@ -23,7 +23,7 @@
     "capabilities": ["кадры", "тайминг", "ракурсы", "список сцен", "визуализация"],
     "input_type": "text",
     "output_type": "text",
-    "model": "google/gemini-3-flash-preview",
+    "model": "deepseek/deepseek-v3.2",
     "timeout": 90
   },
   {
@@ -32,7 +32,7 @@
     "capabilities": ["свет", "камера", "атмосфера", "цветокоррекция", "визуал"],
     "input_type": "text",
     "output_type": "text",
-    "model": "google/gemini-3-flash-preview",
+    "model": "deepseek/deepseek-v3.2",
     "timeout": 90
   },
   {
@@ -41,7 +41,7 @@
     "capabilities": ["дизайн", "цвет", "промпты для изображений", "стиль", "арт"],
     "input_type": "text",
     "output_type": "text",
-    "model": "google/gemini-3-flash-preview",
+    "model": "deepseek/deepseek-v3.2",
     "timeout": 90
   },
   {
@@ -50,7 +50,7 @@
     "capabilities": ["музыка", "звук", "озвучка", "лейтмотивы", "аудио"],
     "input_type": "text",
     "output_type": "text",
-    "model": "google/gemini-3-flash-preview",
+    "model": "deepseek/deepseek-v3.2",
     "timeout": 90
   },
   {
@@ -59,7 +59,7 @@
     "capabilities": ["оценка", "критика", "проверка качества"],
     "input_type": "text",
     "output_type": "evaluation",
-    "model": "google/gemini-3-flash-preview",
+    "model": "deepseek/deepseek-v3.2",
     "timeout": 60
   },
   {
@@ -68,7 +68,7 @@
     "capabilities": ["исправление", "доработка"],
     "input_type": "text",
     "output_type": "text",
-    "model": "google/gemini-3-flash-preview",
+    "model": "deepseek/deepseek-v3.2",
     "timeout": 90
   }
 ]

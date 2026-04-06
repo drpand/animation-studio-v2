@@ -1,5 +1,6 @@
 {
   "role": "Director",
+  "recommended_model": "deepseek/deepseek-v3.2",
   "candidates": [
     {
       "id": "director_scene_weaver",

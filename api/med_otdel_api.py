@@ -140,10 +140,24 @@ async def get_events(limit: int = 20, db: AsyncSession = Depends(get_session)):
 async def get_med_log(limit: int = 20, db: AsyncSession = Depends(get_session)):
     """Лог МЕД-ОТДЕЛА."""
     logs = await crud.get_med_logs(db, limit)
-    return {"entries": [
+    entries = [
         {"action": l.action, "details": l.details, "agent_id": l.agent_id, "timestamp": l.timestamp}
         for l in reversed(logs)
-    ]}
+    ]
+
+    # Fallback: если в БД пусто, читаем file-based med_log.json
+    if not entries:
+        med_file = os.path.join(PROJECT_ROOT, "memory", "med_log.json")
+        try:
+            if os.path.exists(med_file):
+                with open(med_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                file_entries = data.get("entries", [])
+                entries = list(reversed(file_entries[-limit:]))
+        except Exception:
+            pass
+
+    return {"entries": entries}
 
 
 @router.post("/{agent_id}/reset-error")

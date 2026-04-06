@@ -1,5 +1,6 @@
 {
   "role": "Critic",
+  "recommended_model": "deepseek/deepseek-v3.2",
   "candidates": [
     {
       "id": "critic_qualitative_analysis",

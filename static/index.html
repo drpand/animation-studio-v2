@@ -169,6 +169,26 @@
                             <h3>✏️ Промпт (редактируй перед перегенерацией)</h3>
                             <textarea id="modalPromptEditor" rows="4" style="width:100%;font-family:monospace;font-size:12px;background:var(--bg-secondary);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical;"></textarea>
                         </div>
+                        <div class="detail-section" id="departmentsSection" style="display:none;">
+                            <h3>🏭 Решения цехов</h3>
+                            <div style="display:grid;gap:8px;grid-template-columns:1fr;">
+                                <label style="font-size:12px;opacity:.8;">DOP</label>
+                                <textarea id="modalDopPrompt" rows="2" style="width:100%;font-family:monospace;font-size:12px;background:var(--bg-secondary);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;resize:vertical;"></textarea>
+                                <label style="font-size:12px;opacity:.8;">Art Director</label>
+                                <textarea id="modalArtPrompt" rows="2" style="width:100%;font-family:monospace;font-size:12px;background:var(--bg-secondary);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;resize:vertical;"></textarea>
+                                <label style="font-size:12px;opacity:.8;">Sound Director (не входит в image prompt)</label>
+                                <textarea id="modalSoundPrompt" rows="2" style="width:100%;font-family:monospace;font-size:12px;background:var(--bg-secondary);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;resize:vertical;"></textarea>
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                                <input id="hintClothing" placeholder="Одежда: например красный плащ" style="flex:1;min-width:220px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);color:var(--text);">
+                                <input id="hintSeason" placeholder="Время года: например зима" style="flex:1;min-width:220px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);color:var(--text);">
+                                <input id="hintColor" placeholder="Цвет: например сине-оранжевый" style="flex:1;min-width:220px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);color:var(--text);">
+                            </div>
+                            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                                <button class="btn-tool" id="btnSaveDepartmentEdits" style="padding:8px 12px;">💾 Сохранить решения</button>
+                                <button class="btn-tool" id="btnApplyQuickEdit" style="padding:8px 12px;">🛠️ Применить в промпт</button>
+                            </div>
+                        </div>
                         <div class="detail-section" id="cvCheckSection" style="display:none;">
                             <h3>🤖 CV Проверка</h3>
                             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">

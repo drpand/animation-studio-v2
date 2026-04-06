@@ -540,6 +540,26 @@ function openSceneModal(index) {
         btnRegenerate.style.display = 'none';
     }
 
+    // Решения цехов
+    const deptSection = document.getElementById('departmentsSection');
+    const dopField = document.getElementById('modalDopPrompt');
+    const artField = document.getElementById('modalArtPrompt');
+    const soundField = document.getElementById('modalSoundPrompt');
+    const hintClothing = document.getElementById('hintClothing');
+    const hintSeason = document.getElementById('hintSeason');
+    const hintColor = document.getElementById('hintColor');
+    if (deptSection) {
+        deptSection.style.display = 'block';
+        const pp = frame.prompt_parts || {};
+        dopField.value = frame.dop_prompt || (pp.source?.dop ? JSON.stringify(pp.source.dop, null, 2) : '');
+        artField.value = frame.art_prompt || (pp.source?.art ? JSON.stringify(pp.source.art, null, 2) : '');
+        soundField.value = frame.sound_prompt || (pp.source?.sound ? JSON.stringify(pp.source.sound, null, 2) : '');
+        const hints = frame.edit_hints || pp.edit_hints || {};
+        hintClothing.value = hints.clothing || '';
+        hintSeason.value = hints.season || '';
+        hintColor.value = hints.color || '';
+    }
+
     // CV секция — показываем если есть изображение
     const cvSection = document.getElementById('cvCheckSection');
     const cvStatus = document.getElementById('cvStatus');
@@ -609,6 +629,107 @@ function openSceneModal(index) {
     document.getElementById('revisionComment').value = '';
 
     document.getElementById('sceneModal').classList.add('open');
+}
+
+async function saveDepartmentEdits() {
+    if (!currentSceneData) return;
+    const frame = currentSceneData;
+    const dop = (document.getElementById('modalDopPrompt')?.value || '').trim();
+    const art = (document.getElementById('modalArtPrompt')?.value || '').trim();
+    const sound = (document.getElementById('modalSoundPrompt')?.value || '').trim();
+    const hints = {
+        clothing: (document.getElementById('hintClothing')?.value || '').trim(),
+        season: (document.getElementById('hintSeason')?.value || '').trim(),
+        color: (document.getElementById('hintColor')?.value || '').trim(),
+    };
+
+    // Обновляем структурную карточку кадра (source of truth)
+    const promptParts = Object.assign({}, frame.prompt_parts || {});
+    promptParts.edit_hints = hints;
+    if (!promptParts.source) promptParts.source = {};
+    // Сохраняем raw строки цехов как есть (для ручного редактирования/аудита)
+    promptParts.source.dop_raw = dop;
+    promptParts.source.art_raw = art;
+    promptParts.source.sound_raw = sound;
+
+    // Попробуем аккуратно распарсить JSON-цеха и обновить ключевые поля карточки
+    try {
+        const d = JSON.parse(dop);
+        if (d.location) promptParts.location = d.location;
+        if (d.lighting) promptParts.lighting = d.lighting;
+        if (d.shot) promptParts.composition = d.shot;
+    } catch {}
+    try {
+        const a = JSON.parse(art);
+        if (a.style) promptParts.style = a.style;
+        if (a.palette) promptParts.palette = a.palette;
+    } catch {}
+
+    if (hints.season) {
+        promptParts.location = `${promptParts.location || ''}, season: ${hints.season}`.trim();
+    }
+    if (hints.clothing) {
+        promptParts.subject = `${promptParts.subject || 'adult human protagonist'}, clothing: ${hints.clothing}`;
+    }
+    if (hints.color) {
+        promptParts.palette = hints.color;
+    }
+
+    // user_comment хранит envelope с edit hints
+    const userCommentEnvelope = JSON.stringify({ type: 'frame_edit_hints', hints });
+
+    try {
+        const res = await fetch(`${API_BASE}/api/orchestrator/scene-frame/${frame.season_num}/${frame.episode_num}/${frame.scene_num}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                dop_prompt: dop,
+                art_prompt: art,
+                sound_prompt: sound,
+                prompt_parts_json: JSON.stringify(promptParts),
+                user_comment: userCommentEnvelope,
+            })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'save failed');
+        // Обновим локальный frame
+        frame.dop_prompt = dop;
+        frame.art_prompt = art;
+        frame.sound_prompt = sound;
+        frame.edit_hints = hints;
+        frame.prompt_parts = promptParts;
+        alert('Решения цехов сохранены');
+    } catch (e) {
+        alert('Ошибка сохранения: ' + e.message);
+    }
+}
+
+function applyQuickEditToPrompt() {
+    if (!currentSceneData) return;
+    const editor = document.getElementById('modalPromptEditor');
+    if (!editor) return;
+    let p = (editor.value || '').trim();
+    if (!p) {
+        p = currentSceneData.final_prompt || '';
+    }
+    const clothing = (document.getElementById('hintClothing')?.value || '').trim();
+    const season = (document.getElementById('hintSeason')?.value || '').trim();
+    const color = (document.getElementById('hintColor')?.value || '').trim();
+
+    const additions = [];
+    if (clothing) additions.push(`clothing: ${clothing}`);
+    if (season) additions.push(`season: ${season}`);
+    if (color) additions.push(`color palette override: ${color}`);
+
+    if (additions.length) {
+        // Важно: sound_prompt НЕ добавляем в image prompt
+        p = `${p}, ${additions.join(', ')}`;
+        editor.value = p;
+        if (!currentSceneData.prompt_parts) currentSceneData.prompt_parts = {};
+        if (clothing) currentSceneData.prompt_parts.subject = `${currentSceneData.prompt_parts.subject || 'adult human protagonist'}, clothing: ${clothing}`;
+        if (season) currentSceneData.prompt_parts.location = `${currentSceneData.prompt_parts.location || ''}, season: ${season}`.trim();
+        if (color) currentSceneData.prompt_parts.palette = color;
+    }
 }
 
 function closeSceneModal() {
@@ -850,6 +971,10 @@ function bindEvents() {
     document.getElementById('modalClose').addEventListener('click', closeSceneModal);
     document.getElementById('btnApproveScene').addEventListener('click', approveScene);
     document.getElementById('btnReviseScene').addEventListener('click', reviseScene);
+    const saveDeptBtn = document.getElementById('btnSaveDepartmentEdits');
+    if (saveDeptBtn) saveDeptBtn.addEventListener('click', saveDepartmentEdits);
+    const applyQuickBtn = document.getElementById('btnApplyQuickEdit');
+    if (applyQuickBtn) applyQuickBtn.addEventListener('click', applyQuickEditToPrompt);
     document.getElementById('overlay').addEventListener('click', closeSceneModal);
 
     document.getElementById('chatInput').addEventListener('keydown', (e) => {

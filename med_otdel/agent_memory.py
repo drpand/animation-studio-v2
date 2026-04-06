@@ -42,7 +42,7 @@ def _get_thread_lock(file_path: str) -> threading.Lock:
     return _thread_locks[file_path]
 
 
-async def call_llm(system_prompt: str, user_prompt: str, model: str = "google/gemini-3-flash-preview") -> tuple[str, dict]:
+async def call_llm(system_prompt: str, user_prompt: str, model: str = "deepseek/deepseek-v3.2") -> tuple[str, dict]:
     """Запрос к OpenRouter API. Возвращает (text, usage_info)."""
     async with httpx.AsyncClient(timeout=120) as client:
         response = await client.post(

@@ -309,6 +309,7 @@ class SceneFrame(Base):
     dop_prompt = Column(Text, default="")
     art_prompt = Column(Text, default="")
     sound_prompt = Column(Text, default="")
+    prompt_parts_json = Column(Text, default="")  # structured shot/card spec (source of truth)
     final_prompt = Column(Text, default="")
     image_url = Column(String(500), default="")
     critic_feedback = Column(Text, default="")
@@ -352,35 +353,36 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Миграция: добавляем новые колонки в scene_frames если их нет
-    def _add_missing_columns(dbapi_conn):
-        cursor = dbapi_conn.cursor()
-        # Проверяем существующие колонки
-        cursor.execute("PRAGMA table_info(scene_frames)")
-        existing_cols = [row[1] for row in cursor.fetchall()]
+        # Миграция: добавляем новые колонки в scene_frames если их нет
+        def _add_missing_columns(dbapi_conn):
+            cursor = dbapi_conn.cursor()
+            # Проверяем существующие колонки
+            cursor.execute("PRAGMA table_info(scene_frames)")
+            existing_cols = [row[1] for row in cursor.fetchall()]
 
-        migrations = [
-            ("consistency_score", "ALTER TABLE scene_frames ADD COLUMN consistency_score INTEGER DEFAULT 0"),
-            ("consistency_issues", "ALTER TABLE scene_frames ADD COLUMN consistency_issues TEXT DEFAULT ''"),
-        ]
+            migrations = [
+                ("consistency_score", "ALTER TABLE scene_frames ADD COLUMN consistency_score INTEGER DEFAULT 0"),
+                ("consistency_issues", "ALTER TABLE scene_frames ADD COLUMN consistency_issues TEXT DEFAULT ''"),
+                ("prompt_parts_json", "ALTER TABLE scene_frames ADD COLUMN prompt_parts_json TEXT DEFAULT ''"),
+            ]
 
-        for col_name, alter_sql in migrations:
-            if col_name not in existing_cols:
-                try:
-                    cursor.execute(alter_sql)
-                    print(f"[MIGRATION] Added column: {col_name}")
-                except Exception as e:
-                    print(f"[MIGRATION] Error adding {col_name}: {e}")
-        cursor.close()
+            for col_name, alter_sql in migrations:
+                if col_name not in existing_cols:
+                    try:
+                        cursor.execute(alter_sql)
+                        print(f"[MIGRATION] Added column: {col_name}")
+                    except Exception as e:
+                        print(f"[MIGRATION] Error adding {col_name}: {e}")
+            cursor.close()
 
-    # Выполняем миграцию
-    def run_migrations(connection):
-        _add_missing_columns(connection.connection.driver_connection)
+        # Выполняем миграцию в активном соединении
+        def run_migrations(connection):
+            _add_missing_columns(connection.connection.driver_connection)
 
-    try:
-        await conn.run_sync(run_migrations)
-    except Exception as e:
-        print(f"[MIGRATION] Could not run migrations: {e}")
+        try:
+            await conn.run_sync(run_migrations)
+        except Exception as e:
+            print(f"[MIGRATION] Could not run migrations: {e}")
 
 
 async def get_session() -> AsyncSession:
