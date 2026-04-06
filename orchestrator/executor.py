@@ -20,6 +20,38 @@ from med_otdel.studio_monitor import set_agent_error, reset_agent_error
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTRY_FILE = os.path.join(PROJECT_ROOT, "orchestrator", "agent_registry.json")
 PATTERNS_FILE = os.path.join(PROJECT_ROOT, "med_otdel", "patterns.json")
+PROJECT_MEMORY_FILE = os.path.join(PROJECT_ROOT, "memory", "project_memory.json")
+
+
+def _load_full_project_context() -> str:
+    """Загружает полный контекст активного проекта из project_memory.json."""
+    if not os.path.exists(PROJECT_MEMORY_FILE):
+        return ""
+    try:
+        with open(PROJECT_MEMORY_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        project = data.get("active_project", {})
+        if not project or not project.get("name"):
+            return ""
+        
+        parts = []
+        parts.append(f"Название проекта: {project.get('name', '')}")
+        if project.get("description"):
+            parts.append(f"Описание: {project['description']}")
+        if project.get("visual_style"):
+            parts.append(f"Визуальный стиль: {project['visual_style']}")
+        if project.get("color_palette"):
+            parts.append(f"Цветовая палитра: {project['color_palette']}")
+        if project.get("music_reference"):
+            parts.append(f"Музыкальный референс: {project['music_reference']}")
+        
+        season = project.get("current_season", 1)
+        episode = project.get("current_episode", 1)
+        parts.append(f"Текущий эпизод: Сезон {season}, Эпизод {episode}")
+        
+        return "\n".join(parts)
+    except Exception:
+        return ""
 
 
 # ============================================
@@ -557,10 +589,16 @@ async def _run_agent_step(agent_id: str, input_text: str, task_id: str) -> tuple
         from agents.base_agent import BaseAgent, _load_constitution
 
         constitution = _load_constitution()
+        project_context = _load_full_project_context()
+        
         system_prompt = ""
         if constitution:
             system_prompt += f"[КОНСТИТУЦИЯ СТУДИИ]\n{constitution}\n\n"
-        system_prompt += f"[РОЛЬ]\nТы {agent_id} анимационной студии. Работай по правилам Конституции и контексту активного проекта {PROJECT_NAME}.\n\n[ЗАДАЧА]\n{input_text}"
+        
+        if project_context:
+            system_prompt += f"[КОНТЕКСТ ПРОЕКТА]\n{project_context}\n\n"
+        
+        system_prompt += f"[РОЛЬ]\nТы {agent_id} анимационной студии. Работай по правилам Конституции и строго следуй контексту активного проекта (визуальный стиль, цветовая палитра, музыкальный референс).\n\n[ЗАДАЧА]\n{input_text}"
 
         async def _call_openrouter():
             import httpx
@@ -623,7 +661,10 @@ async def _run_critic(text: str, task_id: str, agent_id: str = "") -> tuple[bool
     if tracker.is_cancelled(task_id):
         return False, "Задача отменена"
 
-    system = f"Ты строгий критик аниме-студии {PROJECT_NAME}. Оценивай результаты объективно."
+    project_context = _load_full_project_context()
+    context_note = f"\n\nКонтекст проекта:\n{project_context}" if project_context else ""
+    
+    system = f"Ты строгий критик анимационной студии. Оценивай результаты объективно, учитывая требования проекта.{context_note}"
     user = f"""Оцени результат работы агента.
 
 Текст:
@@ -667,7 +708,10 @@ async def _run_fixer(original_text: str, critic_feedback: str, task_id: str) -> 
     if tracker.is_cancelled(task_id):
         return original_text
 
-    system = f"Ты фиксер анимационной студии {PROJECT_NAME}. Исправляй результаты по замечаниям критика, сохраняя требования активного проекта."
+    project_context = _load_full_project_context()
+    context_note = f"\n\nКонтекст проекта:\n{project_context}" if project_context else ""
+    
+    system = f"Ты фиксер анимационной студии. Исправляй результаты по замечаниям критика, строго соблюдая требования активного проекта (визуальный стиль, цветовая палитра, музыкальный референс).{context_note}"
     user = f"""Исправь результат по замечаниям критика.
 
 Оригинал:
