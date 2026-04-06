@@ -20,6 +20,374 @@ REGISTRY_FILE = os.path.join(PROJECT_ROOT, "orchestrator", "agent_registry.json"
 PATTERNS_FILE = os.path.join(PROJECT_ROOT, "med_otdel", "patterns.json")
 
 
+# ============================================
+# CV АВТОМАТИЧЕСКАЯ ПРОВЕРКА ПОСЛЕ ГЕНЕРАЦИИ
+# ============================================
+
+async def _cv_auto_check(image_url: str, writer_text: str, final_prompt: str, task_id: str) -> dict:
+    """
+    Автоматическая CV проверка изображения через Gemini Vision.
+    Вызывается после генерации Kie.ai.
+    Если score < 8 — запускает авто-исправление (до 3 попыток).
+    Возвращает: {"score": int, "description": str, "matched": [], "missing": [], "attempts": int}
+    """
+    import base64
+    import httpx
+
+    CV_MODEL = "google/gemini-3.1-flash-lite-preview"
+    MAX_ATTEMPTS = 3
+    CV_PASS_SCORE = 8
+
+    current_image_url = image_url
+    current_prompt = final_prompt
+    history = []
+
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        await _post_discussion(f"[CV-AUTO] Попытка {attempt}/{MAX_ATTEMPTS}: проверка изображения...", "system", "orchestrator")
+
+        # Шаг 1: Загружаем изображение и конвертируем в base64
+        image_b64 = ""
+        if current_image_url.startswith("/tools_cache/"):
+            filename = os.path.basename(current_image_url)
+            local_path = os.path.join(PROJECT_ROOT, "memory", "tools_cache", "images", filename)
+            if os.path.exists(local_path):
+                with open(local_path, "rb") as f:
+                    image_b64 = base64.b64encode(f.read()).decode("utf-8")
+        else:
+            try:
+                async with httpx.AsyncClient(timeout=30) as client:
+                    resp = await client.get(current_image_url)
+                    if resp.status_code == 200:
+                        image_b64 = base64.b64encode(resp.content).decode("utf-8")
+            except Exception:
+                pass
+
+        if not image_b64:
+            await _post_discussion("[CV-AUTO] Не удалось загрузить изображение", "system", "orchestrator")
+            return {"score": 0, "description": "Failed to load image", "matched": [], "missing": [], "attempts": attempt, "history": history}
+
+        image_data_url = f"data:image/png;base64,{image_b64}"
+
+        # Шаг 2: Отправляем в Gemini Vision
+        system_prompt = """You are an expert anime art critic. Analyze images for anime production.
+
+This is ANIME ART (2.5D), not photography. Stylization is expected.
+Do NOT penalize: artistic silhouettes, symbolic reflections, exaggerated colors, non-photorealistic rendering.
+
+Analyze the image against the scene description. Check if KEY ELEMENTS are VISIBLE (even if stylized).
+
+Respond ONLY with valid JSON:
+{"description":"what you see in English","score":7,"matched":["element1"],"missing":[],"mood":"good"}
+
+Score: 8-10 if key elements visible and mood matches. 6-7 if mostly there. 4-5 if missing key things."""
+
+        user_prompt = f"""Check if this anime image matches the scene description.
+
+Scene description:
+{writer_text[:1500]}
+
+Image generation prompt:
+{current_prompt[:800]}
+
+Are the key visual elements present? Is the mood/atmosphere right?
+Return JSON only."""
+
+        body = json.dumps({
+            "model": CV_MODEL,
+            "messages": [{"role": "user", "content": [
+                {"type": "text", "text": user_prompt},
+                {"type": "image_url", "image_url": {"url": image_data_url}}
+            ]}],
+            "max_tokens": 500,
+            "temperature": 0.1,
+        }, ensure_ascii=True)
+
+        try:
+            async with httpx.AsyncClient(timeout=180) as client:
+                resp = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "http://localhost:7860",
+                        "X-Title": "Animation Studio v2 - Auto CV",
+                    },
+                    content=body.encode("utf-8"),
+                )
+                data = resp.json()
+                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        except Exception as e:
+            await _post_discussion(f"[CV-AUTO] Ошибка OpenRouter: {str(e)[:200]}", "system", "orchestrator")
+            return {"score": 0, "description": f"CV API error: {str(e)[:200]}", "matched": [], "missing": [], "attempts": attempt, "history": history}
+
+        # Парсим JSON
+        cv_result = _extract_json(content)
+        if not cv_result:
+            cv_result = {"score": 5, "description": content[:500], "matched": [], "missing": []}
+
+        score = cv_result.get("score", 5)
+        description = cv_result.get("description", "")
+        matched = cv_result.get("matched", [])
+        missing = cv_result.get("missing", [])
+
+        await _post_discussion(f"[CV-AUTO] Попытка {attempt}: score={score}/10, matched={len(matched)}, missing={len(missing)}", "system", "orchestrator")
+
+        history.append({
+            "attempt": attempt,
+            "cv_score": score,
+            "cv_description": description[:300],
+            "missing": missing,
+        })
+
+        # Если прошли — возвращаем результат
+        if score >= CV_PASS_SCORE:
+            await _post_discussion(f"[CV-AUTO] ✅ PASS (score={score}/10) за {attempt} попыток", "system", "orchestrator")
+            return {
+                "score": score,
+                "description": description,
+                "matched": matched,
+                "missing": missing,
+                "attempts": attempt,
+                "history": history,
+                "image_url": current_image_url,
+                "final_prompt": current_prompt,
+            }
+
+        # Если последняя попытка — возвращаем что есть
+        if attempt >= MAX_ATTEMPTS:
+            await _post_discussion(f"[CV-AUTO] ⚠️ MAX ATTEMPTS. Best score: {score}/10", "system", "orchestrator")
+            return {
+                "score": score,
+                "description": description,
+                "matched": matched,
+                "missing": missing,
+                "attempts": attempt,
+                "history": history,
+                "image_url": current_image_url,
+                "final_prompt": current_prompt,
+            }
+
+        # Шаг 3: Critic анализирует что исправить
+        await _post_discussion(f"[CV-AUTO] Запуск Critic для анализа ошибок...", "system", "orchestrator")
+        critic_system = "You are a strict art critic for anime production. Analyze image vs scene description."
+        critic_user = f"""The generated image scored {score}/10 in computer vision check.
+
+Scene description:
+{writer_text[:1500]}
+
+What the CV model saw:
+{description[:1000]}
+
+Missing elements:
+{', '.join(missing) if missing else 'None reported'}
+
+What specific changes should be made to the image generation prompt to improve accuracy?
+Be specific about composition, elements, colors, lighting.
+Return ONLY the critique, no JSON."""
+
+        try:
+            critic_feedback, _ = await asyncio.wait_for(
+                call_llm(system_prompt=critic_system, user_prompt=critic_user, model="google/gemini-3-flash-preview"),
+                timeout=60
+            )
+        except Exception as e:
+            critic_feedback = f"Critic error: {str(e)[:200]}"
+
+        # Шаг 4: Fixer переписывает промпт
+        await _post_discussion(f"[CV-AUTO] Запуск Fixer для переписывания промпта...", "system", "orchestrator")
+        fixer_system = "You are an expert AI image generation prompt engineer. Rewrite prompts to be more precise."
+        fixer_user = f"""Rewrite this image generation prompt to fix the issues identified by the critic.
+
+Original prompt:
+{current_prompt[:2000]}
+
+Scene description (for context):
+{writer_text[:1000]}
+
+Critic feedback on what is wrong:
+{critic_feedback[:1000]}
+
+What CV model actually saw:
+{description[:500]}
+
+Write a NEW prompt optimized for anime image generation.
+Focus on: correct composition, all required elements present, proper lighting and mood.
+Return ONLY the new prompt text, no explanations, no JSON."""
+
+        try:
+            new_prompt, _ = await asyncio.wait_for(
+                call_llm(system_prompt=fixer_system, user_prompt=fixer_user, model="google/gemini-3-flash-preview"),
+                timeout=60
+            )
+            # Очищаем от markdown
+            new_prompt = new_prompt.strip()
+            if new_prompt.startswith("```"):
+                lines = new_prompt.split("\n")
+                new_prompt = "\n".join(lines[1:-1]) if len(lines) > 2 else new_prompt
+            new_prompt = new_prompt.strip()[:800]
+        except Exception as e:
+            new_prompt = current_prompt
+
+        if not new_prompt or len(new_prompt) < 20:
+            new_prompt = current_prompt
+
+        # Шаг 5: Kie.ai генерирует новое изображение
+        await _post_discussion(f"[CV-AUTO] Генерация нового изображения через Kie.ai...", "system", "orchestrator")
+        from tools.kieai_tool import generate_image
+        gen_result = await generate_image(prompt=new_prompt[:4000], width=1024, height=576)
+
+        if gen_result.status != "success":
+            await _post_discussion(f"[CV-AUTO] Kie.ai ошибка: {gen_result.error}", "system", "orchestrator")
+            history[-1]["kieai_error"] = gen_result.error
+            break
+
+        current_image_url = gen_result.result_url
+        current_prompt = new_prompt
+
+    return {
+        "score": history[-1]["cv_score"] if history else 0,
+        "description": history[-1]["cv_description"] if history else "",
+        "matched": history[-1].get("missing", []),
+        "missing": history[-1].get("missing", []),
+        "attempts": len(history),
+        "history": history,
+        "image_url": current_image_url,
+        "final_prompt": current_prompt,
+    }
+
+
+# ============================================
+# CV ПРОВЕРКА КОНСИСТЕНТНОСТИ ПЕРСОНАЖЕЙ
+# ============================================
+
+async def _check_character_consistency(image_url: str, characters_data: list, writer_text: str) -> dict:
+    """
+    Проверить консистентность персонажей на изображении.
+    Сравнивает описание каждого персонажа с тем что видно на изображении.
+    Возвращает: {"score": int, "issues": [], "characters_checked": int}
+    """
+    import base64
+    import httpx
+
+    if not characters_data or not image_url:
+        return {"score": 10, "issues": [], "characters_checked": 0}
+
+    CV_MODEL = "google/gemini-3.1-flash-lite-preview"
+
+    # Загружаем изображение
+    image_b64 = ""
+    if image_url.startswith("/tools_cache/"):
+        filename = os.path.basename(image_url)
+        local_path = os.path.join(PROJECT_ROOT, "memory", "tools_cache", "images", filename)
+        if os.path.exists(local_path):
+            with open(local_path, "rb") as f:
+                image_b64 = base64.b64encode(f.read()).decode("utf-8")
+    else:
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                resp = await client.get(image_url)
+                if resp.status_code == 200:
+                    image_b64 = base64.b64encode(resp.content).decode("utf-8")
+        except Exception:
+            pass
+
+    if not image_b64:
+        return {"score": 0, "issues": ["Failed to load image"], "characters_checked": 0}
+
+    image_data_url = f"data:image/png;base64,{image_b64}"
+
+    # Формируем описания персонажей
+    char_descriptions = []
+    for char in characters_data:
+        name = char.get("name", "?")
+        appearance = char.get("appearance", "")
+        clothing = char.get("clothing", "")
+        desc = f"- {name}: внешность={appearance}, одежда={clothing}"
+        char_descriptions.append(desc)
+
+    chars_text = "\n".join(char_descriptions)
+
+    system_prompt = """You are an anime character consistency expert. Analyze if characters in the image match their descriptions.
+
+This is ANIME ART (2.5D). Stylization is expected — focus on KEY distinguishing features:
+- Hair color and style
+- Clothing
+- Age/gender
+- Unique features (glasses, scars, accessories)
+
+Respond ONLY with valid JSON:
+{"score": 8, "checks": [{"name": "character_name", "present": true, "matches": true, "issues": "description of mismatch or 'ok'"}]}
+
+Score: 10 = all characters match perfectly. 8-9 = minor differences. 6-7 = noticeable differences. <6 = wrong characters."""
+
+    user_prompt = f"""Analyze this anime image and check if the characters match their descriptions.
+
+Characters expected in this scene:
+{chars_text}
+
+Scene context:
+{writer_text[:1000]}
+
+For each character:
+1. Is the character present in the image?
+2. Does their appearance match the description?
+3. List any inconsistencies.
+
+Return JSON only."""
+
+    body = json.dumps({
+        "model": CV_MODEL,
+        "messages": [{"role": "user", "content": [
+            {"type": "text", "text": user_prompt},
+            {"type": "image_url", "image_url": {"url": image_data_url}}
+        ]}],
+        "max_tokens": 800,
+        "temperature": 0.1,
+    }, ensure_ascii=True)
+
+    try:
+        async with httpx.AsyncClient(timeout=180) as client:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "http://localhost:7860",
+                    "X-Title": "Animation Studio v2 - Character Consistency",
+                },
+                content=body.encode("utf-8"),
+            )
+            data = resp.json()
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+    except Exception as e:
+        await _post_discussion(f"[CONSISTENCY] Ошибка OpenRouter: {str(e)[:200]}", "system", "orchestrator")
+        return {"score": 5, "issues": [f"API error: {str(e)[:200]}"], "characters_checked": len(characters_data)}
+
+    result = _extract_json(content)
+    if not result:
+        return {"score": 5, "issues": [f"Failed to parse CV response: {content[:200]}"], "characters_checked": len(characters_data)}
+
+    score = result.get("score", 5)
+    checks = result.get("checks", [])
+    issues = []
+
+    for check in checks:
+        if not check.get("matches", True) or not check.get("present", True):
+            issues.append(f"{check.get('name', '?')}: {check.get('issues', 'mismatch')}")
+
+    await _post_discussion(
+        f"[CONSISTENCY] Проверено {len(checks)} персонажей, score={score}/10, проблем={len(issues)}",
+        "system", "orchestrator"
+    )
+
+    return {
+        "score": score,
+        "issues": issues,
+        "characters_checked": len(checks),
+        "checks": checks,
+    }
+
+
 def _load_registry() -> list:
     if os.path.exists(REGISTRY_FILE):
         with open(REGISTRY_FILE, "r", encoding="utf-8") as f:
@@ -752,11 +1120,13 @@ async def run_full_casting(pdf_context: str, db) -> list:
     return characters_to_save
 
 
-async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_context: str, db=None):
+async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_context: str, db=None, progress_callback=None):
     """
     Полный конвейер одной сцены:
     1. Writer → 2. Director → 3. HR Casting → 4. DOP+Art+Sound (параллельно)
     → 5. Storyboarder → 6. Art Director → Kie.ai → 7. Storyboarder финал
+    
+    progress_callback: optional async callable(step_name: str, progress: int)
     """
     import crud
     from database import async_session
@@ -773,6 +1143,8 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
     }
 
     await _post_discussion(f"[CONVEYOR] Запуск конвейера: Сцена {season}x{episode}:{scene_num}", "system", "orchestrator")
+    if progress_callback:
+        await progress_callback("Кастинг персонажей...", 5)
 
     # Этап 0: Кастинг — создаём свою сессию если db не передан
     casting_db = db
@@ -795,6 +1167,8 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
 
     # Шаг 1: Writer описывает сцену
     await _post_discussion("[CONVEYOR] Шаг 1: Writer описывает сцену", "system", "orchestrator")
+    if progress_callback:
+        await progress_callback("Writer описывает сцену...", 15)
     writer_result = await run_step_with_critic("writer",
         f"Опиши сцену {scene_num} из PDF-сценария. Детально: диалоги, действия, атмосфера.",
         {"pdf_context": pdf_context}, task_id)
@@ -806,6 +1180,8 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
 
     # Шаг 2: Director — творческое решение
     await _post_discussion("[CONVEYOR] Шаг 2: Director — режиссёрское решение", "system", "orchestrator")
+    if progress_callback:
+        await progress_callback("Director принимает режиссёрское решение...", 30)
     director_result = await run_step_with_critic("director",
         f"Режиссёрское решение для сцены {scene_num}. Ракурсы, эмоции, ритм.",
         {"writer_output": writer_result.get("result", "")}, task_id)
@@ -813,6 +1189,8 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
 
     # Шаг 3: HR — кастинг персонажей
     await _post_discussion("[CONVEYOR] Шаг 3: HR — кастинг персонажей", "system", "orchestrator")
+    if progress_callback:
+        await progress_callback("HR кастинг персонажей...", 40)
     hr_result = await run_step_with_critic("hr_agent",
         f"Создай карточки персонажей сцены {scene_num}. Для каждого: имя, возраст, внешность, одежда, манера речи. Верни СТРОГО JSON массив: [{{\"name\": \"...\", \"age\": 20, \"appearance\": \"...\", \"clothing\": \"...\", \"speech\": \"...\"}}]",
         {"writer_output": writer_result.get("result", "")}, task_id)
@@ -844,6 +1222,8 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
 
     # Шаг 4: Параллельно DOP + Art Director + Sound Director (JSON output)
     await _post_discussion("[CONVEYOR] Шаг 4: Параллельная работа цехов (JSON)", "system", "orchestrator")
+    if progress_callback:
+        await progress_callback("DOP, Art Director, Sound Director работают...", 55)
     
     json_context = f"""
     WRITER OUTPUT: {writer_result.get('result', '')}
@@ -876,15 +1256,82 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
 
     # Шаг 5: Storyboarder собирает JSON в промпт
     await _post_discussion("[CONVEYOR] Шаг 5: Storyboarder собирает промпт", "system", "orchestrator")
+    if progress_callback:
+        await progress_callback("Storyboarder собирает промпт...", 70)
     final_prompt = _build_kieai_prompt(combined_parts)
     
     # Добавляем промпт в результат
     pipeline_result["final_prompt"] = final_prompt
 
-    # Шаг 6: Art Director → Kie.ai → изображение
+    # Шаг 6: Art Director → Kie.ai → изображение → CV авто-проверка
     await _post_discussion("[CONVEYOR] Шаг 6: Генерация изображений (Z-Image Turbo)", "system", "orchestrator")
+    if progress_callback:
+        await progress_callback("Kie.ai генерирует изображение...", 80)
     image_result = await _generate_and_review(final_prompt, task_id)
     pipeline_result["steps"]["image_generation"] = image_result
+
+    # Шаг 6.5: CV авто-проверка через Gemini Vision
+    if image_result.get("status") == "approved" and image_result.get("image_url"):
+        await _post_discussion("[CONVEYOR] Шаг 6.5: CV авто-проверка изображения...", "system", "orchestrator")
+        if progress_callback:
+            await progress_callback("CV проверка изображения...", 85)
+        
+        cv_result = await _cv_auto_check(
+            image_url=image_result["image_url"],
+            writer_text=writer_result.get("result", ""),
+            final_prompt=final_prompt,
+            task_id=task_id,
+        )
+        
+        pipeline_result["cv_check"] = cv_result
+        
+        # Если CV улучшил изображение — используем его
+        if cv_result.get("image_url") and cv_result["image_url"] != image_result.get("image_url"):
+            image_result["image_url"] = cv_result["image_url"]
+            final_prompt = cv_result.get("final_prompt", final_prompt)
+            await _post_discussion(
+                f"[CONVEYOR] CV улучшил изображение: score={cv_result.get('score', 0)}/10 за {cv_result.get('attempts', 0)} попыток",
+                "system", "orchestrator"
+            )
+        else:
+            await _post_discussion(
+                f"[CONVEYOR] CV результат: score={cv_result.get('score', 0)}/10",
+                "system", "orchestrator"
+            )
+    else:
+        cv_result = {"score": 0, "description": "Image generation failed", "matched": [], "missing": [], "attempts": 0}
+        pipeline_result["cv_check"] = cv_result
+
+    # Шаг 6.6: Проверка консистентности персонажей
+    if image_result.get("image_url") and hr_result.get("result"):
+        await _post_discussion("[CONVEYOR] Шаг 6.6: Проверка консистентности персонажей...", "system", "orchestrator")
+        if progress_callback:
+            await progress_callback("Проверка консистентности персонажей...", 90)
+        
+        # Извлекаем персонажей из HR результата
+        hr_characters = _extract_json_array(hr_result.get("result", ""))
+        
+        consistency_result = await _check_character_consistency(
+            image_url=image_result["image_url"],
+            characters_data=hr_characters,
+            writer_text=writer_result.get("result", ""),
+        )
+        
+        pipeline_result["consistency_check"] = consistency_result
+        
+        if consistency_result.get("issues"):
+            await _post_discussion(
+                f"[CONVEYOR] ⚠️ Проблемы консистентности: {', '.join(consistency_result['issues'][:3])}",
+                "system", "orchestrator"
+            )
+        else:
+            await _post_discussion(
+                f"[CONVEYOR] ✅ Консистентность персонажей: {consistency_result.get('score', 0)}/10",
+                "system", "orchestrator"
+            )
+    else:
+        consistency_result = {"score": 0, "issues": ["No characters or image"], "characters_checked": 0}
+        pipeline_result["consistency_check"] = consistency_result
 
     # Шаг 7: Storyboarder → финальная сцена
     await _post_discussion("[CONVEYOR] Шаг 7: Финальная сборка сцены", "system", "orchestrator")
@@ -921,6 +1368,20 @@ async def run_scene_pipeline(season: int, episode: int, scene_num: int, pdf_cont
                     "final_prompt": final_prompt[:8000],
                     "image_url": image_result.get("image_url", "")[:500],
                     "critic_feedback": image_result.get("critic_feedback", "")[:2000],
+                    "cv_score": cv_result.get("score", 0),
+                    "cv_description": cv_result.get("description", "")[:2000],
+                    "cv_details": json.dumps({
+                        "matched": cv_result.get("matched", []),
+                        "missing": cv_result.get("missing", []),
+                        "attempts": cv_result.get("attempts", 0),
+                        "history": cv_result.get("history", []),
+                    }, ensure_ascii=False)[:5000],
+                    "consistency_score": consistency_result.get("score", 0),
+                    "consistency_issues": json.dumps({
+                        "issues": consistency_result.get("issues", []),
+                        "characters_checked": consistency_result.get("characters_checked", 0),
+                        "checks": consistency_result.get("checks", []),
+                    }, ensure_ascii=False)[:3000],
                     "status": "approved" if image_result.get("status") == "approved" else "in_review",
                     "updated_at": datetime.now().isoformat(),
                 })
@@ -978,14 +1439,21 @@ async def _generate_and_review(prompt: str, task_id: str) -> dict:
 
     # Генерация через Kie.ai (без negative_prompt для Z-Image Turbo)
     from tools.kieai_tool import generate_image
+    
+    await _post_discussion(f"[KIE.AI] Отправка промпта ({len(prompt)} символов)...", "system", "art_director")
+    
     result = await generate_image(
         prompt=prompt[:4000],
         negative_prompt="",  # Z-Image Turbo игнорирует negative prompt
-        width=1024, height=1024, steps=30, cfg_scale=7.0, seed=-1
+        width=1024, height=576, steps=30, cfg_scale=7.0, seed=-1  # 16:9 формат
     )
+    
+    await _post_discussion(f"[KIE.AI] Статус: {result.status}, URL: {result.result_url[:50] if result.result_url else 'None'}", "system", "art_director")
 
     if result.status != "success":
-        return {"status": "failed", "result": f"Генерация не удалась: {result.error}"}
+        error_msg = f"Генерация не удалась: {result.error}"
+        await _post_discussion(f"[KIE.AI] ОШИБКА: {error_msg}", "system", "art_director")
+        return {"status": "failed", "result": error_msg, "image_url": "", "critic_feedback": ""}
 
     # Critic оценивает изображение (по описанию)
     passed, feedback = await _run_critic(

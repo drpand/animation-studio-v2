@@ -245,10 +245,12 @@ async function sendTask() {
         });
         const data = await res.json();
         if (data.ok) {
-            statusDiv.textContent = '✅ Задача принята!';
+            statusDiv.textContent = `✅ ${data.message}`;
             statusDiv.style.color = 'var(--green)';
             input.value = '';
-            setTimeout(() => switchView('storyboardView'), 1000);
+            
+            // Запускаем polling статуса задачи
+            pollTaskStatus(data.task_id);
         } else {
             statusDiv.textContent = '❌ Ошибка: ' + (data.error || 'Неизвестная ошибка');
             statusDiv.style.color = 'var(--red)';
@@ -257,6 +259,65 @@ async function sendTask() {
         statusDiv.textContent = '❌ Ошибка сети: ' + e.message;
         statusDiv.style.color = 'var(--red)';
     }
+}
+
+// --- Poll Task Status ---
+async function pollTaskStatus(taskId) {
+    const statusDiv = document.getElementById('currentTaskStatus');
+    const pollInterval = 3000; // 3 секунды
+    const maxPolls = 200; // ~10 минут максимум
+    let pollCount = 0;
+
+    const poll = async () => {
+        pollCount++;
+        if (pollCount > maxPolls) {
+            statusDiv.textContent = '⏱️ Таймаут. Проверь Storyboard — возможно задача завершена.';
+            statusDiv.style.color = 'var(--yellow)';
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/api/orchestrator/task/${taskId}`);
+            if (!res.ok) {
+                statusDiv.textContent = '❌ Задача не найдена';
+                statusDiv.style.color = 'var(--red)';
+                return;
+            }
+            const data = await res.json();
+
+            // Обновляем статус с прогрессом
+            const progress = data.progress || 0;
+            const step = data.current_step || '';
+            const bar = '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));
+            statusDiv.innerHTML = `
+                <div style="margin-bottom:4px;">${step}</div>
+                <div style="font-family:monospace;color:var(--yellow);">${bar} ${progress}%</div>
+            `;
+
+            if (data.status === 'completed') {
+                statusDiv.innerHTML = `✅ Конвейер завершён! Загружаю storyboard...`;
+                statusDiv.style.color = 'var(--green)';
+                loadStoryboard();
+                setTimeout(() => switchView('storyboardView'), 1500);
+                return;
+            }
+
+            if (data.status === 'failed') {
+                statusDiv.textContent = `❌ Ошибка: ${data.error || 'Неизвестная ошибка'}`;
+                statusDiv.style.color = 'var(--red)';
+                return;
+            }
+
+            // Продолжаем polling
+            setTimeout(poll, pollInterval);
+        } catch (e) {
+            console.error('Poll error:', e);
+            setTimeout(poll, pollInterval);
+        }
+    };
+
+    // Первый poll через 2 секунды
+    setTimeout(poll, 2000);
 }
 
 // --- Script Upload for Orchestrator ---
@@ -500,6 +561,7 @@ function openSceneModal(index) {
                         <p><strong>🤖 Описание:</strong> ${escapeHtml(frame.cv_description)}</p>
                         ${details.matched?.length > 0 ? `<p><strong style="color:var(--green)">✅ Совпало:</strong> ${details.matched.map(escapeHtml).join(', ')}</p>` : ''}
                         ${details.missing?.length > 0 ? `<p><strong style="color:var(--red)">❌ Отсутствует:</strong> ${details.missing.map(escapeHtml).join(', ')}</p>` : ''}
+                        ${details.attempts ? `<p style="font-size:11px;color:var(--text-muted);">Попыток: ${details.attempts}</p>` : ''}
                     </div>
                 `;
             } catch {
@@ -511,6 +573,35 @@ function openSceneModal(index) {
         }
     } else {
         cvSection.style.display = 'none';
+    }
+
+    // Консистентность персонажей — показываем если есть данные
+    const consistencySection = document.getElementById('consistencySection');
+    const consistencyStatus = document.getElementById('consistencyStatus');
+    const consistencyResult = document.getElementById('consistencyResult');
+    if (consistencySection && frame.consistency_score > 0) {
+        consistencySection.style.display = 'block';
+        const cScore = frame.consistency_score;
+        const cColor = cScore >= 8 ? 'var(--green)' : cScore >= 6 ? 'var(--yellow)' : 'var(--red)';
+        const cIcon = cScore >= 8 ? '✅' : cScore >= 6 ? '⚠️' : '❌';
+        consistencyStatus.innerHTML = `${cIcon} Консистентность персонажей: <strong style="color:${cColor}">${cScore}/10</strong>`;
+        consistencyStatus.style.color = cColor;
+
+        try {
+            const cDetails = JSON.parse(frame.consistency_issues || '{}');
+            const issues = cDetails.issues || [];
+            const checked = cDetails.characters_checked || 0;
+            consistencyResult.innerHTML = `
+                <div style="margin-top:8px;">
+                    <p>Персонажей проверено: <strong>${checked}</strong></p>
+                    ${issues.length > 0 ? `<p><strong style="color:var(--red)">⚠️ Проблемы:</strong><ul style="margin:4px 0;padding-left:20px;">${issues.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul></p>` : '<p style="color:var(--green);">Все персонажи соответствуют описанию</p>'}
+                </div>
+            `;
+        } catch {
+            consistencyResult.innerHTML = `<p>Консистентность: ${cScore}/10</p>`;
+        }
+    } else if (consistencySection) {
+        consistencySection.style.display = 'none';
     }
 
     // Сбрасываем статус

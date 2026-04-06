@@ -235,17 +235,134 @@ async def _execute_chain(task_id: str, db):
     await crud.update_orchestrator_task(db, task_id, {"status": "completed"})
 
 
+# Глобальное хранилище статусов задач от продюсера
+_producer_tasks: dict = {}
+
+
 @router.post("/task")
 async def create_task(req: dict):
-    """Продюсер ставит задачу. Оркестратор начинает работу."""
+    """Продюсер ставит задачу. Оркестратор запускает полный конвейер."""
+    from orchestrator.executor import run_scene_pipeline
+    from database import async_session
+    import uuid
+
     task_desc = req.get("description", "")
     if not task_desc:
         raise HTTPException(400, "Описание задачи не может быть пустым")
+
+    # Определяем season/episode/scene из описания или используем дефолт
+    season = int(req.get("season", 1))
+    episode = int(req.get("episode", 1))
+    scene = int(req.get("scene", 1))
+
+    # Парсим номер сцены из текста если пользователь указал
+    import re
+    scene_match = re.search(r'[сc]цен[ауе]?\s*(\d+)', task_desc, re.IGNORECASE)
+    if scene_match:
+        scene = int(scene_match.group(1))
+
+    episode_match = re.search(r'[эe]пизод\s*(\d+)', task_desc, re.IGNORECASE)
+    if episode_match:
+        episode = int(episode_match.group(1))
+
+    season_match = re.search(r'[сs]езон\s*(\d+)', task_desc, re.IGNORECASE)
+    if season_match:
+        season = int(season_match.group(1))
     
-    # В будущем здесь будет запуск конвейера
-    # asyncio.create_task(run_scene_pipeline(...))
+    # Парсим количество кадров
+    frames_match = re.search(r'(\d+)\s*кадр[аов]?', task_desc, re.IGNORECASE)
+    num_frames = int(frames_match.group(1)) if frames_match else 1
     
-    return {"ok": True, "message": "Задача принята. Оркестратор приступает к работе."}
+    print(f"[PRODUCER] Парсинг: найдено {num_frames} кадров из описания: {task_desc[:100]}")
+
+    task_id = f"producer_{uuid.uuid4().hex[:8]}"
+    scene_id = f"{season}_{episode}_{scene}"
+
+    # Защита от двойного запуска
+    if scene_id in _running_pipelines:
+        raise HTTPException(409, f"Конвейер для сцены {scene_id} уже запущен")
+
+    _running_pipelines.add(scene_id)
+
+    # Инициализируем статус задачи
+    _producer_tasks[task_id] = {
+        "task_id": task_id,
+        "scene_id": scene_id,
+        "season": season,
+        "episode": episode,
+        "scene": scene,
+        "description": task_desc,
+        "status": "starting",
+        "current_step": "",
+        "progress": 0,
+        "started_at": datetime.now().isoformat(),
+        "error": None,
+    }
+
+    async def _run_with_cleanup():
+        async def _progress(step_name: str, progress: int):
+            _producer_tasks[task_id]["current_step"] = step_name
+            _producer_tasks[task_id]["progress"] = progress
+
+        try:
+            _producer_tasks[task_id]["status"] = "running"
+            _producer_tasks[task_id]["current_step"] = "Запуск конвейера..."
+            _producer_tasks[task_id]["progress"] = 5
+            
+            print(f"[PRODUCER] Запуск цикла генерации {num_frames} кадров")
+
+            # Генерируем N кадров (каждый кадр = отдельная сцена)
+            for frame_idx in range(num_frames):
+                current_scene = scene + frame_idx
+                frame_progress_base = int((frame_idx / num_frames) * 90)
+                
+                print(f"[PRODUCER] Генерация кадра {frame_idx + 1}/{num_frames}, сцена {current_scene}")
+                
+                await _progress(f"Кадр {frame_idx + 1}/{num_frames}: Кастинг...", frame_progress_base + 5)
+                
+                async with async_session() as db:
+                    result = await run_scene_pipeline(
+                        season, episode, current_scene, 
+                        f"{task_desc}\n\nКадр {frame_idx + 1} из {num_frames}",
+                        db, 
+                        progress_callback=lambda step, prog: _progress(
+                            f"Кадр {frame_idx + 1}/{num_frames}: {step}", 
+                            frame_progress_base + int(prog * 0.9)
+                        )
+                    )
+                
+                if result.get("status") == "failed":
+                    raise Exception(f"Кадр {frame_idx + 1} провалился")
+
+            _producer_tasks[task_id]["status"] = "completed"
+            _producer_tasks[task_id]["progress"] = 100
+            _producer_tasks[task_id]["current_step"] = "Готово!"
+            _producer_tasks[task_id]["result"] = f"completed_{num_frames}_frames"
+        except Exception as e:
+            _producer_tasks[task_id]["status"] = "failed"
+            _producer_tasks[task_id]["error"] = str(e)[:500]
+            _producer_tasks[task_id]["current_step"] = f"Ошибка: {str(e)[:200]}"
+        finally:
+            _running_pipelines.discard(scene_id)
+
+    asyncio.create_task(_run_with_cleanup())
+
+    return {
+        "ok": True,
+        "task_id": task_id,
+        "scene_id": scene_id,
+        "num_frames": num_frames,
+        "message": f"Конвейер запущен: Сезон {season}, Эпизод {episode}, Сцена {scene}, {num_frames} кадров"
+    }
+
+
+@router.get("/task/{task_id}")
+async def get_producer_task_status(task_id: str):
+    """Получить статус задачи продюсера."""
+    task = _producer_tasks.get(task_id)
+    if not task:
+        raise HTTPException(404, f"Задача '{task_id}' не найдена")
+    return task
 
 
 @router.post("/upload-script")
@@ -432,6 +549,11 @@ async def get_storyboard_frames(db: AsyncSession = Depends(get_session)):
         "status": f.status, "final_prompt": f.final_prompt or "",
         "image_url": f.image_url or "", "writer_text": f.writer_text or "",
         "critic_feedback": f.critic_feedback or "",
+        "cv_score": f.cv_score or 0,
+        "cv_description": f.cv_description or "",
+        "cv_details": f.cv_details or "",
+        "consistency_score": f.consistency_score or 0,
+        "consistency_issues": f.consistency_issues or "",
     } for f in frames]}
 
 

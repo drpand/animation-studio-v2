@@ -317,6 +317,8 @@ class SceneFrame(Base):
     cv_score = Column(Integer, default=0)  # 0-10 оценка CV проверки
     cv_description = Column(Text, default="")  # что видит CV модель
     cv_details = Column(Text, default="")  # JSON: что совпало/не совпало
+    consistency_score = Column(Integer, default=0)  # 0-10 оценка консистентности персонажей
+    consistency_issues = Column(Text, default="")  # JSON: проблемы консистентности
     created_at = Column(String(30), default="")
     updated_at = Column(String(30), default="")
 
@@ -346,9 +348,39 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 
 
 async def init_db():
-    """Создать все таблицы если их нет."""
+    """Создать все таблицы если их нет, добавить новые колонки если их нет."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Миграция: добавляем новые колонки в scene_frames если их нет
+    def _add_missing_columns(dbapi_conn):
+        cursor = dbapi_conn.cursor()
+        # Проверяем существующие колонки
+        cursor.execute("PRAGMA table_info(scene_frames)")
+        existing_cols = [row[1] for row in cursor.fetchall()]
+
+        migrations = [
+            ("consistency_score", "ALTER TABLE scene_frames ADD COLUMN consistency_score INTEGER DEFAULT 0"),
+            ("consistency_issues", "ALTER TABLE scene_frames ADD COLUMN consistency_issues TEXT DEFAULT ''"),
+        ]
+
+        for col_name, alter_sql in migrations:
+            if col_name not in existing_cols:
+                try:
+                    cursor.execute(alter_sql)
+                    print(f"[MIGRATION] Added column: {col_name}")
+                except Exception as e:
+                    print(f"[MIGRATION] Error adding {col_name}: {e}")
+        cursor.close()
+
+    # Выполняем миграцию
+    def run_migrations(connection):
+        _add_missing_columns(connection.connection.driver_connection)
+
+    try:
+        await conn.run_sync(run_migrations)
+    except Exception as e:
+        print(f"[MIGRATION] Could not run migrations: {e}")
 
 
 async def get_session() -> AsyncSession:
