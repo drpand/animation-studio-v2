@@ -10,6 +10,14 @@ env/
 memory/attachments/*
 !memory/attachments/.gitkeep
 
+# Generated images cache (large files, regenerated on demand)
+memory/tools_cache/images/*
+!memory/tools_cache/images/.gitkeep
+
+# Database WAL files (SQLite temp)
+*.db-wal
+*.db-shm
+
 # IDE
 .vscode/
 .idea/
@@ -19,9 +27,13 @@ memory/attachments/*
 Thumbs.db
 
 # Logs
-*.log
+logs/*.log
 
 # Secrets
 .env
 .env.*
 !.env.example
+
+# Temp files
+*.txt.bak
+*.tmp
