@@ -274,7 +274,7 @@ Return ONLY the critique, no JSON."""
         try:
             critic_feedback, _ = await asyncio.wait_for(
                 call_llm(system_prompt=critic_system, user_prompt=critic_user, model="deepseek/deepseek-v3.2"),
-                timeout=60
+                timeout=120
             )
         except Exception as e:
             critic_feedback = f"Critic error: {str(e)[:200]}"
@@ -303,7 +303,7 @@ Return ONLY the new prompt text, no explanations, no JSON."""
         try:
             new_prompt, _ = await asyncio.wait_for(
                 call_llm(system_prompt=fixer_system, user_prompt=fixer_user, model="deepseek/deepseek-v3.2"),
-                timeout=60
+                timeout=120
             )
             # Очищаем от markdown
             new_prompt = new_prompt.strip()
@@ -560,7 +560,7 @@ async def _summarize_for_next_agent(text: str, next_agent_role: str, task_id: st
     try:
         result, _ = await asyncio.wait_for(
             call_llm(system_prompt=system, user_prompt=user),
-            timeout=60
+            timeout=120
         )
         return result.strip()[:2000]
     except Exception:
@@ -681,7 +681,7 @@ FEEDBACK: <текст>"""
     try:
         result, _ = await asyncio.wait_for(
             call_llm(system_prompt=system, user_prompt=user),
-            timeout=60
+            timeout=120
         )
 
         passed = "PASS" in result.upper() and "FAIL" not in result.upper().replace("PASS", "")
