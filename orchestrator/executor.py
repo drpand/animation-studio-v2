@@ -899,6 +899,19 @@ async def execute_chain(chain: TaskChain):
 
 def _extract_json(text: str) -> dict:
     """Извлечь JSON из ответа LLM (игнорируя маркдаун и лишний текст)."""
+    if not text:
+        return {}
+    
+    # Сначала ищем JSON внутри markdown-блока
+    md_match = re.search(r'```(?:json)?\s*\n(.*?)```', text, re.DOTALL)
+    if md_match:
+        try:
+            result = json.loads(md_match.group(1).strip())
+            if isinstance(result, dict):
+                return result
+        except json.JSONDecodeError:
+            pass
+    
     match = re.search(r'\{.*\}', text, re.DOTALL)
     if match:
         try:
@@ -916,8 +929,17 @@ def _extract_json_array(text: str) -> list:
     # Если текст начинается с кавычки, это может быть JSON-строка с экранированным массивом
     if text.strip().startswith('"'):
         try:
-            # Пытаемся распарсить как JSON-строку
             text = json.loads(text)
+        except json.JSONDecodeError:
+            pass
+    
+    # Сначала ищем JSON внутри markdown-блока ```json ... ```
+    md_match = re.search(r'```(?:json)?\s*\n(.*?)```', text, re.DOTALL)
+    if md_match:
+        try:
+            result = json.loads(md_match.group(1).strip())
+            if isinstance(result, list):
+                return result
         except json.JSONDecodeError:
             pass
     
