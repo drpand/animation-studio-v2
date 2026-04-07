@@ -398,9 +398,9 @@ async def _check_character_consistency(image_url: str, characters_data: list, wr
 
     chars_text = "\n".join(char_descriptions)
 
-    system_prompt = """You are an anime character consistency expert. Analyze if characters in the image match their descriptions.
+    system_prompt = """You are a character consistency expert. Analyze if characters in the image match their descriptions.
 
-This is ANIME ART (2.5D). Stylization is expected — focus on KEY distinguishing features:
+Focus on KEY distinguishing features:
 - Hair color and style
 - Clothing
 - Age/gender
@@ -411,7 +411,7 @@ Respond ONLY with valid JSON:
 
 Score: 10 = all characters match perfectly. 8-9 = minor differences. 6-7 = noticeable differences. <6 = wrong characters."""
 
-    user_prompt = f"""Analyze this anime image and check if the characters match their descriptions.
+    user_prompt = f"""Analyze this image and check if the characters match their descriptions.
 
 Characters expected in this scene:
 {chars_text}
