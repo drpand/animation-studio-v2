@@ -910,6 +910,18 @@ def _extract_json(text: str) -> dict:
 
 def _extract_json_array(text: str) -> list:
     """Извлечь JSON массив из ответа LLM."""
+    if not text:
+        return []
+    
+    # Если текст начинается с кавычки, это может быть JSON-строка с экранированным массивом
+    if text.strip().startswith('"'):
+        try:
+            # Пытаемся распарсить как JSON-строку
+            text = json.loads(text)
+        except json.JSONDecodeError:
+            pass
+    
+    # Ищем JSON массив в тексте
     match = re.search(r'\[.*\]', text, re.DOTALL)
     if match:
         try:
