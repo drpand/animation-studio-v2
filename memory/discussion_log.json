@@ -1,616 +1,604 @@
 {
   "messages": [
     {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-06T20:53:32.426472"
-    },
-    {
-      "agent_id": "dop",
-      "content": "[CONVEYOR] dop: APPROVED (round 1)",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:53:32.473850"
-    },
-    {
-      "agent_id": "art_director",
-      "content": "[ART_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T20:53:32.483762"
-    },
-    {
-      "agent_id": "art_director",
-      "content": "[ART_DIRECTOR] Завершил работу. Результат: 518 символов",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T20:53:36.441039"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-06T20:53:41.347336"
-    },
-    {
-      "agent_id": "art_director",
-      "content": "[CONVEYOR] art_director: APPROVED (round 1)",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:53:41.398913"
-    },
-    {
-      "agent_id": "sound_director",
-      "content": "[SOUND_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T20:53:41.411855"
-    },
-    {
-      "agent_id": "sound_director",
-      "content": "[SOUND_DIRECTOR] Завершил работу. Результат: 552 символов",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T20:53:45.913302"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-06T20:53:50.563888"
-    },
-    {
-      "agent_id": "sound_director",
-      "content": "[CONVEYOR] sound_director: APPROVED (round 1)",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:53:50.610919"
-    },
-    {
       "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Шаг 5: Storyboarder собирает промпт",
+      "content": "[CONVEYOR] ✅ Консистентность персонажей: 10/10",
       "msg_type": "system",
-      "timestamp": "2026-04-06T20:53:50.622798"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Шаг 6: Генерация изображений (Z-Image Turbo)",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:53:50.635323"
-    },
-    {
-      "agent_id": "art_director",
-      "content": "[KIE.AI] Отправка image-prompt (876 символов): subject: adult human protagonist, location: The exterior threshold of a weathered, heavy timber cabin. The dark wood is encrusted with frozen snow and horizontal icicles. A thick snowdrift piles against the stone foundation, and the air is a dense vortex of swirling white particl",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:53:50.646097"
-    },
-    {
-      "agent_id": "art_director",
-      "content": "[KIE.AI] Статус: success, URL: /tools_cache/kie_09a09e19335fee2a3cc8f5df2623288c.",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:56:18.684015"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: FAIL. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-06T20:56:27.055113"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Шаг 6.6: Проверка консистентности персонажей...",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:56:27.064935"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[CONSISTENCY] Проверено 0 персонажей, score=5/10, проблем=0",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:56:44.560275"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[CONVEYOR] ✅ Консистентность персонажей: 5/10",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:56:44.570324"
+      "timestamp": "2026-04-07T15:15:46.074220"
     },
     {
       "agent_id": "orchestrator",
       "content": "[CONVEYOR] Шаг 7: Финальная сборка сцены",
       "msg_type": "system",
-      "timestamp": "2026-04-06T20:56:44.579813"
+      "timestamp": "2026-04-07T15:15:46.083611"
     },
     {
       "agent_id": "storyboarder",
-      "content": "[STORYBOARDER] Начало работы. Модель: google/gemini-3-flash-preview",
+      "content": "[STORYBOARDER] Начало работы. Модель: deepseek/deepseek-v3.2",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T20:56:44.590362"
+      "timestamp": "2026-04-07T15:15:46.094994"
     },
     {
       "agent_id": "storyboarder",
-      "content": "[STORYBOARDER] Завершил работу. Результат: 1690 символов",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T20:56:51.572520"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: FAIL. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-06T20:56:57.421013"
-    },
-    {
-      "agent_id": "fixer",
-      "content": "[FIXER] Исправил результат. 2653 символов",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T20:57:07.360324"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-06T20:57:13.747782"
+      "content": "[STORYBOARDER] Таймаут (150 сек)",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T15:18:16.108867"
     },
     {
       "agent_id": "storyboarder",
-      "content": "[CONVEYOR] storyboarder: APPROVED (round 2)",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:57:13.797019"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[pipeline_completed] Scene pipeline completed: 1x2:2",
+      "content": "[pipeline_step_failed] storyboarder step failed before critic",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T20:57:13.846488"
+      "timestamp": "2026-04-07T15:18:16.119192"
     },
     {
       "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Результаты сцены 1x2:2 сохранены в БД",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T20:57:13.870008"
+      "content": "[pipeline_completed] Scene pipeline completed: 1x1:5",
+      "msg_type": "agent",
+      "timestamp": "2026-04-07T15:18:16.151581"
     },
     {
       "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Сцена 1x2:2 завершена!",
+      "content": "[CONVEYOR] Результаты сцены 1x1:5 сохранены в БД",
       "msg_type": "system",
-      "timestamp": "2026-04-06T20:57:13.879779"
+      "timestamp": "2026-04-07T15:18:16.178436"
     },
     {
       "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Запуск конвейера: Сцена 1x3:1",
+      "content": "[CONVEYOR] Сцена 1x1:5 завершена!",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:43.635963"
+      "timestamp": "2026-04-07T15:18:16.187824"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Запуск конвейера: Сцена 1x1:6",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:08:35.633075"
     },
     {
       "agent_id": "orchestrator",
       "content": "[CASTING] Начало кастинга — извлечение персонажей из сценария...",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:43.681063"
+      "timestamp": "2026-04-07T16:08:35.638927"
     },
     {
       "agent_id": "hr_agent",
-      "content": "[HR_AGENT] Начало работы. Модель: google/gemini-3-flash-preview",
+      "content": "[HR_AGENT] Начало работы. Модель: deepseek/deepseek-v3.2",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:15:43.692394"
+      "timestamp": "2026-04-07T16:08:35.649429"
     },
     {
       "agent_id": "hr_agent",
-      "content": "[HR_AGENT] Завершил работу. Результат: 1046 символов",
+      "content": "[HR_AGENT] Завершил работу. Результат: 763 символов",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:15:48.513643"
+      "timestamp": "2026-04-07T16:08:46.754645"
     },
     {
       "agent_id": "orchestrator",
-      "content": "[CASTING] HR вернул 1046 chars, извлечено 2 персонажей",
+      "content": "[CASTING] HR вернул 763 chars, извлечено 1 персонажей",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:48.523494"
+      "timestamp": "2026-04-07T16:08:46.757902"
     },
     {
       "agent_id": "orchestrator",
-      "content": "[CASTING] Персонаж: Взрослый мужчина",
+      "content": "[CASTING] Персонаж: Летчик",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:48.533430"
-    },
-    {
-      "agent_id": "orchestrator",
-      "content": "[CASTING] Персонаж: Собаки",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:48.544796"
+      "timestamp": "2026-04-07T16:08:46.767836"
     },
     {
       "agent_id": "orchestrator",
       "content": "[CASTING] Critic сверяет персонажей с PDF сценария...",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:48.553502"
+      "timestamp": "2026-04-07T16:08:46.778391"
     },
     {
       "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. Агент справился с задачей идентификации сущностей. В оригинальном сценарии прямо указаны «взрослый мужчина» и «две собаки». HR-отдел добавил детализацию (щетина, выражение лица, характер собак), котор",
+      "content": "[CRITIC] Оценка: PASS. Персонаж \"Летчик\" напрямую упоминается в оригинальном тексте сценария (Сцена 6: \"...Летчик разводит костер...\"). Описание от HR соответствует контексту сцены: военный пилот, уставшее лицо, возможные с",
       "msg_type": "critic",
-      "timestamp": "2026-04-06T21:15:52.670932"
+      "timestamp": "2026-04-07T16:08:58.685702"
     },
     {
       "agent_id": "orchestrator",
-      "content": "[CASTING] Critic: PASS. Все 2 персонажей подтверждены.",
+      "content": "[CASTING] Critic: PASS. Все 1 персонажей подтверждены.",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:52.683194"
+      "timestamp": "2026-04-07T16:08:58.688989"
     },
     {
       "agent_id": "hr_agent",
-      "content": "[CASTING] Персонаж сохранён: Взрослый мужчина",
+      "content": "[CASTING] Персонаж сохранён: Летчик",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:52.699950"
-    },
-    {
-      "agent_id": "hr_agent",
-      "content": "[CASTING] Персонаж сохранён: Собаки",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:52.713850"
+      "timestamp": "2026-04-07T16:08:58.704126"
     },
     {
       "agent_id": "hr_agent",
       "content": "[CONVEYOR] Character consistency rule применён локально к текущей сцене (без записи в global patterns)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:52.727010"
+      "timestamp": "2026-04-07T16:08:58.713853"
     },
     {
       "agent_id": "orchestrator",
-      "content": "[CASTING] Кастинг завершён: 2 персонажей сохранено",
+      "content": "[CASTING] Кастинг завершён: 1 персонажей сохранено",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:52.736388"
+      "timestamp": "2026-04-07T16:08:58.723359"
     },
     {
       "agent_id": "orchestrator",
       "content": "[CONVEYOR] Шаг 1: Writer описывает сцену",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:15:52.745489"
+      "timestamp": "2026-04-07T16:08:58.733044"
     },
     {
       "agent_id": "writer",
-      "content": "[WRITER] Начало работы. Модель: google/gemini-3-flash-preview",
+      "content": "[WRITER] Начало работы. Модель: deepseek/deepseek-v3.2",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:15:52.754811"
+      "timestamp": "2026-04-07T16:08:58.743425"
     },
     {
       "agent_id": "writer",
-      "content": "[WRITER] Завершил работу. Результат: 2058 символов",
+      "content": "[WRITER] Завершил работу. Результат: 3815 символов",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:15:59.912945"
+      "timestamp": "2026-04-07T16:09:16.516599"
     },
     {
       "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
+      "content": "[CRITIC] Оценка: PASS. Результат исключительно сильный и полностью соответствует духу и букве задания.",
       "msg_type": "critic",
-      "timestamp": "2026-04-06T21:16:05.971517"
+      "timestamp": "2026-04-07T16:09:33.752375"
     },
     {
       "agent_id": "writer",
       "content": "[CONVEYOR] writer: APPROVED (round 1)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:16:06.022275"
+      "timestamp": "2026-04-07T16:09:33.760008"
     },
     {
       "agent_id": "orchestrator",
       "content": "[CONVEYOR] Шаг 2: Director — режиссёрское решение",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:16:06.033261"
+      "timestamp": "2026-04-07T16:09:33.771298"
     },
     {
       "agent_id": "director",
-      "content": "[DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "content": "[DIRECTOR] Начало работы. Модель: deepseek/deepseek-v3.2",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:16:06.044602"
+      "timestamp": "2026-04-07T16:09:33.781196"
     },
     {
       "agent_id": "director",
-      "content": "[DIRECTOR] Завершил работу. Результат: 2531 символов",
+      "content": "[DIRECTOR] Завершил работу. Результат: 5167 символов",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:16:14.549837"
+      "timestamp": "2026-04-07T16:10:26.948325"
     },
     {
       "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
+      "content": "[CRITIC] Ошибка: ",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:11:26.962268"
+    },
+    {
+      "agent_id": "fixer",
+      "content": "[FIXER] Ошибка: ",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:13:26.971857"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. Работа агента демонстрирует превосходное понимание требований проекта. Режиссерское решение идеально соответствует визуальному стилю \"фотореализм, военная хроника\" — использование драматического освещ",
       "msg_type": "critic",
-      "timestamp": "2026-04-06T21:16:20.705696"
+      "timestamp": "2026-04-07T16:13:54.127127"
     },
     {
       "agent_id": "director",
-      "content": "[CONVEYOR] director: APPROVED (round 1)",
+      "content": "[CONVEYOR] director: APPROVED (round 2)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:16:20.755400"
+      "timestamp": "2026-04-07T16:13:54.135674"
     },
     {
       "agent_id": "orchestrator",
       "content": "[CONVEYOR] Шаг 3: HR — кастинг персонажей",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:16:20.766352"
+      "timestamp": "2026-04-07T16:13:54.146786"
     },
     {
       "agent_id": "hr_agent",
-      "content": "[HR_AGENT] Начало работы. Модель: google/gemini-3-flash-preview",
+      "content": "[HR_AGENT] Начало работы. Модель: deepseek/deepseek-v3.2",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:16:20.778056"
+      "timestamp": "2026-04-07T16:13:54.158468"
     },
     {
       "agent_id": "hr_agent",
-      "content": "[HR_AGENT] Завершил работу. Результат: 1282 символов",
+      "content": "[HR_AGENT] Завершил работу. Результат: 1028 символов",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:16:25.531152"
+      "timestamp": "2026-04-07T16:14:24.987835"
     },
     {
       "agent_id": "critic",
-      "content": "[CRITIC] Оценка: FAIL. ",
+      "content": "[CRITIC] Оценка: PASS. Агент выполнил работу на высоком уровне, полностью соответствуя духу проекта \"Военный летчик\" и заявленным требованиям. Конкретно:",
       "msg_type": "critic",
-      "timestamp": "2026-04-06T21:16:29.910745"
-    },
-    {
-      "agent_id": "fixer",
-      "content": "[FIXER] Исправил результат. 2123 символов",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T21:16:36.376789"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-06T21:16:41.548640"
+      "timestamp": "2026-04-07T16:14:42.467599"
     },
     {
       "agent_id": "hr_agent",
-      "content": "[CONVEYOR] hr_agent: APPROVED (round 2)",
+      "content": "[CONVEYOR] hr_agent: APPROVED (round 1)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:16:41.600226"
+      "timestamp": "2026-04-07T16:14:42.475434"
     },
     {
       "agent_id": "hr_agent",
       "content": "[CONVEYOR] Character consistency rule применён локально к текущей сцене (без записи в global patterns)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:16:41.610149"
+      "timestamp": "2026-04-07T16:14:42.485044"
     },
     {
       "agent_id": "orchestrator",
       "content": "[CONVEYOR] Шаг 4: Параллельная работа цехов (JSON)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:16:41.620344"
+      "timestamp": "2026-04-07T16:14:42.502457"
     },
     {
       "agent_id": "dop",
-      "content": "[DOP] Начало работы. Модель: google/gemini-3-flash-preview",
+      "content": "[DOP] Начало работы. Модель: deepseek/deepseek-v3.2",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:16:41.631100"
+      "timestamp": "2026-04-07T16:14:42.512758"
     },
     {
       "agent_id": "dop",
-      "content": "[DOP] Завершил работу. Результат: 743 символов",
+      "content": "[DOP] Завершил работу. Результат: 1227 символов",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:16:45.792686"
+      "timestamp": "2026-04-07T16:14:58.842928"
     },
     {
       "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
+      "content": "[CRITIC] Оценка: PASS. Работа агента соответствует ключевым требованиям проекта. Описание сохраняет необходимый визуальный стиль \"фотореализм, военная хроника\" через детализацию освещения (контрастный свет костра, дрожащие ",
       "msg_type": "critic",
-      "timestamp": "2026-04-06T21:16:49.974757"
+      "timestamp": "2026-04-07T16:15:08.891731"
     },
     {
       "agent_id": "dop",
       "content": "[CONVEYOR] dop: APPROVED (round 1)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:16:50.035512"
+      "timestamp": "2026-04-07T16:15:08.900255"
     },
     {
       "agent_id": "art_director",
-      "content": "[ART_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "content": "[ART_DIRECTOR] Начало работы. Модель: deepseek/deepseek-v3.2",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:16:50.049276"
+      "timestamp": "2026-04-07T16:15:08.911767"
     },
     {
       "agent_id": "art_director",
-      "content": "[ART_DIRECTOR] Завершил работу. Результат: 725 символов",
+      "content": "[ART_DIRECTOR] Завершил работу. Результат: 1344 символов",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:16:54.822224"
+      "timestamp": "2026-04-07T16:16:12.309228"
     },
     {
       "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
+      "content": "[CRITIC] Оценка: PASS. Результат является выдающимся соответствием требованиям проекта. Агентом была детально декомпозирована задача, что привело к точному описанию визуального стиля и палитры, полностью соответствующим исх",
       "msg_type": "critic",
-      "timestamp": "2026-04-06T21:17:00.968295"
+      "timestamp": "2026-04-07T16:16:25.029579"
     },
     {
       "agent_id": "art_director",
       "content": "[CONVEYOR] art_director: APPROVED (round 1)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:17:01.038683"
+      "timestamp": "2026-04-07T16:16:25.037917"
     },
     {
       "agent_id": "sound_director",
-      "content": "[SOUND_DIRECTOR] Начало работы. Модель: google/gemini-3-flash-preview",
+      "content": "[SOUND_DIRECTOR] Начало работы. Модель: deepseek/deepseek-v3.2",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:01.053704"
+      "timestamp": "2026-04-07T16:16:25.048263"
     },
     {
       "agent_id": "sound_director",
-      "content": "[SOUND_DIRECTOR] Завершил работу. Результат: 1188 символов",
+      "content": "[SOUND_DIRECTOR] Завершил работу. Результат: 315 символов",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:06.785650"
+      "timestamp": "2026-04-07T16:16:30.199675"
     },
     {
       "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
+      "content": "[CRITIC] Оценка: PASS. Агент блестяще справился с задачей. Описание точно передаёт фотореалистичный, документальный характер сцены, как того требовал проект. Отказ от музыки и диалога, акцент на звуках природы и огня как «м",
       "msg_type": "critic",
-      "timestamp": "2026-04-06T21:17:12.519643"
+      "timestamp": "2026-04-07T16:16:53.343367"
     },
     {
       "agent_id": "sound_director",
       "content": "[CONVEYOR] sound_director: APPROVED (round 1)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:17:12.580567"
+      "timestamp": "2026-04-07T16:16:53.352232"
     },
     {
       "agent_id": "orchestrator",
       "content": "[CONVEYOR] Шаг 5: Storyboarder собирает промпт",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:17:12.599200"
+      "timestamp": "2026-04-07T16:16:53.363526"
     },
     {
       "agent_id": "orchestrator",
       "content": "[CONVEYOR] Шаг 6: Генерация изображений (Z-Image Turbo)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:17:12.612403"
+      "timestamp": "2026-04-07T16:16:53.374630"
     },
     {
       "agent_id": "art_director",
-      "content": "[KIE.AI] Отправка image-prompt (876 символов): subject: adult human protagonist, location: A dark backyard of a private house at night. Deep blue and black palette. A wooden fence and apple tree branches swaying in the wind. Frozen grass with glinting frost. Mist/steam particles around the characters' mouths, lighting: Clair-",
+      "content": "[KIE.AI] Отправка image-prompt (876 символов): subject: ЛЕТЧИК (Пилот), Мужчина с уставшим, вымазанным сажей и грязью лицом. Глубокие тени под глазами от усталости и концентрации. Волосы коротко стрижены, взъерошены. Скулы и линия челюсти подчеркнуты жестким нижним освещением от костра. Руки в царапинах и ссадинах, с грязью п",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:17:12.622499"
+      "timestamp": "2026-04-07T16:16:53.384483"
     },
     {
       "agent_id": "art_director",
-      "content": "[KIE.AI] Статус: error, URL: None",
+      "content": "[KIE.AI] Статус: success, URL: /tools_cache/kie_477f90c2d08feea69a34b1999a0dda6f.",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:17:13.167094"
+      "timestamp": "2026-04-07T16:17:39.811103"
     },
     {
-      "agent_id": "art_director",
-      "content": "[KIE.AI] ОШИБКА: Генерация не удалась: Не удалось подключиться к Kie.ai: [Errno 11002] getaddrinfo failed",
-      "msg_type": "system",
-      "timestamp": "2026-04-06T21:17:13.177981"
-    },
-    {
-      "agent_id": "art_director",
-      "content": "[tool_failure] Kie.ai failed for scene_1_3_1: Генерация не удалась: Не удалось подключиться к Kie.ai: [Errno 11002] getaddrinfo failed",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:13.245384"
-    },
-    {
-      "agent_id": "art_director",
-      "content": "[evaluation_fail] Агент art_director провалил оценку: Результат абсолютно неприемлем. Работа не выполнена, а вместо визуального контента представлен технический отчет об ошибке соединения. Ошибка `[Errno 11002] getaddrinfo failed` указывает на проблемы с",
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. Изображение успешно передает ключевые элементы промпта и соответствует визуальному стилю проекта. Летчик изображен реалистично, с признаками усталости, грязи и концентрации. Освещение от костра создае",
       "msg_type": "critic",
-      "timestamp": "2026-04-06T21:17:17.833897"
+      "timestamp": "2026-04-07T16:17:46.536839"
     },
     {
-      "agent_id": "art_director",
-      "content": "[fixer_attempt] Попытка исправления 1/3 для art_director",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:17.853476"
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 6.5: CV авто-проверка изображения...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:17:46.540696"
     },
     {
-      "agent_id": "art_director",
-      "content": "[fixer_fail] Fixer не справился (попытка 1/3): Это не «исправленный результат», а пустая обертка. Как критик, я оцениваю финальный визуал, а не технический лог о «восстановлении соединения».",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:26.555262"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Попытка 1/3: проверка изображения...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:17:46.551783"
     },
     {
-      "agent_id": "art_director",
-      "content": "[fixer_attempt] Попытка исправления 2/3 для art_director",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:26.578610"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Попытка 1: score=5/10, matched=0, missing=0",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:17:50.256860"
     },
     {
-      "agent_id": "art_director",
-      "content": "[fixer_fail] Fixer не справился (попытка 2/3): ",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:37.088098"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Запуск Critic для анализа ошибок...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:17:50.259642"
     },
     {
-      "agent_id": "art_director",
-      "content": "[fixer_attempt] Попытка исправления 3/3 для art_director",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:37.109749"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Запуск Fixer для переписывания промпта...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:18:17.104529"
     },
     {
-      "agent_id": "art_director",
-      "content": "[fixer_success] Fixer исправил результат для art_director (попытка 3)",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:48.628923"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Генерация нового изображения через Kie.ai...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:18:26.561899"
     },
     {
-      "agent_id": "art_director",
-      "content": "[agent_heal_triggered] Агент art_director: 2 провалов подряд → эволюция",
-      "msg_type": "med_otdel",
-      "timestamp": "2026-04-06T21:17:48.670582"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Попытка 2/3: проверка изображения...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:19:12.518832"
     },
     {
-      "agent_id": "art_director",
-      "content": "[evolution_error] Ошибка эволюции art_director: 'NoneType' object is not subscriptable",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:48.695719"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Попытка 2: score=5/10, matched=0, missing=0",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:19:17.978913"
     },
     {
-      "agent_id": "storyboarder,critic",
-      "content": "[chain_heal_triggered] Цепочка storyboarder→critic: 2 провалов",
-      "msg_type": "med_otdel",
-      "timestamp": "2026-04-06T21:17:48.758272"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Запуск Critic для анализа ошибок...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:19:17.981939"
     },
     {
-      "agent_id": "storyboarder,critic",
-      "content": "[chain_healed] Цепочка storyboarder→critic исправлена: обновлён промпт critic",
-      "msg_type": "med_otdel",
-      "timestamp": "2026-04-06T21:17:48.796283"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Запуск Fixer для переписывания промпта...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:20:18.001058"
     },
     {
-      "agent_id": "hr_agent,critic",
-      "content": "[chain_heal_triggered] Цепочка hr_agent→critic: 2 провалов",
-      "msg_type": "med_otdel",
-      "timestamp": "2026-04-06T21:17:48.816775"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Генерация нового изображения через Kie.ai...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:20:23.458745"
     },
     {
-      "agent_id": "hr_agent,critic",
-      "content": "[chain_healed] Цепочка hr_agent→critic исправлена: обновлён промпт critic",
-      "msg_type": "med_otdel",
-      "timestamp": "2026-04-06T21:17:48.857631"
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Попытка 3/3: проверка изображения...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:21:06.249250"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] Попытка 3: score=5/10, matched=0, missing=0",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:21:11.310944"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CV-AUTO] ⚠️ MAX ATTEMPTS. Best score: 5/10",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:21:11.314763"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] CV улучшил изображение: score=5/10 за 3 попыток",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:21:11.324644"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 6.6: Проверка консистентности персонажей...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:21:11.333927"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONSISTENCY] Проверено 0 персонажей, score=5/10, проблем=0",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:21:15.603263"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] ✅ Консистентность персонажей: 5/10",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:21:15.606577"
     },
     {
       "agent_id": "orchestrator",
       "content": "[CONVEYOR] Шаг 7: Финальная сборка сцены",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:17:48.875406"
+      "timestamp": "2026-04-07T16:21:15.618620"
     },
     {
       "agent_id": "storyboarder",
-      "content": "[STORYBOARDER] Начало работы. Модель: google/gemini-3-flash-preview",
+      "content": "[STORYBOARDER] Начало работы. Модель: deepseek/deepseek-v3.2",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:48.886163"
+      "timestamp": "2026-04-07T16:21:15.628567"
     },
     {
       "agent_id": "storyboarder",
-      "content": "[STORYBOARDER] Завершил работу. Результат: 2092 символов",
+      "content": "[STORYBOARDER] Завершил работу. Результат: 1756 символов",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:17:55.091271"
+      "timestamp": "2026-04-07T16:22:15.272822"
     },
     {
       "agent_id": "critic",
-      "content": "[CRITIC] Оценка: FAIL. ",
+      "content": "[CRITIC] Оценка: PASS. Агент демонстрирует высокий уровень профессионализма и проактивности. Его оценка ситуации объективна — действительно, для сборки полноценной сцены недостаточно одного финального кадра. Его главная сил",
       "msg_type": "critic",
-      "timestamp": "2026-04-06T21:18:00.019521"
-    },
-    {
-      "agent_id": "fixer",
-      "content": "[FIXER] Исправил результат. 2792 символов",
-      "msg_type": "agent",
-      "timestamp": "2026-04-06T21:18:08.447381"
-    },
-    {
-      "agent_id": "critic",
-      "content": "[CRITIC] Оценка: PASS. ",
-      "msg_type": "critic",
-      "timestamp": "2026-04-06T21:18:14.884657"
+      "timestamp": "2026-04-07T16:22:39.570136"
     },
     {
       "agent_id": "storyboarder",
-      "content": "[CONVEYOR] storyboarder: APPROVED (round 2)",
+      "content": "[CONVEYOR] storyboarder: APPROVED (round 1)",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:18:14.927661"
+      "timestamp": "2026-04-07T16:22:39.578469"
     },
     {
       "agent_id": "orchestrator",
-      "content": "[pipeline_completed] Scene pipeline completed: 1x3:1",
+      "content": "[pipeline_completed] Scene pipeline completed: 1x1:6",
       "msg_type": "agent",
-      "timestamp": "2026-04-06T21:18:14.988176"
+      "timestamp": "2026-04-07T16:22:39.605539"
     },
     {
       "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Результаты сцены 1x3:1 сохранены в БД",
+      "content": "[CONVEYOR] Результаты сцены 1x1:6 сохранены в БД",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:18:15.016456"
+      "timestamp": "2026-04-07T16:22:39.626995"
     },
     {
       "agent_id": "orchestrator",
-      "content": "[CONVEYOR] Сцена 1x3:1 завершена!",
+      "content": "[CONVEYOR] Сцена 1x1:6 завершена!",
       "msg_type": "system",
-      "timestamp": "2026-04-06T21:18:15.025083"
+      "timestamp": "2026-04-07T16:22:39.637684"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Запуск конвейера: Сцена 1x1:7",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:33:42.982560"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] Начало кастинга — извлечение персонажей из сценария...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:33:42.989540"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Начало работы. Модель: deepseek/deepseek-v3.2",
+      "msg_type": "agent",
+      "timestamp": "2026-04-07T16:33:43.001351"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[HR_AGENT] Завершил работу. Результат: 757 символов",
+      "msg_type": "agent",
+      "timestamp": "2026-04-07T16:33:52.259560"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] HR вернул 757 chars, извлечено 1 персонажей",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:33:52.264207"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] Персонаж: Летчик",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:33:52.275335"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] Critic сверяет персонажей с PDF сценария...",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:33:52.285982"
+    },
+    {
+      "agent_id": "critic",
+      "content": "[CRITIC] Оценка: PASS. В предложенном тексте сценария Сцена 7 конкретно упоминается один персонаж — Летчик. Данный персонаж присутствует в списке от HR (\"- Летчик: Уставшее лицо...\"). Это является допустимой и логичной дета",
+      "msg_type": "critic",
+      "timestamp": "2026-04-07T16:34:00.800579"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] Critic: PASS. Все 1 персонажей подтверждены.",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:34:00.803049"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CASTING] Персонаж сохранён: Летчик",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:34:00.821433"
+    },
+    {
+      "agent_id": "hr_agent",
+      "content": "[CONVEYOR] Character consistency rule применён локально к текущей сцене (без записи в global patterns)",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:34:00.831078"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CASTING] Кастинг завершён: 1 персонажей сохранено",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:34:00.840222"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] Шаг 1: Writer описывает сцену",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:34:00.848623"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[WRITER] Начало работы. Модель: deepseek/deepseek-v3.2",
+      "msg_type": "agent",
+      "timestamp": "2026-04-07T16:34:00.857399"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[WRITER] Таймаут (150 сек)",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:36:30.875104"
+    },
+    {
+      "agent_id": "writer",
+      "content": "[pipeline_step_failed] writer step failed before critic",
+      "msg_type": "agent",
+      "timestamp": "2026-04-07T16:36:30.886258"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[CONVEYOR] FAIL на Writer: [ТАЙМАУТ] Агент writer не ответил за 150 сек",
+      "msg_type": "system",
+      "timestamp": "2026-04-07T16:36:30.899331"
+    },
+    {
+      "agent_id": "orchestrator",
+      "content": "[frame_failed] producer_dd977905 frame=1/1 reason=step=writer: [ТАЙМАУТ] Агент writer не ответил за 150 сек",
+      "msg_type": "agent",
+      "timestamp": "2026-04-07T16:36:30.947425"
     }
   ]
 }

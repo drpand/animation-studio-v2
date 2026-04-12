@@ -1,0 +1,440 @@
+"""CV check and auto-fix endpoints."""
+import json
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from database import get_session
+import crud
+from config import OPENROUTER_API_KEY
+from utils.logger import info, error
+from api.cv_check.helpers import (
+    image_to_base64,
+    extract_json,
+    clean_unicode,
+    to_ascii,
+    call_llm,
+)
+
+router = APIRouter()
+
+
+class CVCheckRequest(BaseModel):
+    frame_id: int
+    model: str = "google/gemini-3.1-flash-lite-preview"
+
+
+@router.post("/cv-check")
+async def cv_check(req: CVCheckRequest, db: AsyncSession = Depends(get_session)):
+    """
+    Проверить соответствие изображения описанию сцены через OpenRouter Vision API.
+    Возвращает оценку 0-10, описание что видит модель, и что совпало/не совпало.
+    """
+    if not OPENROUTER_API_KEY:
+        raise HTTPException(400, "OPENROUTER_API_KEY не настроен")
+
+    # Находим кадр
+    frames = await crud.get_all_scene_frames(db)
+    frame = next((f for f in frames if f.id == req.frame_id), None)
+    if not frame:
+        raise HTTPException(404, f"Кадр {req.frame_id} не найден")
+
+    if not frame.image_url:
+        return {"ok": False, "error": "Нет изображения для проверки"}
+
+    writer_text = frame.writer_text or frame.final_prompt or ""
+    if not writer_text:
+        return {"ok": False, "error": "Нет описания сцены для сравнения"}
+
+    # Очищаем writer_text от Unicode спецсимволов
+    writer_text = clean_unicode(writer_text)
+
+    # Конвертируем изображение в base64 data URL для OpenRouter
+    image_b64 = await image_to_base64(frame.image_url)
+    if not image_b64:
+        return {"ok": False, "error": "Не удалось загрузить изображение"}
+
+    image_data_url = f"data:image/png;base64,{image_b64}"
+
+    # Промпт для CV проверки
+    system_prompt = """You are a computer vision expert and anime production specialist.
+Describe what you see in the image and compare it with the scene description.
+
+Return STRICTLY JSON:
+{
+  "description": "Detailed description of what you see (2-3 sentences)",
+  "score": 8,
+  "matched": ["element1", "element2"],
+  "missing": ["element3", "element4"],
+  "verdict": "Image matches scene description" or "Image does not match"
+}"""
+
+    user_prompt = f"""Describe what you see in this image and compare with the scene description.
+
+Scene description:
+{writer_text[:2000]}
+
+Rate match from 0-10.
+List matched and missing elements."""
+
+    # Отправляем в OpenRouter
+    try:
+        info(f"[CV] Sending to OpenRouter, model={req.model}, image_b64_len={len(image_b64)}")
+
+        request_body = json.dumps({
+            "model": req.model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_prompt},
+                        {"type": "image_url", "image_url": {"url": image_data_url}}
+                    ]
+                }
+            ],
+            "max_tokens": 1000,
+        }, ensure_ascii=True)
+
+        import httpx
+        async with httpx.AsyncClient(timeout=180) as client:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "http://localhost:7860",
+                    "X-Title": "Animation Studio v2 - CV Check",
+                },
+                content=request_body.encode("utf-8"),
+            )
+
+            if resp.status_code != 200:
+                error_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+                error_msg = error_data.get("error", {}).get("message", resp.text[:200])
+                return {"ok": False, "error": f"OpenRouter ошибка: {error_msg}"}
+
+            data = resp.json()
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+        # Извлекаем JSON из ответа
+        cv_result = extract_json(content)
+        if not cv_result:
+            cv_result = {
+                "description": content[:500],
+                "score": 5,
+                "matched": [],
+                "missing": [],
+                "verdict": "Не удалось распознать ответ",
+            }
+
+        score = cv_result.get("score", 5)
+        description = to_ascii(cv_result.get("description", ""))
+        matched = [to_ascii(m) for m in cv_result.get("matched", [])]
+        missing = [to_ascii(m) for m in cv_result.get("missing", [])]
+        verdict = to_ascii(cv_result.get("verdict", ""))
+
+        # Сохраняем результат в кадр
+        frame.cv_score = score
+        frame.cv_description = description
+        frame.cv_details = json.dumps({
+            "matched": matched,
+            "missing": missing,
+            "verdict": verdict,
+            "model": req.model,
+        }, ensure_ascii=False)
+
+        await db.commit()
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        error_str = str(e).encode("ascii", errors="replace").decode("ascii")
+        info(f"CV CHECK ERROR: {error_str}")
+        info(tb)
+        return {"ok": False, "error": f"CV error: {error_str}"}
+
+    return {
+        "ok": True,
+        "score": score,
+        "description": description,
+        "matched": matched,
+        "missing": missing,
+        "verdict": verdict,
+        "model": req.model,
+    }
+
+
+@router.post("/cv-auto-fix/{frame_id}")
+async def cv_auto_fix(frame_id: int, db: AsyncSession = Depends(get_session)):
+    """
+    Авто-исправление кадра: CV check → если score < 8 → Critic → Fixer → Kie.ai → повтор.
+    Максимум 3 цикла. Возвращает историю всех попыток.
+    """
+    if not OPENROUTER_API_KEY:
+        raise HTTPException(400, "OPENROUTER_API_KEY not configured")
+
+    frames = await crud.get_all_scene_frames(db)
+    frame = next((f for f in frames if f.id == frame_id), None)
+    if not frame:
+        return {"ok": False, "error": "Frame not found"}
+    if not frame.image_url or not frame.final_prompt:
+        return {"ok": False, "error": "No image or prompt to fix"}
+
+    writer_text = frame.writer_text or frame.final_prompt or ""
+    history = []
+    best_score = frame.cv_score or 0
+    best_image_url = frame.image_url
+    best_prompt = frame.final_prompt
+
+    for attempt in range(1, 4):  # Макс 3 попытки
+        info(f"[AUTO-FIX] Attempt {attempt}/3 for frame {frame_id}")
+
+        # Шаг 1: CV check
+        cv_result = await run_cv_check(frame, writer_text, "google/gemini-3.1-flash-lite-preview")
+        score = cv_result.get("score", 0)
+        cv_description = cv_result.get("description", "")
+        missing = cv_result.get("missing", [])
+
+        history.append({
+            "attempt": attempt,
+            "cv_score": score,
+            "cv_description": cv_description[:300],
+            "missing": missing,
+        })
+
+        info(f"[AUTO-FIX] Attempt {attempt}: CV score={score}")
+
+        if score >= 8:
+            info(f"[AUTO-FIX] Score {score} >= 8, done!")
+            frame.cv_score = score
+            frame.cv_description = cv_description
+            frame.cv_details = json.dumps({
+                "history": history,
+                "attempts": attempt,
+                "final_score": score,
+            }, ensure_ascii=False)
+            await db.commit()
+            return {"ok": True, "score": score, "attempts": attempt, "history": history}
+
+        # Запоминаем лучший результат
+        if score > best_score:
+            best_score = score
+            best_image_url = frame.image_url
+            best_prompt = frame.final_prompt
+
+        # Шаг 2: Critic анализирует
+        info(f"[AUTO-FIX] Running critic review...")
+        critic_feedback = await run_critic_review(writer_text, cv_description, score, missing)
+        info(f"[AUTO-FIX] Critic feedback: {critic_feedback[:200]}...")
+
+        # Шаг 3: Fixer переписывает промпт
+        info(f"[AUTO-FIX] Running fixer rewrite...")
+        new_prompt = await run_fixer_rewrite(
+            frame.final_prompt or "", writer_text, critic_feedback, cv_description
+        )
+        # Очищаем от markdown и пустых строк
+        new_prompt = new_prompt.strip()
+        # Убираем markdown code blocks
+        if new_prompt.startswith("```"):
+            lines = new_prompt.split("\n")
+            new_prompt = "\n".join(lines[1:-1]) if len(lines) > 2 else new_prompt
+        new_prompt = new_prompt.strip()[:800]
+
+        if not new_prompt or len(new_prompt) < 20:
+            info(f"[AUTO-FIX] Fixer returned empty/short prompt ({len(new_prompt)} chars), using original")
+            new_prompt = frame.final_prompt or ""
+
+        info(f"[AUTO-FIX] New prompt: {new_prompt[:200]}...")
+
+        # Шаг 4: Kie.ai генерирует
+        info(f"[AUTO-FIX] Generating new image via Kie.ai...")
+        from tools.kieai_tool import generate_image
+        result = await generate_image(prompt=new_prompt[:4000], width=1024, height=576)
+
+        if result.status != "success":
+            info(f"[AUTO-FIX] Kie.ai failed: {result.error}")
+            history[-1]["kieai_error"] = result.error
+            break
+
+        # Обновляем кадр
+        frame.final_prompt = new_prompt
+        frame.image_url = result.result_url
+
+    # После цикла — возвращаем лучший результат
+    frame.cv_score = best_score
+    frame.cv_description = f"Auto-fix completed after {len(history)} attempts. Best score: {best_score}/10"
+    frame.cv_details = json.dumps({
+        "history": history,
+        "attempts": len(history),
+        "final_score": best_score,
+        "best_image_url": best_image_url,
+    }, ensure_ascii=False)
+
+    # Если лучший результат лучше текущего — откатываем
+    if best_score > (frame.cv_score or 0):
+        frame.image_url = best_image_url
+        frame.final_prompt = best_prompt
+
+    await db.commit()
+
+    return {
+        "ok": True,
+        "final_score": best_score,
+        "attempts": len(history),
+        "history": history,
+        "message": f"Auto-fix completed. Best score: {best_score}/10"
+    }
+
+
+async def run_critic_review(writer_text: str, cv_description: str, cv_score: int, missing: list) -> str:
+    """Critic анализирует CV результат и пишет что исправить."""
+    system = "You are a strict art critic for anime production. Analyze image vs scene description."
+    user = f"""The generated image scored {cv_score}/10 in computer vision check.
+
+Scene description:
+{writer_text[:1500]}
+
+What the CV model saw in the image:
+{cv_description[:1000]}
+
+Missing elements according to CV:
+{', '.join(missing) if missing else 'None reported'}
+
+What specific changes should be made to the image generation prompt to improve accuracy?
+Be specific about composition, elements, colors, lighting.
+Return ONLY the critique, no JSON."""
+
+    return await call_llm(system, user, model="google/gemini-3-flash-preview")
+
+
+async def run_fixer_rewrite(original_prompt: str, writer_text: str, critic_feedback: str, cv_description: str) -> str:
+    """Fixer переписывает промпт для Kie.ai на основе замечаний Critic и CV результата."""
+    system = "You are an expert AI image generation prompt engineer. Rewrite prompts to be more precise."
+    user = f"""Rewrite this image generation prompt to fix the issues identified by the critic.
+
+Original prompt:
+{original_prompt[:2000]}
+
+Scene description (for context):
+{writer_text[:1000]}
+
+Critic feedback on what is wrong:
+{critic_feedback[:1000]}
+
+What CV model actually saw:
+{cv_description[:500]}
+
+Write a NEW prompt optimized for anime image generation.
+Focus on: correct composition, all required elements present, proper lighting and mood.
+Return ONLY the new prompt text, no explanations, no JSON."""
+
+    return await call_llm(system, user, model="google/gemini-3-flash-preview")
+
+
+async def run_cv_check(frame, writer_text: str, model: str) -> dict:
+    """Internal CV check without saving to DB."""
+    image_b64 = await image_to_base64(frame.image_url)
+    if not image_b64:
+        return {"score": 0, "description": "Failed to load image", "matched": [], "missing": []}
+
+    image_data_url = f"data:image/png;base64,{image_b64}"
+    writer_text_clean = clean_unicode(writer_text)
+
+    system_prompt = """You are an expert anime art critic. Analyze images for anime production.
+
+This is ANIME ART (2.5D), not photography. Stylization is expected.
+Do NOT penalize: artistic silhouettes, symbolic reflections, exaggerated colors, non-photorealistic rendering.
+
+Analyze the image against the scene description. Check if KEY ELEMENTS are VISIBLE (even if stylized).
+
+Respond ONLY with in JSON:
+{"description":"what you see in English","score":7,"matched":["element1"],"missing":[],"mood":"good"}
+
+Score: 8-10 if key elements visible and mood matches. 6-7 if mostly there. 4-5 if missing key things."""
+
+    user_prompt = f"""Check if this anime image matches the scene description.
+
+Scene: {writer_text_clean[:1000]}
+
+Are the key visual elements present? Is the mood/atmosphere right?
+Return JSON only."""
+
+    import httpx
+    body = json.dumps({
+        "model": model,
+        "messages": [{"role": "user", "content": [
+            {"type": "text", "text": user_prompt},
+            {"type": "image_url", "image_url": {"url": image_data_url}}
+        ]}],
+        "max_tokens": 500,
+        "temperature": 0.1,
+    }, ensure_ascii=True)
+
+    async with httpx.AsyncClient(timeout=180) as client:
+        resp = await client.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://localhost:7860",
+                "X-Title": "Animation Studio v2 - CV",
+            },
+            content=body.encode("utf-8"),
+        )
+        data = resp.json()
+        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        info(f"[CV] Raw response: {content[:300]}")
+
+    cv_result = extract_json(content)
+    if not cv_result:
+        cv_result = {"score": 5, "description": content[:500], "matched": [], "missing": [], "mood": "unknown"}
+
+    # Handle Gemini nested structure (flexible parsing)
+    score = cv_result.get("score", 5)
+    description = cv_result.get("description", "")
+    matched = cv_result.get("matched", [])
+    missing = cv_result.get("missing", [])
+    mood = cv_result.get("mood", cv_result.get("mood_match", "unknown"))
+
+    # Try nested structures Gemini actually returns (very flexible)
+    analysis = cv_result.get("match_analysis", cv_result.get("analysis", {}))
+    if analysis:
+        # Try different element field names Gemini uses
+        elements = analysis.get("key_visual_elements",
+                  analysis.get("key_elements_present",
+                  analysis.get("elements", {})))
+        for k, v in elements.items():
+            key_clean = str(k).replace("_", " ")
+            v_lower = str(v).lower() if v else ""
+            if v is True or v_lower.startswith("captured") or v_lower.startswith("present"):
+                matched.append(key_clean)
+            elif v is False or v_lower.startswith("missing") or v_lower.startswith("absent"):
+                missing.append(key_clean)
+        mood_info = analysis.get("mood_atmosphere", {})
+        mood_val = mood_info.get("matches_description", mood_info.get("match", mood_info.get("overall", "unknown")))
+        if mood_val is True: mood = "good"
+        elif mood_val is False: mood = "poor"
+        elif isinstance(mood_val, str):
+            mood = "good" if mood_val.lower().startswith("match") else ("partial" if "partial" in mood_val.lower() else "poor")
+        if not description:
+            desc_fallback = analysis.get("summary", analysis.get("overall_assessment", ""))
+            if not desc_fallback:
+                # Build description from elements
+                desc_fallback = f"Elements found: {', '.join(matched) if matched else 'none'}. Missing: {', '.join(missing) if missing else 'none'}"
+            description = desc_fallback
+        # Compute score if not provided
+        if "score" not in cv_result:
+            present = sum(1 for v in elements.values() if v is True or (isinstance(v, str) and v.lower().startswith("captured")))
+            total = len(elements)
+            if total > 0:
+                score = min(10, max(1, int((present / total) * 10)))
+    elif not description:
+        description = f"CV analysis: {content[:300]}"
+
+    return {
+        "score": score,
+        "description": to_ascii(description),
+        "matched": [to_ascii(m) for m in matched],
+        "missing": [to_ascii(m) for m in missing],
+        "mood_match": to_ascii(mood),
+    }

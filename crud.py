@@ -25,34 +25,56 @@ async def get_agent(db: AsyncSession, agent_id: str) -> Optional[Agent]:
     result = await db.execute(select(Agent).where(Agent.agent_id == agent_id))
     return result.scalars().first()
 
+# Белый список разрешённых полей для обновления агента
+AGENT_UPDATEABLE_FIELDS = {
+    "name", "description", "status", "model", "instructions",
+    "max_retries", "timeout", "chat_history"
+}
+
 async def update_agent(db: AsyncSession, agent_id: str, data: Dict[str, Any]) -> Optional[Agent]:
-    agent = await get_agent(db, agent_id)
-    if agent:
-        for key, value in data.items():
-            if hasattr(agent, key) and value is not None:
-                setattr(agent, key, value)
-        await db.commit()
-        await db.refresh(agent)
-    return agent
+    try:
+        agent = await get_agent(db, agent_id)
+        if agent:
+            for key, value in data.items():
+                if key in AGENT_UPDATEABLE_FIELDS and hasattr(agent, key) and value is not None:
+                    setattr(agent, key, value)
+            await db.commit()
+            await db.refresh(agent)
+        return agent
+    except Exception:
+        await db.rollback()
+        raise
 
 async def add_attachment(db: AsyncSession, agent_id: str, data: Dict[str, Any]):
-    attachment = AgentAttachment(agent_id=agent_id, **data)
-    db.add(attachment)
-    await db.commit()
+    try:
+        attachment = AgentAttachment(agent_id=agent_id, **data)
+        db.add(attachment)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
 async def remove_attachment(db: AsyncSession, agent_id: str, filename: str):
-    await db.execute(
-        delete(AgentAttachment).where(
-            AgentAttachment.agent_id == agent_id,
-            AgentAttachment.filename == filename
+    try:
+        await db.execute(
+            delete(AgentAttachment).where(
+                AgentAttachment.agent_id == agent_id,
+                AgentAttachment.filename == filename
+            )
         )
-    )
-    await db.commit()
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
 async def add_message(db: AsyncSession, agent_id: str, role: str, content: str, time: str):
-    msg = Message(agent_id=agent_id, role=role, content=content, time=time)
-    db.add(msg)
-    await db.commit()
+    try:
+        msg = Message(agent_id=agent_id, role=role, content=content, time=time)
+        db.add(msg)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_messages(db: AsyncSession, agent_id: str) -> List[Message]:
     result = await db.execute(
@@ -73,18 +95,26 @@ async def get_rules(db: AsyncSession, agent_id: str) -> List[AgentRule]:
     return result.scalars().all()
 
 async def add_rule(db: AsyncSession, agent_id: str, pattern_key: str):
-    rule = AgentRule(agent_id=agent_id, pattern_key=pattern_key)
-    db.add(rule)
-    await db.commit()
+    try:
+        rule = AgentRule(agent_id=agent_id, pattern_key=pattern_key)
+        db.add(rule)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
 async def remove_rule(db: AsyncSession, agent_id: str, pattern_key: str):
-    await db.execute(
-        delete(AgentRule).where(
-            AgentRule.agent_id == agent_id,
-            AgentRule.pattern_key == pattern_key
+    try:
+        await db.execute(
+            delete(AgentRule).where(
+                AgentRule.agent_id == agent_id,
+                AgentRule.pattern_key == pattern_key
+            )
         )
-    )
-    await db.commit()
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
 # ============================================
 # Projects & Episodes
@@ -96,13 +126,16 @@ async def get_active_project(db: AsyncSession) -> Optional[Project]:
 
 async def create_project(db: AsyncSession, data: Dict[str, Any]) -> Project:
     """Создать новый проект и сделать его активным."""
-    # Деактивируем текущий активный проект
-    await db.execute(update(Project).where(Project.is_active == True).values(is_active=False))
-    project = Project(**data, is_active=True)
-    db.add(project)
-    await db.commit()
-    await db.refresh(project)
-    return project
+    try:
+        await db.execute(update(Project).where(Project.is_active == True).values(is_active=False))
+        project = Project(**data, is_active=True)
+        db.add(project)
+        await db.commit()
+        await db.refresh(project)
+        return project
+    except Exception:
+        await db.rollback()
+        raise
 
 async def list_projects(db: AsyncSession) -> List[Project]:
     """Список всех проектов."""
@@ -111,15 +144,19 @@ async def list_projects(db: AsyncSession) -> List[Project]:
 
 async def reset_project_content(db: AsyncSession):
     """Очистить весь контент проекта: кадры, персонажи, обсуждения, задачи."""
-    from database import SceneFrame, Character, Message, OrchestratorTask, OrchestratorStep, Event, Discussion
-    await db.execute(delete(OrchestratorStep))
-    await db.execute(delete(OrchestratorTask))
-    await db.execute(delete(SceneFrame))
-    await db.execute(delete(Character))
-    await db.execute(delete(Message))
-    await db.execute(delete(Event))
-    await db.execute(delete(Discussion))
-    await db.commit()
+    try:
+        from database import SceneFrame, Character, Message, OrchestratorTask, OrchestratorStep, Event, Discussion
+        await db.execute(delete(OrchestratorStep))
+        await db.execute(delete(OrchestratorTask))
+        await db.execute(delete(SceneFrame))
+        await db.execute(delete(Character))
+        await db.execute(delete(Message))
+        await db.execute(delete(Event))
+        await db.execute(delete(Discussion))
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
 async def update_project(db: AsyncSession, project_id: int, data: Dict[str, Any]) -> Optional[Project]:
     result = await db.execute(select(Project).where(Project.id == project_id))
@@ -151,22 +188,30 @@ async def get_episode(db: AsyncSession, season_id: int, ep_num: int) -> Optional
     return result.scalars().first()
 
 async def create_episode(db: AsyncSession, season_id: int, data: Dict[str, Any]) -> Episode:
-    episode = Episode(season_id=season_id, **data)
-    db.add(episode)
-    await db.commit()
-    await db.refresh(episode)
-    return episode
+    try:
+        episode = Episode(season_id=season_id, **data)
+        db.add(episode)
+        await db.commit()
+        await db.refresh(episode)
+        return episode
+    except Exception:
+        await db.rollback()
+        raise
 
 async def update_episode(db: AsyncSession, episode_id: int, data: Dict[str, Any]) -> Optional[Episode]:
-    result = await db.execute(select(Episode).where(Episode.id == episode_id))
-    ep = result.scalars().first()
-    if ep:
-        for key, value in data.items():
-            if hasattr(ep, key) and value is not None:
-                setattr(ep, key, value)
-        await db.commit()
-        await db.refresh(ep)
-    return ep
+    try:
+        result = await db.execute(select(Episode).where(Episode.id == episode_id))
+        ep = result.scalars().first()
+        if ep:
+            for key, value in data.items():
+                if hasattr(ep, key) and value is not None:
+                    setattr(ep, key, value)
+            await db.commit()
+            await db.refresh(ep)
+        return ep
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_scenes(db: AsyncSession, episode_id: int) -> List[Scene]:
     result = await db.execute(
@@ -175,29 +220,41 @@ async def get_scenes(db: AsyncSession, episode_id: int) -> List[Scene]:
     return result.scalars().all()
 
 async def create_scene(db: AsyncSession, episode_id: int, data: Dict[str, Any]) -> Scene:
-    scene = Scene(episode_id=episode_id, **data)
-    db.add(scene)
-    await db.commit()
-    await db.refresh(scene)
-    return scene
+    try:
+        scene = Scene(episode_id=episode_id, **data)
+        db.add(scene)
+        await db.commit()
+        await db.refresh(scene)
+        return scene
+    except Exception:
+        await db.rollback()
+        raise
 
 async def update_scene(db: AsyncSession, scene_id: int, data: Dict[str, Any]) -> Optional[Scene]:
-    result = await db.execute(select(Scene).where(Scene.id == scene_id))
-    sc = result.scalars().first()
-    if sc:
-        for key, value in data.items():
-            if hasattr(sc, key) and value is not None:
-                setattr(sc, key, value)
-        await db.commit()
-        await db.refresh(sc)
-    return sc
+    try:
+        result = await db.execute(select(Scene).where(Scene.id == scene_id))
+        sc = result.scalars().first()
+        if sc:
+            for key, value in data.items():
+                if hasattr(sc, key) and value is not None:
+                    setattr(sc, key, value)
+            await db.commit()
+            await db.refresh(sc)
+        return sc
+    except Exception:
+        await db.rollback()
+        raise
 
 async def create_scene_version(db: AsyncSession, scene_id: int, data: Dict[str, Any]) -> SceneVersion:
-    version = SceneVersion(scene_id=scene_id, **data)
-    db.add(version)
-    await db.commit()
-    await db.refresh(version)
-    return version
+    try:
+        version = SceneVersion(scene_id=scene_id, **data)
+        db.add(version)
+        await db.commit()
+        await db.refresh(version)
+        return version
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_scene_versions(db: AsyncSession, scene_id: int) -> List[SceneVersion]:
     result = await db.execute(
@@ -214,52 +271,76 @@ async def get_characters(db: AsyncSession, project_id: int) -> List[Character]:
     return result.scalars().all()
 
 async def create_character(db: AsyncSession, project_id: int, data: Dict[str, Any]) -> Character:
-    char = Character(project_id=project_id, **data)
-    db.add(char)
-    await db.commit()
-    await db.refresh(char)
-    return char
+    try:
+        char = Character(project_id=project_id, **data)
+        db.add(char)
+        await db.commit()
+        await db.refresh(char)
+        return char
+    except Exception:
+        await db.rollback()
+        raise
 
 async def delete_character(db: AsyncSession, char_id: int):
-    await db.execute(delete(Character).where(Character.id == char_id))
-    await db.commit()
+    try:
+        await db.execute(delete(Character).where(Character.id == char_id))
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_mood_board(db: AsyncSession, project_id: int) -> List[MoodBoard]:
     result = await db.execute(select(MoodBoard).where(MoodBoard.project_id == project_id))
     return result.scalars().all()
 
 async def add_mood_item(db: AsyncSession, project_id: int, data: Dict[str, Any]) -> MoodBoard:
-    item = MoodBoard(project_id=project_id, **data)
-    db.add(item)
-    await db.commit()
-    await db.refresh(item)
-    return item
+    try:
+        item = MoodBoard(project_id=project_id, **data)
+        db.add(item)
+        await db.commit()
+        await db.refresh(item)
+        return item
+    except Exception:
+        await db.rollback()
+        raise
 
 async def delete_mood_item(db: AsyncSession, item_id: int):
-    await db.execute(delete(MoodBoard).where(MoodBoard.id == item_id))
-    await db.commit()
+    try:
+        await db.execute(delete(MoodBoard).where(MoodBoard.id == item_id))
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_decisions(db: AsyncSession, project_id: int) -> List[Decision]:
     result = await db.execute(select(Decision).where(Decision.project_id == project_id))
     return result.scalars().all()
 
 async def create_decision(db: AsyncSession, project_id: int, data: Dict[str, Any]) -> Decision:
-    dec = Decision(project_id=project_id, **data)
-    db.add(dec)
-    await db.commit()
-    await db.refresh(dec)
-    return dec
+    try:
+        dec = Decision(project_id=project_id, **data)
+        db.add(dec)
+        await db.commit()
+        await db.refresh(dec)
+        return dec
+    except Exception:
+        await db.rollback()
+        raise
 
 # ============================================
 # Discussion & Logs
 # ============================================
 
 async def add_discussion(db: AsyncSession, data: Dict[str, Any]) -> Discussion:
-    disc = Discussion(**data)
-    db.add(disc)
-    await db.commit()
-    await db.refresh(disc)
-    return disc
+    try:
+        disc = Discussion(**data)
+        db.add(disc)
+        await db.commit()
+        await db.refresh(disc)
+        return disc
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_discussions(db: AsyncSession, limit: int = 100) -> List[Discussion]:
     result = await db.execute(
@@ -268,11 +349,15 @@ async def get_discussions(db: AsyncSession, limit: int = 100) -> List[Discussion
     return result.scalars().all()
 
 async def add_med_log(db: AsyncSession, data: Dict[str, Any]) -> MedLog:
-    log = MedLog(**data)
-    db.add(log)
-    await db.commit()
-    await db.refresh(log)
-    return log
+    try:
+        log = MedLog(**data)
+        db.add(log)
+        await db.commit()
+        await db.refresh(log)
+        return log
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_med_logs(db: AsyncSession, limit: int = 100) -> List[MedLog]:
     result = await db.execute(
@@ -281,11 +366,15 @@ async def get_med_logs(db: AsyncSession, limit: int = 100) -> List[MedLog]:
     return result.scalars().all()
 
 async def add_event(db: AsyncSession, data: Dict[str, Any]) -> Event:
-    event = Event(**data)
-    db.add(event)
-    await db.commit()
-    await db.refresh(event)
-    return event
+    try:
+        event = Event(**data)
+        db.add(event)
+        await db.commit()
+        await db.refresh(event)
+        return event
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_events(db: AsyncSession, limit: int = 100) -> List[Event]:
     result = await db.execute(
@@ -298,11 +387,15 @@ async def get_events(db: AsyncSession, limit: int = 100) -> List[Event]:
 # ============================================
 
 async def create_orchestrator_task(db: AsyncSession, data: Dict[str, Any]) -> OrchestratorTask:
-    task = OrchestratorTask(**data)
-    db.add(task)
-    await db.commit()
-    await db.refresh(task)
-    return task
+    try:
+        task = OrchestratorTask(**data)
+        db.add(task)
+        await db.commit()
+        await db.refresh(task)
+        return task
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_orchestrator_task(db: AsyncSession, task_id: str) -> Optional[OrchestratorTask]:
     result = await db.execute(
@@ -311,14 +404,18 @@ async def get_orchestrator_task(db: AsyncSession, task_id: str) -> Optional[Orch
     return result.scalars().first()
 
 async def update_orchestrator_task(db: AsyncSession, task_id: str, data: Dict[str, Any]) -> Optional[OrchestratorTask]:
-    task = await get_orchestrator_task(db, task_id)
-    if task:
-        for key, value in data.items():
-            if hasattr(task, key) and value is not None:
-                setattr(task, key, value)
-        await db.commit()
-        await db.refresh(task)
-    return task
+    try:
+        task = await get_orchestrator_task(db, task_id)
+        if task:
+            for key, value in data.items():
+                if hasattr(task, key) and value is not None:
+                    setattr(task, key, value)
+            await db.commit()
+            await db.refresh(task)
+        return task
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_active_orchestrator_tasks(db: AsyncSession) -> List[OrchestratorTask]:
     result = await db.execute(
@@ -327,11 +424,15 @@ async def get_active_orchestrator_tasks(db: AsyncSession) -> List[OrchestratorTa
     return result.scalars().all()
 
 async def add_orchestrator_step(db: AsyncSession, task_id: str, data: Dict[str, Any]) -> OrchestratorStep:
-    step = OrchestratorStep(task_id=task_id, **data)
-    db.add(step)
-    await db.commit()
-    await db.refresh(step)
-    return step
+    try:
+        step = OrchestratorStep(task_id=task_id, **data)
+        db.add(step)
+        await db.commit()
+        await db.refresh(step)
+        return step
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_orchestrator_steps(db: AsyncSession, task_id: str) -> List[OrchestratorStep]:
     result = await db.execute(
@@ -340,15 +441,19 @@ async def get_orchestrator_steps(db: AsyncSession, task_id: str) -> List[Orchest
     return result.scalars().all()
 
 async def update_orchestrator_step(db: AsyncSession, step_id: int, data: Dict[str, Any]) -> Optional[OrchestratorStep]:
-    result = await db.execute(select(OrchestratorStep).where(OrchestratorStep.id == step_id))
-    step = result.scalars().first()
-    if step:
-        for key, value in data.items():
-            if hasattr(step, key) and value is not None:
-                setattr(step, key, value)
-        await db.commit()
-        await db.refresh(step)
-    return step
+    try:
+        result = await db.execute(select(OrchestratorStep).where(OrchestratorStep.id == step_id))
+        step = result.scalars().first()
+        if step:
+            for key, value in data.items():
+                if hasattr(step, key) and value is not None:
+                    setattr(step, key, value)
+            await db.commit()
+            await db.refresh(step)
+        return step
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_orchestrator_tasks(db: AsyncSession) -> List[OrchestratorTask]:
     result = await db.execute(select(OrchestratorTask).order_by(OrchestratorTask.created_at.desc()))
@@ -391,27 +496,35 @@ async def get_passports(db: AsyncSession) -> List[Passport]:
     return result.scalars().all()
 
 async def create_passport(db: AsyncSession, data: Dict[str, Any]) -> Passport:
-    p = Passport(**data)
-    db.add(p)
-    await db.commit()
-    await db.refresh(p)
-    return p
+    try:
+        p = Passport(**data)
+        db.add(p)
+        await db.commit()
+        await db.refresh(p)
+        return p
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_init_state(db: AsyncSession) -> Optional[InitState]:
     result = await db.execute(select(InitState).limit(1))
     return result.scalars().first()
 
 async def update_init_state(db: AsyncSession, data: Dict[str, Any]):
-    state = await get_init_state(db)
-    if state:
-        for key, value in data.items():
-            if hasattr(state, key) and value is not None:
-                setattr(state, key, value)
-        await db.commit()
-    else:
-        new_state = InitState(**data)
-        db.add(new_state)
-        await db.commit()
+    try:
+        state = await get_init_state(db)
+        if state:
+            for key, value in data.items():
+                if hasattr(state, key) and value is not None:
+                    setattr(state, key, value)
+            await db.commit()
+        else:
+            new_state = InitState(**data)
+            db.add(new_state)
+            await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
 
 # ============================================
@@ -419,11 +532,15 @@ async def update_init_state(db: AsyncSession, data: Dict[str, Any]):
 # ============================================
 
 async def create_scene_frame(db: AsyncSession, data: Dict[str, Any]) -> SceneFrame:
-    frame = SceneFrame(**data)
-    db.add(frame)
-    await db.commit()
-    await db.refresh(frame)
-    return frame
+    try:
+        frame = SceneFrame(**data)
+        db.add(frame)
+        await db.commit()
+        await db.refresh(frame)
+        return frame
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_scene_frames(db: AsyncSession, season: int, episode: int, scene: int) -> List[SceneFrame]:
     result = await db.execute(
@@ -443,17 +560,21 @@ async def get_all_scene_frames(db: AsyncSession) -> List[SceneFrame]:
     return result.scalars().all()
 
 async def update_scene_frame(db: AsyncSession, frame_id: int, data: Dict[str, Any]) -> Optional[SceneFrame]:
-    result = await db.execute(select(SceneFrame).where(SceneFrame.id == frame_id))
-    frame = result.scalars().first()
-    if frame:
-        for key, value in data.items():
-            if hasattr(frame, key) and value is not None:
-                setattr(frame, key, value)
-        from datetime import datetime
-        frame.updated_at = datetime.now().isoformat()
-        await db.commit()
-        await db.refresh(frame)
-    return frame
+    try:
+        result = await db.execute(select(SceneFrame).where(SceneFrame.id == frame_id))
+        frame = result.scalars().first()
+        if frame:
+            for key, value in data.items():
+                if hasattr(frame, key) and value is not None:
+                    setattr(frame, key, value)
+            from datetime import datetime
+            frame.updated_at = datetime.now().isoformat()
+            await db.commit()
+            await db.refresh(frame)
+        return frame
+    except Exception:
+        await db.rollback()
+        raise
 
 
 # ============================================

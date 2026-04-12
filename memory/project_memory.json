@@ -1,16 +1,16 @@
 {
   "active_project": {
-    "name": "Animation Studio",
-    "description": "",
+    "name": "Военный летчик",
+    "description": "Подбитый военный летчик спускается на парашюте над вражеской территорией",
     "file": "",
     "file_path": "",
     "current_season": 1,
     "current_episode": 1,
     "total_episodes": 1,
-    "visual_style": "",
-    "color_palette": "",
-    "music_reference": "",
-    "updated_at": "2026-04-06T20:31:24.164740"
+    "visual_style": "Фотореализм, военная хроника",
+    "color_palette": "Серо-синие тона, дым, огонь",
+    "music_reference": "Тревожный оркестр, военные марши",
+    "updated_at": "2026-04-07T00:35:58.231099"
   },
   "projects": [],
   "seasons": [],

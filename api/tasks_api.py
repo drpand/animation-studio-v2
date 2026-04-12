@@ -4,6 +4,7 @@ Tasks API — Управление задачами.
 """
 import os
 import json
+import tempfile
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
@@ -23,8 +24,17 @@ def _load_tasks() -> dict:
 
 
 def _save_tasks(data: dict):
-    with open(TASKS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    """Атомарная запись JSON через временный файл."""
+    dir_name = os.path.dirname(TASKS_FILE)
+    fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".json.tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as tmp_f:
+            json.dump(data, tmp_f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, TASKS_FILE)
+    except Exception:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
 
 
 class TaskCreate(BaseModel):

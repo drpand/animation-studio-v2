@@ -95,8 +95,11 @@ async def create_project(req: CreateProjectRequest, db: AsyncSession = Depends(g
 
     memory_path = os.path.join(PROJECT_ROOT, "memory", "project_memory.json")
     try:
-        with open(memory_path, "w", encoding="utf-8") as f:
-            json.dump(project_memory, f, ensure_ascii=False, indent=2)
+        dir_name = os.path.dirname(memory_path)
+        fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".json.tmp")
+        with os.fdopen(fd, "w", encoding="utf-8") as tmp_f:
+            json.dump(project_memory, tmp_f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, memory_path)
     except Exception as e:
         pass  # Не критичная ошибка
 
@@ -128,8 +131,12 @@ async def reset_project(db: AsyncSession = Depends(get_session)):
         for agent_id, data in state.items():
             data["status"] = "idle"
             data["chat_history"] = []
-        with open(agents_state_file, "w", encoding="utf-8") as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
+        # Атомарная запись
+        dir_name = os.path.dirname(agents_state_file)
+        fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".json.tmp")
+        with os.fdopen(fd, "w", encoding="utf-8") as tmp_f:
+            json.dump(state, tmp_f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, agents_state_file)
 
     return {"ok": True, "message": "Проект очищен для нового старта"}
 
